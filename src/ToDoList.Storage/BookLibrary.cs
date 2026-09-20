@@ -30,6 +30,7 @@ public sealed class BookLibrary
         {
             try
             {
+                Database.RunAsync(path, () => { Database.Upgrade(path, BackupDirectory); return true; }).GetAwaiter().GetResult();
                 using var c = Database.Open(path, true); var info = ReadInfo(c, path);
                 if (!System.IO.Path.GetFileNameWithoutExtension(path).Equals(info.Name, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidDataException("文件名与书内标识不一致，请通过导入添加。");
@@ -90,6 +91,7 @@ public sealed class BookLibrary
         try
         {
             Database.Snapshot(source, temp);
+            Database.Upgrade(temp, null);
             using var c = Database.Open(temp, true);
             var info = Validate(c, temp, ct);
             return new PreparedImport(info, temp);
@@ -111,13 +113,23 @@ public sealed class BookLibrary
             if (!Guid.TryParse(r.GetString(0), out _)) throw new InvalidDataException("项目标识无效。");
             BookRules.ValidateTitle(r.GetString(1));
         }
-        using (var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision FROM Tasks"))
+        using (var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks"))
         using (var r = cmd.ExecuteReader()) while (r.Read())
         {
             ct.ThrowIfCancellationRequested(); var item = TaskRepository.Read(r);
             if (!Guid.TryParse(item.Id, out _) || !Enum.IsDefined(item.Status) || item.Revision < 1 ||
                 (item.Status == TodoStatus.Completed) != item.CompletedAt.HasValue)
                 throw new InvalidDataException("任务状态或标识无效。");
+            if (item.Status == TodoStatus.Deleted)
+            {
+                if (!item.DeletedAt.HasValue || item.PreviousStatus is not (TodoStatus.Open or TodoStatus.Verification or TodoStatus.Completed)
+                    || (item.PreviousStatus == TodoStatus.Completed) != item.PreviousCompletedAt.HasValue)
+                    throw new InvalidDataException("删除恢复信息无效。");
+                _ = DateTimeOffset.FromUnixTimeMilliseconds(item.DeletedAt.Value);
+                if (item.PreviousCompletedAt.HasValue) _ = DateTimeOffset.FromUnixTimeMilliseconds(item.PreviousCompletedAt.Value);
+            }
+            else if (item.DeletedAt.HasValue || item.PreviousStatus.HasValue || item.PreviousCompletedAt.HasValue)
+                throw new InvalidDataException("非删除任务包含删除恢复信息。");
             var content = RichContent.Parse(item.ContentJson);
             if (content.PlainText != item.PlainText || string.IsNullOrWhiteSpace(item.PlainText)) throw new InvalidDataException("任务内容不一致。");
             _ = DateTimeOffset.FromUnixTimeMilliseconds(item.CreatedAt); _ = DateTimeOffset.FromUnixTimeMilliseconds(item.UpdatedAt);
@@ -127,7 +139,7 @@ public sealed class BookLibrary
         using (var r = cmd.ExecuteReader()) while (r.Read())
         {
             ct.ThrowIfCancellationRequested();
-            if (!Guid.TryParse(r.GetString(0), out _) || r.GetInt32(1) is < 0 or > 2 || r.GetInt32(2) is < 0 or > 2)
+            if (!Guid.TryParse(r.GetString(0), out _) || r.GetInt32(1) is < 0 or > 3 || r.GetInt32(2) is < 0 or > 3)
                 throw new InvalidDataException("状态历史无效。");
             _ = DateTimeOffset.FromUnixTimeMilliseconds(r.GetInt64(3));
         }
@@ -176,17 +188,17 @@ public sealed class BookLibrary
             if (local == null) { Database.Exec(to, "INSERT INTO Projects VALUES($id,$name)", ("$id", id), ("$name", name)); local = id; }
             map[id] = local;
         }
-        using (var cmd = Database.Command(from, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision FROM Tasks"))
+        using (var cmd = Database.Command(from, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks"))
         using (var r = cmd.ExecuteReader()) while (r.Read())
         {
             ct.ThrowIfCancellationRequested(); var item = TaskRepository.Read(r);
             if (item.ProjectId != null) item = item with { ProjectId = map[item.ProjectId] };
             Database.Exec(to, """
-                INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision)
-                VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision)
+                INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt)
+                VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision,$deleted,$previous,$previousCompleted)
                 ON CONFLICT(Id) DO UPDATE SET ProjectId=excluded.ProjectId, ContentJson=excluded.ContentJson,
                 PlainText=excluded.PlainText, Status=excluded.Status, CreatedAt=excluded.CreatedAt,
-                UpdatedAt=excluded.UpdatedAt, CompletedAt=excluded.CompletedAt, Revision=MAX(Tasks.Revision,excluded.Revision)+1
+                UpdatedAt=excluded.UpdatedAt, CompletedAt=excluded.CompletedAt, DeletedAt=excluded.DeletedAt, PreviousStatus=excluded.PreviousStatus, PreviousCompletedAt=excluded.PreviousCompletedAt, Revision=MAX(Tasks.Revision,excluded.Revision)+1
                 WHERE excluded.UpdatedAt>Tasks.UpdatedAt
                 """, TaskRepository.Args(item));
         }

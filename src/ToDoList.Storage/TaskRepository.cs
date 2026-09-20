@@ -43,11 +43,12 @@ public sealed class TaskRepository(string path) : ITaskRepository
         if (query.PageSize is < 1 or > 200) throw new ArgumentOutOfRangeException(nameof(query.PageSize));
         var conditions = new List<string>(); var args = new List<(string, object?)>();
         if (query.ProjectId != null) { conditions.Add("ProjectId=$project"); args.Add(("$project", query.ProjectId)); }
-        if (query.Filter == TaskFilter.Open) conditions.Add("Status<>2");
+        if (query.Filter == TaskFilter.Open) conditions.Add("Status IN(0,1)");
+        if (query.Filter == TaskFilter.Deleted) conditions.Add("Status=3");
         if (query.Filter == TaskFilter.Completed) conditions.Add("Status=2");
         if (query.From.HasValue) { conditions.Add("CreatedAt >= $from"); args.Add(("$from", query.From)); }
         if (query.Until.HasValue) { conditions.Add("CreatedAt < $until"); args.Add(("$until", query.Until)); }
-        var field = query.ByCompletion ? "CompletedAt" : "CreatedAt";
+        var field = query.ByDeletion ? "DeletedAt" : query.ByCompletion ? "CompletedAt" : "CreatedAt";
         var newer = query.Direction == PageDirection.Newer;
         if (query.Cursor != null)
         {
@@ -58,14 +59,14 @@ public sealed class TaskRepository(string path) : ITaskRepository
         var where = conditions.Count == 0 ? "" : " WHERE " + string.Join(" AND ", conditions);
         var direction = newer ? "ASC" : "DESC";
         return Database.Command(c, (explain ? "EXPLAIN QUERY PLAN " : "") +
-            $"SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision FROM Tasks{where} ORDER BY {field} {direction},Id {direction} LIMIT $limit", args.ToArray());
+            $"SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks{where} ORDER BY {field} {direction},Id {direction} LIMIT $limit", args.ToArray());
     }
     public static TodoItem Read(SqliteDataReader r) => new(r.GetString(0), r.IsDBNull(1) ? null : r.GetString(1),
         r.GetString(2), r.GetString(3), (TodoStatus)r.GetInt32(4), r.GetInt64(5), r.GetInt64(6),
-        r.IsDBNull(7) ? null : r.GetInt64(7), r.GetInt64(8));
+        r.IsDBNull(7) ? null : r.GetInt64(7), r.GetInt64(8), r.IsDBNull(9) ? null : r.GetInt64(9), r.IsDBNull(10) ? null : (TodoStatus)r.GetInt32(10), r.IsDBNull(11) ? null : r.GetInt64(11));
     private static TodoItem Get(SqliteConnection c, string id)
     {
-        using var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision FROM Tasks WHERE Id=$id", ("$id", id));
+        using var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks WHERE Id=$id", ("$id", id));
         using var r = cmd.ExecuteReader(); return r.Read() ? Read(r) : throw new InvalidOperationException("任务已不存在，请刷新列表。");
     }
     private static void ValidateContent(RichContent content)
@@ -83,13 +84,14 @@ public sealed class TaskRepository(string path) : ITaskRepository
         Insert(c, item); tx.Commit(); return item;
     }, ct);
     public static void Insert(SqliteConnection c, TodoItem item) => Database.Exec(c,
-        "INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision) VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision)", Args(item));
+        "INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt) VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision,$deleted,$previous,$previousCompleted)", Args(item));
     public static (string, object?)[] Args(TodoItem t) => [("$id", t.Id), ("$project", t.ProjectId), ("$json", t.ContentJson),
         ("$text", t.PlainText), ("$status", (int)t.Status), ("$created", t.CreatedAt), ("$updated", t.UpdatedAt),
-        ("$completed", t.CompletedAt), ("$revision", t.Revision)];
+        ("$completed", t.CompletedAt), ("$revision", t.Revision), ("$deleted", t.DeletedAt), ("$previous", t.PreviousStatus.HasValue ? (int)t.PreviousStatus.Value : null), ("$previousCompleted", t.PreviousCompletedAt)];
     public Task<TodoItem> UpdateContentAsync(string id, RichContent content, long revision, CancellationToken ct = default) => Run(c =>
     {
         ValidateContent(content); using var tx = c.BeginTransaction(); var old = Get(c, id);
+        if (old.Status == TodoStatus.Deleted) throw new InvalidOperationException("请先恢复任务再编辑。");
         if (old.Revision != revision) throw new InvalidOperationException("任务已更新，请取消编辑后重新打开。");
         var now = Math.Max(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), old.UpdatedAt + 1);
         Database.Exec(c, "UPDATE Tasks SET ContentJson=$json,PlainText=$text,UpdatedAt=$now,Revision=Revision+1 WHERE Id=$id",
@@ -98,13 +100,31 @@ public sealed class TaskRepository(string path) : ITaskRepository
     }, ct);
     public Task<TodoItem> SetStatusAsync(string id, TodoStatus status, long revision, CancellationToken ct = default) => Run(c =>
     {
-        if (!Enum.IsDefined(status)) throw new ArgumentException("未知任务状态。");
+        if (!Enum.IsDefined(status) || status == TodoStatus.Deleted) throw new ArgumentException("未知任务状态。");
         using var tx = c.BeginTransaction(); var old = Get(c, id);
         if (old.Revision != revision) throw new InvalidOperationException("任务状态已更新，请重试。");
+        if (old.Status == TodoStatus.Deleted) throw new InvalidOperationException("请使用恢复操作。");
         if (old.Status == status) return old;
         var now = Math.Max(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), old.UpdatedAt + 1);
         Database.Exec(c, "UPDATE Tasks SET Status=$status,CompletedAt=$completed,UpdatedAt=$now,Revision=Revision+1 WHERE Id=$id",
             ("$status", (int)status), ("$completed", status == TodoStatus.Completed ? now : null), ("$now", now), ("$id", id));
+        Database.Exec(c, "INSERT INTO TaskStateEvents VALUES($event,$task,$from,$to,$now)",
+            ("$event", Guid.NewGuid().ToString("N")), ("$task", id), ("$from", (int)old.Status), ("$to", (int)status), ("$now", now));
+        var item = Get(c, id); tx.Commit(); return item;
+    }, ct);
+    public Task<TodoItem> DeleteTaskAsync(string id, long revision, CancellationToken ct = default) => DeleteOrRestoreAsync(id, revision, false, ct);
+    public Task<TodoItem> RestoreTaskAsync(string id, long revision, CancellationToken ct = default) => DeleteOrRestoreAsync(id, revision, true, ct);
+    private Task<TodoItem> DeleteOrRestoreAsync(string id, long revision, bool restore, CancellationToken ct) => Run(c =>
+    {
+        using var tx = c.BeginTransaction(); var old = Get(c, id);
+        if (old.Revision != revision) throw new InvalidOperationException("任务状态已更新，请重试。");
+        if (restore != (old.Status == TodoStatus.Deleted)) throw new InvalidOperationException("任务状态不支持此操作。");
+        var now = Math.Max(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), old.UpdatedAt + 1);
+        var status = restore ? old.PreviousStatus!.Value : TodoStatus.Deleted;
+        Database.Exec(c, "UPDATE Tasks SET Status=$status,CompletedAt=$completed,DeletedAt=$deleted,PreviousStatus=$previous,PreviousCompletedAt=$previousCompleted,UpdatedAt=$now,Revision=Revision+1 WHERE Id=$id",
+            ("$status", (int)status), ("$completed", restore ? old.PreviousCompletedAt : null),
+            ("$deleted", restore ? null : now), ("$previous", restore ? null : (int)old.Status),
+            ("$previousCompleted", restore ? null : old.CompletedAt), ("$now", now), ("$id", id));
         Database.Exec(c, "INSERT INTO TaskStateEvents VALUES($event,$task,$from,$to,$now)",
             ("$event", Guid.NewGuid().ToString("N")), ("$task", id), ("$from", (int)old.Status), ("$to", (int)status), ("$now", now));
         var item = Get(c, id); tx.Commit(); return item;

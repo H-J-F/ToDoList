@@ -19,7 +19,7 @@ public sealed class StorageTests : IDisposable
         Assert.Single(await Library.ListAsync());
     }
     [Theory]
-    [InlineData("")][InlineData("Work 1")][InlineData("Book1")][InlineData("../Book")][InlineData("我的书")][InlineData("CON")][InlineData("aux")]
+    [InlineData("")][InlineData("Work 1")][InlineData("COM1")][InlineData("lpt9")][InlineData("Book_1")][InlineData("../Book")][InlineData("我的书")][InlineData("CON")][InlineData("aux")]
     public void InvalidBookNamesAreRejected(string name) => Assert.Throws<ArgumentException>(() => BookRules.ValidateName(name));
 
     [Fact] public async Task ProjectAndTaskAreAtomicAndAllMeansUnassigned()
@@ -156,7 +156,7 @@ public sealed class StorageTests : IDisposable
     {
         using var c = Database.Open(path); using var tx = c.BeginTransaction();
         var json = RichContent.FromText("同一时间的任务").ToJson();
-        using var cmd = Database.Command(c, "INSERT INTO Tasks VALUES($id,NULL,$json,'同一时间的任务',0,1700000000000,1700000000000,NULL,1)", ("$id", ""), ("$json", json));
+        using var cmd = Database.Command(c, "INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision) VALUES($id,NULL,$json,'同一时间的任务',0,1700000000000,1700000000000,NULL,1)", ("$id", ""), ("$json", json));
         for (int i = 0; i < count; i++) { cmd.Parameters["$id"].Value = i.ToString("x32"); cmd.ExecuteNonQuery(); }
         tx.Commit(); Database.Exec(c, "ANALYZE");
     }

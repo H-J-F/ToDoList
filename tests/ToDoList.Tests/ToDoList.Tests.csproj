@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -23,4 +23,5 @@
     <ProjectReference Include="..\..\src\ToDoList.Storage\ToDoList.Storage.csproj" />
   </ItemGroup>
 
+<ItemGroup><None Update="Fixtures/v1.sql" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

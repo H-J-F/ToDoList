@@ -3,26 +3,28 @@ using System.Text.RegularExpressions;
 
 namespace ToDoList.Core;
 
-public enum TodoStatus { Open, Verification, Completed }
-public enum TaskFilter { Completed, Open, Month, Week, Today }
-public enum TaskSort { Created, Completed }
+public enum TodoStatus { Open, Verification, Completed, Deleted }
+public enum TaskFilter { Completed, Open, Month, Week, Today, Deleted }
+public enum TaskSort { Created, Completed, Deleted }
 public enum PageDirection { Older, Newer }
 public enum ImportMode { Merge, Replace }
 
 public sealed record BookInfo(string Name, string Title, string Path);
 public sealed record ProjectInfo(string? Id, string Name);
 public sealed record TodoItem(string Id, string? ProjectId, string ContentJson, string PlainText,
-    TodoStatus Status, long CreatedAt, long UpdatedAt, long? CompletedAt, long Revision);
+    TodoStatus Status, long CreatedAt, long UpdatedAt, long? CompletedAt, long Revision, long? DeletedAt = null, TodoStatus? PreviousStatus = null, long? PreviousCompletedAt = null);
 public sealed record PageCursor(long Time, string Id);
 public sealed record TaskQuery(string? ProjectId, TaskFilter Filter, TaskSort Sort,
     long? From = null, long? Until = null, PageCursor? Cursor = null,
     PageDirection Direction = PageDirection.Older, int PageSize = 200)
 {
     public bool ByCompletion => Filter == TaskFilter.Completed && Sort == TaskSort.Completed;
-    public long SortTime(TodoItem item) => ByCompletion ? item.CompletedAt!.Value : item.CreatedAt;
+    public bool ByDeletion => Filter == TaskFilter.Deleted;
+    public long SortTime(TodoItem item) => ByDeletion ? item.DeletedAt!.Value : ByCompletion ? item.CompletedAt!.Value : item.CreatedAt;
     public PageCursor CursorFor(TodoItem item) => new(SortTime(item), item.Id);
     public bool Matches(TodoItem item) => (ProjectId == null || ProjectId == item.ProjectId)
-        && (Filter != TaskFilter.Open || item.Status != TodoStatus.Completed)
+        && (Filter != TaskFilter.Open || item.Status is TodoStatus.Open or TodoStatus.Verification)
+        && (Filter != TaskFilter.Deleted || item.Status == TodoStatus.Deleted)
         && (Filter != TaskFilter.Completed || item.Status == TodoStatus.Completed)
         && (!From.HasValue || item.CreatedAt >= From) && (!Until.HasValue || item.CreatedAt < Until);
 }
@@ -63,12 +65,12 @@ public sealed record RichContent(int Version, List<RichParagraph> Paragraphs)
 
 public static partial class BookRules
 {
-    [GeneratedRegex("^[A-Za-z]{1,64}$")]
+    [GeneratedRegex("^[A-Za-z0-9]{1,64}$")]
     private static partial Regex NamePattern();
     public static void ValidateName(string name)
     {
-        if (!NamePattern().IsMatch(name) || new[] { "CON", "PRN", "AUX", "NUL" }.Contains(name, StringComparer.OrdinalIgnoreCase))
-            throw new ArgumentException("标识名只能包含 1–64 个英文字母，且不能使用 Windows 保留名称。");
+        if (!NamePattern().IsMatch(name) || new[] { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" }.Contains(name, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException("标识名只能包含 1–64 个英文字母或数字，且不能使用 Windows 保留名称。");
     }
     public static string ValidateTitle(string title)
     {
@@ -103,6 +105,8 @@ public static class DateRanges
 
 public sealed class AppSettings
 {
+    public int SettingsVersion { get; set; }
+    public string? AccentPreset { get; set; }
     public string Mode { get; set; } = "浅色";
     public string Palette { get; set; } = "奶油";
     public double FontSize { get; set; } = 14;
@@ -123,5 +127,7 @@ public interface ITaskRepository
     Task<TaskPage> QueryAsync(TaskQuery query, CancellationToken ct = default);
     Task<TodoItem> AddTaskAsync(RichContent content, string? projectId, string? newProject = null, CancellationToken ct = default);
     Task<TodoItem> UpdateContentAsync(string id, RichContent content, long revision, CancellationToken ct = default);
+    Task<TodoItem> DeleteTaskAsync(string id, long revision, CancellationToken ct = default);
+    Task<TodoItem> RestoreTaskAsync(string id, long revision, CancellationToken ct = default);
     Task<TodoItem> SetStatusAsync(string id, TodoStatus status, long revision, CancellationToken ct = default);
 }
