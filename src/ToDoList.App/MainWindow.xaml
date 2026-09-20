@@ -1,0 +1,98 @@
+<Window x:Class="ToDoList.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework" xmlns:ui="clr-namespace:ToDoList.App.Controls" Title="ToDoList" Width="1100" Height="760" MinWidth="800" MinHeight="560" WindowStyle="None" ResizeMode="CanResize" Background="{DynamicResource CanvasBrush}" Foreground="{DynamicResource InkBrush}" FontFamily="Microsoft YaHei UI, Segoe UI Emoji" FontSize="{DynamicResource BodyFontSize}" UseLayoutRounding="True" Loaded="Window_Loaded" Closing="Window_Closing" SourceInitialized="Window_SourceInitialized">
+    <shell:WindowChrome.WindowChrome><shell:WindowChrome CaptionHeight="49" ResizeBorderThickness="6" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False"/></shell:WindowChrome.WindowChrome>
+    <Grid Margin="7"><Grid.RowDefinitions><RowDefinition Height="43"/><RowDefinition Height="*"/><RowDefinition Height="26"/></Grid.RowDefinitions>
+        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="13,0,0,0"><Image x:Name="BrandIcon" Width="25" Height="25" Margin="0,0,8,0"/><TextBlock Text="ToDoList" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/><TextBlock Text=" /  日子慢慢，事情一件件" FontSize="11" Foreground="{DynamicResource MutedBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/></StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                <Button Content="—" Width="42" Padding="0" Style="{StaticResource QuietButton}" Click="Minimize_Click" ToolTip="最小化" AutomationProperties.AutomationId="Minimize"/>
+                <Button x:Name="MaximizeButton" Content="□" Width="42" Padding="0" Style="{StaticResource QuietButton}" Click="Maximize_Click" ToolTip="最大化 / 还原" AutomationProperties.AutomationId="Maximize"/>
+                <Button Content="×" Width="42" Padding="0" FontSize="21" Style="{StaticResource QuietButton}" Click="Close_Click" ToolTip="关闭" AutomationProperties.AutomationId="Close"/>
+            </StackPanel>
+        </Grid>
+        <Border Grid.Row="1" Margin="5,5,1,0" CornerRadius="18" Background="{DynamicResource LineBrush}"/>
+        <Border Grid.Row="1" CornerRadius="18" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" Background="{DynamicResource PaperBrush}" Margin="0,0,5,5">
+            <Grid ClipToBounds="True">
+                <Grid x:Name="WorkArea"><Grid.Style><Style TargetType="Grid"><Style.Triggers><DataTrigger Binding="{Binding IsBusy}" Value="True"><Setter Property="IsEnabled" Value="False"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="207"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Border Background="{DynamicResource SidebarBrush}" CornerRadius="17,0,0,17" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,1,0">
+                        <Grid Margin="17,23,14,16"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="我的待办书" FontSize="11" Foreground="{DynamicResource MutedBrush}" Margin="2,0,0,10"/>
+                                <ComboBox x:Name="BookSelector" ItemsSource="{Binding Books}" DisplayMemberPath="Title" SelectionChanged="Book_Changed" AutomationProperties.AutomationId="BookSelector"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="＋ 新建" FontSize="11" Padding="7,5" Style="{StaticResource QuietButton}" Click="NewBook_Click"/>
+                                    <Button Content="···" Width="34" Padding="3" Style="{StaticResource QuietButton}" Click="BookMenu_Click" ToolTip="导入 / 导出待办书"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <Grid Grid.Row="1" Margin="2,29,0,10"><TextBlock Text="项目目录" FontSize="11" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"/><Button Content="＋" HorizontalAlignment="Right" Padding="6,1" Style="{StaticResource QuietButton}" Click="NewProject_Click" IsEnabled="{Binding HasBook}" ToolTip="新增项目"/></Grid>
+                            <ListBox x:Name="ProjectList" Grid.Row="2" ItemsSource="{Binding Projects}" DisplayMemberPath="Name" SelectionChanged="Project_Changed" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.AutomationId="ProjectList">
+                                <ListBox.ContextMenu><ContextMenu><MenuItem Header="＋ 新增项目" Click="NewProject_Click"/></ContextMenu></ListBox.ContextMenu>
+                                <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/><Setter Property="Padding" Value="12,11"/><Setter Property="Margin" Value="0,3,0,3"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="Item" CornerRadius="4,13,13,4" Background="Transparent" Padding="{TemplateBinding Padding}"><DockPanel><TextBlock Text="▱" Margin="0,0,9,0" Foreground="{DynamicResource MutedBrush}"/><ContentPresenter/></DockPanel></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource AccentBrush}"/><Setter Property="FontWeight" Value="SemiBold"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Item" Property="BorderBrush" Value="{DynamicResource AccentInkBrush}"/><Setter TargetName="Item" Property="BorderThickness" Value="1"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style></ListBox.ItemContainerStyle>
+                            </ListBox>
+                            <StackPanel Grid.Row="3"><Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,12"/><Button Content="⚙  外观与设置" HorizontalAlignment="Left" Style="{StaticResource QuietButton}" Padding="8,9" Click="Settings_Click" AutomationProperties.AutomationId="Settings"/><TextBlock Text="一页一页，慢慢变好。" FontSize="10" Margin="8,10,0,0" Foreground="{DynamicResource MutedBrush}"/></StackPanel>
+                        </Grid>
+                    </Border>
+                    <Grid x:Name="MainPage" Grid.Column="1" Margin="29,18,27,18" Visibility="{Binding HasBook, Converter={StaticResource BoolVisibility}}">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock x:Name="PageHeading" Text="{Binding FilterTitle}" FontSize="24" FontWeight="Bold" Margin="0,0,0,6"/><TextBlock x:Name="PageSubtitle" Text="{Binding DateSubtitle}" FontSize="11" Foreground="{DynamicResource MutedBrush}"/></StackPanel>
+                            <Border x:Name="PageSticker" Grid.Column="1" Width="60" Height="56" Background="{DynamicResource InputBrush}" CornerRadius="12" Margin="8,0,0,0" RenderTransformOrigin=".5,.5"><Border.RenderTransform><RotateTransform Angle="7"/></Border.RenderTransform><StackPanel VerticalAlignment="Center"><TextBlock Text="小步" FontSize="12" HorizontalAlignment="Center"/><TextBlock Text="也算数 ✓" FontSize="10" HorizontalAlignment="Center" Foreground="{DynamicResource AccentInkBrush}" Margin="0,3,0,0"/></StackPanel></Border>
+                        </Grid>
+                        <Grid x:Name="BookmarkArea" Grid.Row="1" Margin="0,17,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="25"/></Grid.RowDefinitions>
+                            <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" CanContentScroll="False"><StackPanel Orientation="Horizontal" x:Name="Tabs">
+                                <RadioButton Style="{StaticResource Bookmark}" Content="已完成" Tag="Completed" Background="{DynamicResource TabDoneBrush}" Click="Tab_Click"/>
+                                <RadioButton Style="{StaticResource Bookmark}" Content="未完成" Tag="Open" Background="{DynamicResource TabOpenBrush}" Click="Tab_Click"/>
+                                <RadioButton Style="{StaticResource Bookmark}" Content="本月" Tag="Month" Background="{DynamicResource TabMonthBrush}" Click="Tab_Click"/>
+                                <RadioButton Style="{StaticResource Bookmark}" Content="本周" Tag="Week" Background="{DynamicResource TabWeekBrush}" Click="Tab_Click"/>
+                                <RadioButton Style="{StaticResource Bookmark}" Content="今天" Tag="Today" Background="{DynamicResource TabTodayBrush}" Click="Tab_Click" IsChecked="True"/>
+                            </StackPanel></ScrollViewer>
+                            <TextBlock Grid.Row="1" Text="{Binding LoadedLabel}" Foreground="{DynamicResource MutedBrush}" FontSize="10" VerticalAlignment="Center"/>
+                            <Border Grid.Row="1" HorizontalAlignment="Right" Width="146" Background="Transparent" Visibility="{Binding IsCompletedTab, Converter={StaticResource BoolVisibility}}">
+                                <ComboBox x:Name="SortSelector" FontSize="11" MinHeight="23" SelectionChanged="Sort_Changed" AutomationProperties.AutomationId="SortSelector">
+                                    <ComboBox.Style><Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border}}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="Opacity" Value="1"/></Trigger><Trigger Property="IsDropDownOpen" Value="True"><Setter Property="Opacity" Value="1"/></Trigger></Style.Triggers></Style></ComboBox.Style>
+                                    <ComboBoxItem Content="添加日期"/><ComboBoxItem Content="完成日期"/>
+                                </ComboBox>
+                            </Border>
+                        </Grid>
+                        <Grid Grid.Row="2">
+                            <ListBox x:Name="TaskList" ItemsSource="{Binding Tasks}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="1" ScrollViewer.ScrollChanged="TaskList_ScrollChanged" AutomationProperties.AutomationId="TaskList">
+                                <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/><Setter Property="Focusable" Value="False"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><ContentPresenter/></ControlTemplate></Setter.Value></Setter></Style></ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate><DataTemplate><ui:TaskCard StateRequested="Task_StateRequested" EditRequested="Task_EditRequested" SaveRequested="Task_SaveRequested" CancelRequested="Task_CancelRequested"/></DataTemplate></ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding IsEmpty, Converter={StaticResource BoolVisibility}}" IsHitTestVisible="False">
+                                <Border Width="76" Height="76" CornerRadius="23" Background="{DynamicResource InputBrush}" HorizontalAlignment="Center" Margin="0,0,0,15"><TextBlock Text="✓" FontSize="38" Foreground="{DynamicResource AccentInkBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                <TextBlock Text="这一页，留给新的小目标" FontSize="16" HorizontalAlignment="Center"/><TextBlock Text="在下面写下第一件想做的事吧" FontSize="12" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                        <Border Grid.Row="3" Background="{DynamicResource InputBrush}" CornerRadius="13" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" Padding="13,11" Margin="0,12,0,0">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition/></Grid.ColumnDefinitions><ComboBox x:Name="DraftProject" ItemsSource="{Binding DraftProjects}" DisplayMemberPath="Name" SelectionChanged="DraftProject_Changed" FontSize="12"/><TextBox x:Name="NewProjectName" Grid.Column="1" Margin="9,0,0,0" Visibility="Collapsed" ToolTip="新项目名称" MaxLength="100"/></Grid>
+                                <ui:RichEditor x:Name="DraftEditor" Grid.Row="1" Height="84" Margin="0,8,0,0" Submit="Draft_Submit"/>
+                                <Grid Grid.Row="2" Margin="0,4,0,0"><TextBlock Text="写下来，就是一个好的开始。" FontSize="10" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"/><Button Content="＋ 记下来" HorizontalAlignment="Right" Style="{StaticResource PrimaryButton}" Padding="14,7" Click="AddTask_Click" ToolTip="Ctrl+Enter" AutomationProperties.AutomationId="AddTask"/></Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <Grid Grid.Column="1" x:Name="Onboarding"><Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasBook}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="380" Margin="30"><Image x:Name="WelcomeIcon" Width="115" Height="115" Margin="0,0,0,25"/><TextBlock Text="给生活，翻开新的一页" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center"/><TextBlock Text="工作、学习，或只是好好生活。&#10;创建一本属于你的待办书，把小目标慢慢实现。" TextAlignment="Center" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,17,0,25"/><Button Content="＋ 创建我的第一本待办书" Style="{StaticResource PrimaryButton}" Click="NewBook_Click" Padding="22,13"/><Button Content="导入已有的待办书" Style="{StaticResource QuietButton}" Click="Import_Click" Margin="0,10,0,0"/></StackPanel>
+                    </Grid>
+                </Grid>
+                <Border x:Name="SettingsPanel" Width="330" HorizontalAlignment="Right" Background="{DynamicResource PaperBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1,0,0,0" Visibility="Collapsed" Padding="23">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+                        <Grid Margin="0,0,0,23"><TextBlock Text="把手账调成喜欢的样子" FontSize="17" FontWeight="Bold"/><Button Content="×" Style="{StaticResource QuietButton}" Padding="3,0" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,30,0,0" Click="CloseSettings_Click"/></Grid>
+                        <TextBlock Text="显示模式" Margin="0,0,0,7"/><ComboBox x:Name="ModeSetting" SelectionChanged="Setting_Changed" Margin="0,0,0,17"/>
+                        <TextBlock Text="主题配色" Margin="0,0,0,7"/><ComboBox x:Name="PaletteSetting" SelectionChanged="Setting_Changed" Margin="0,0,0,17"/>
+                        <TextBlock Text="正文字号" Margin="0,0,0,7"/><ComboBox x:Name="FontSetting" SelectionChanged="Setting_Changed" Margin="0,0,0,17"/>
+                        <TextBlock Text="任务间距" Margin="0,0,0,7"/><ComboBox x:Name="DensitySetting" SelectionChanged="Setting_Changed" Margin="0,0,0,17"/>
+                        <TextBlock Text="动画效果" Margin="0,0,0,7"/><ComboBox x:Name="MotionSetting" SelectionChanged="Setting_Changed" Margin="0,0,0,20"/>
+                        <Button Content="恢复外观默认值" Click="ResetSettings_Click" Margin="0,0,0,20"/>
+                        <Border Height="1" Background="{DynamicResource LineBrush}" Margin="0,0,0,18"/>
+                        <TextBlock Text="数据与关于" FontWeight="SemiBold" Margin="0,0,0,10"/><Button Content="打开 Data 目录 ↗" Click="OpenData_Click" Margin="0,0,0,8"/><Button Content="打开备份目录 ↗" Click="OpenBackup_Click" Margin="0,0,0,18"/>
+                        <Image x:Name="AboutIcon" Width="44" Height="44" HorizontalAlignment="Left"/><TextBlock Text="ToDoList  1.0.0" Margin="0,7,0,5"/><TextBlock Text="一本轻轻的手账，记录认真生活的你。" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}"/>
+                    </StackPanel></ScrollViewer>
+                </Border>
+                <Border Background="#AAFFFDF8" Visibility="{Binding IsBusy, Converter={StaticResource BoolVisibility}}"><Border Background="{DynamicResource PaperBrush}" CornerRadius="14" Padding="25" HorizontalAlignment="Center" VerticalAlignment="Center"><StackPanel><TextBlock Text="正在整理你的待办书…" FontSize="17"/><ProgressBar IsIndeterminate="True" Height="4" Margin="0,16,0,0" Foreground="{DynamicResource AccentInkBrush}"/></StackPanel></Border></Border>
+            </Grid>
+        </Border>
+        <TextBlock Grid.Row="2" Text="{Binding Message}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Message}" Foreground="{DynamicResource MutedBrush}" FontSize="10" Margin="12,3,12,0"/>
+    </Grid>
+</Window>
