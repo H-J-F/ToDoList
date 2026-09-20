@@ -86,7 +86,7 @@
                 </StackPanel></ScrollViewer>
             </Border>
             <Border Background="{DynamicResource PaperBrush}" Opacity="0.9" Visibility="{Binding IsBusy, Converter={StaticResource BoolVisibility}}"><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock Text="正在处理待办书…"/><ProgressBar IsIndeterminate="True" Height="4" Margin="0,16,0,0"/></StackPanel></Border>
-            <fluent:SnackbarPresenter x:Name="Notifications" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="16"/>
+            <fluent:SnackbarPresenter x:Name="Notifications" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="24,0,24,178"/>
             <fluent:ContentDialogHost x:Name="DialogHost"/>
         </Grid>
     </Grid>

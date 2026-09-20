@@ -21,10 +21,10 @@ foreach (var size in sizes)
             var content = RichContent.FromText("完成今天的一件小事：整理资料、记录想法，并给自己一点休息时间。🌱");
             Database.Exec(c, """
                 WITH RECURSIVE seq(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM seq WHERE x<$count)
-                INSERT INTO Tasks
+                INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt)
                 SELECT printf('%032x',x),CASE WHEN x%11=0 THEN NULL ELSE printf('%032x',x%10+1) END,
-                    $json,$text,x%3,$now-x*60000,$now-x*60000+500,
-                    CASE WHEN x%3=2 THEN $now-x*60000+500 ELSE NULL END,1 FROM seq;
+                    $json,$text,x%4,$now-x*60000,$now-x*60000+500,
+                    CASE WHEN x%4=2 THEN $now-x*60000+500 ELSE NULL END,1,CASE WHEN x%4=3 THEN $now-x*60000+500 ELSE NULL END,CASE WHEN x%4=3 THEN 0 ELSE NULL END,NULL FROM seq;
                 """, ("$count", size), ("$json", content.ToJson()), ("$text", content.PlainText), ("$now", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
             transaction.Commit(); Database.Exec(c, "ANALYZE; PRAGMA wal_checkpoint(TRUNCATE);");
         }
@@ -33,6 +33,8 @@ foreach (var size in sizes)
     var queryResults = new List<object>(); var range = DateRanges.For(TaskFilter.Today, DateTime.Now);
     var shapes = new Dictionary<string, TaskQuery>
     {
+        ["all-deleted"] = new(null, TaskFilter.Deleted, TaskSort.Deleted),
+        ["project-deleted"] = new(2.ToString("x32"), TaskFilter.Deleted, TaskSort.Deleted),
         ["all-open"] = new(null, TaskFilter.Open, TaskSort.Created),
         ["project-open"] = new(1.ToString("x32"), TaskFilter.Open, TaskSort.Created),
         ["all-completed-date"] = new(null, TaskFilter.Completed, TaskSort.Completed),

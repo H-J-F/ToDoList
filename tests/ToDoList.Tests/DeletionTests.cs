@@ -58,6 +58,32 @@ public sealed class DeletionTests : IDisposable
         Assert.Equal(restored.Status, Assert.Single((await repo.QueryAsync(new(null, TaskFilter.Open, TaskSort.Created))).Items).Status);
     }
 
+    [Fact] public async Task FailedHistoryWriteRollsBackDeletion()
+    {
+        var book = await Library.CreateAsync("Atomic1", "事务验证"); var repo = new TaskRepository(book.Path);
+        var task = await repo.AddTaskAsync(RichContent.FromText("必须保留"), null);
+        using (var c = Database.Open(book.Path)) Database.Exec(c, "CREATE TRIGGER fail_event BEFORE INSERT ON TaskStateEvents BEGIN SELECT RAISE(ABORT,'simulated history write failure'); END;");
+        await Assert.ThrowsAsync<SqliteException>(() => repo.DeleteTaskAsync(task.Id, task.Revision));
+        Assert.Equal(task, Assert.Single((await repo.QueryAsync(new(null, TaskFilter.Open, TaskSort.Created))).Items));
+        Assert.Empty((await repo.QueryAsync(new(null, TaskFilter.Deleted, TaskSort.Deleted))).Items);
+    }
+
+    [Fact] public async Task DeletedCursorPagingIsStableAcrossEqualTimes()
+    {
+        var book = await Library.CreateAsync("Paging1", "分页验证"); var repo = new TaskRepository(book.Path);
+        using (var c = Database.Open(book.Path))
+        {
+            using var tx = c.BeginTransaction();
+            for (int i = 0; i < 430; i++) TaskRepository.Insert(c, new(i.ToString("x32"), null, RichContent.FromText("任务").ToJson(), "任务", TodoStatus.Deleted, 1000, 2000, null, 2, 2000, TodoStatus.Open));
+            tx.Commit();
+        }
+        var query = new TaskQuery(null, TaskFilter.Deleted, TaskSort.Deleted);
+        var first = await repo.QueryAsync(query); var second = await repo.QueryAsync(query with { Cursor = query.CursorFor(first.Items[^1]) });
+        var back = await repo.QueryAsync(query with { Cursor = query.CursorFor(second.Items[0]), Direction = PageDirection.Newer });
+        Assert.Equal(200, first.Items.Count); Assert.Empty(first.Items.Select(t => t.Id).Intersect(second.Items.Select(t => t.Id)));
+        Assert.Equal(first.Items.Select(t => t.Id), back.Items.Select(t => t.Id));
+    }
+
     private string CreateV1(bool broken = false)
     {
         Directory.CreateDirectory(Library.DataDirectory); var path = Path.Combine(Library.DataDirectory, "Legacy.db");

@@ -25,6 +25,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private bool _sync = true, _initialized, _navigating, _closingApproved, _restoring;
     private TaskCard? _editingCard;
     private (string Id, double Y)? _anchor;
+    private readonly DispatcherTimer _feedbackTimer = new() { Interval = TimeSpan.FromMilliseconds(180) };
     private readonly DispatcherTimer _calendar = new() { Interval = TimeSpan.FromSeconds(20) };
     private readonly DispatcherTimer _settingsSave = new() { Interval = TimeSpan.FromMilliseconds(400) };
     private DateTime _today = DateTime.Today;
@@ -88,10 +89,16 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         };
         Model.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(Model.Message) && _initialized)
-                new Wpf.Ui.Controls.Snackbar(Notifications) { Content = Model.Message, MinWidth = 300, MaxWidth = 480, Timeout = TimeSpan.FromSeconds(3) }.Show();
+            if (e.PropertyName == nameof(Model.Message) && _initialized) { _feedbackTimer.Stop(); _feedbackTimer.Start(); }
         };
-        Closed += (_, _) => { _calendar.Stop(); _settingsSave.Stop(); SystemEvents.UserPreferenceChanged -= OnPreferencesChanged; };
+        _feedbackTimer.Tick += (_, _) =>
+        {
+            if (Notifications.Content is { IsShown: false }) return;
+            _feedbackTimer.Stop();
+            if (Notifications.Content is { } current) current.Content = Model.Message;
+            else new Wpf.Ui.Controls.Snackbar(Notifications) { Content = Model.Message, MinWidth = 280, MaxWidth = 460, Timeout = TimeSpan.FromSeconds(2) }.Show();
+        };
+        Closed += (_, _) => { _feedbackTimer.Stop(); _calendar.Stop(); _settingsSave.Stop(); SystemEvents.UserPreferenceChanged -= OnPreferencesChanged; };
     }
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
@@ -329,7 +336,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private bool _settingsClosing;
     private void Settings_Click(object sender, RoutedEventArgs e) { if (_settingsClosing) return; SettingsPanel.Visibility = Visibility.Visible; Motion.Reveal(SettingsPanel, 32, 200); }
     private async void CloseSettings_Click(object sender, RoutedEventArgs e) { if (_settingsClosing) return; _settingsClosing = true; await Motion.HideAsync(SettingsPanel); _settingsClosing = false; }
-    private void SyncSettings()
+    internal void SyncSettings()
     {
         var prior = _sync; _sync = true; var s = Model.Settings;
         ModeSetting.SelectedItem = s.Mode; PaletteSetting.SelectedItem = s.AccentPreset; FontSetting.SelectedItem = s.FontSize;

@@ -100,7 +100,7 @@ internal static class UiSmoke
             {
                 model.Settings.AccentPreset = palette; ThemeService.Apply(model.Settings); await Settle(); Capture(window, Path.Combine(output, "theme-" + palette + ".png"));
             }
-            model.Settings.Mode = "深色"; model.Settings.AccentPreset = "浅蓝"; ThemeService.Apply(model.Settings); await Settle(); Capture(window, Path.Combine(output, "03-journal-dark.png"));
+            model.Settings.Mode = "深色"; model.Settings.AccentPreset = "浅蓝"; ThemeService.Apply(model.Settings); window.SyncSettings(); await Settle(); Capture(window, Path.Combine(output, "03-journal-dark.png"));
             ((Border)window.FindName("SettingsPanel")).Visibility = Visibility.Visible; await Settle(); Capture(window, Path.Combine(output, "04-settings-dark.png"));
             ((Border)window.FindName("SettingsPanel")).Visibility = Visibility.Collapsed;
             foreach (var size in new double[] { 12, 14, 16, 18 })

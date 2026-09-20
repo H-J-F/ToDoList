@@ -1,0 +1,299 @@
+{
+  "Timestamp": "2026-09-20T19:41:34.492014+08:00",
+  "Runtime": "10.0.10",
+  "OSVersion": {
+    "Platform": 2,
+    "ServicePack": "",
+    "Version": "10.0.19045.0",
+    "VersionString": "Microsoft Windows NT 10.0.19045.0"
+  },
+  "ProcessorCount": 20,
+  "PageSize": 200,
+  "Results": [
+    {
+      "TaskCount": 10000,
+      "SeedMilliseconds": 1.5583,
+      "DatabaseBytes": 11493376,
+      "Queries": [
+        {
+          "Name": "all-deleted",
+          "P95Milliseconds": 2.035,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_deleted"
+          ]
+        },
+        {
+          "Name": "project-deleted",
+          "P95Milliseconds": 2.66,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_project_deleted (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "all-open",
+          "P95Milliseconds": 1.668,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_open_created"
+          ]
+        },
+        {
+          "Name": "project-open",
+          "P95Milliseconds": 2.361,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_open_project_created (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "all-completed-date",
+          "P95Milliseconds": 1.883,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_done_completed"
+          ]
+        },
+        {
+          "Name": "all-completed-created",
+          "P95Milliseconds": 2.075,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_done_created"
+          ]
+        },
+        {
+          "Name": "project-completed-date",
+          "P95Milliseconds": 2.294,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_done_project_completed (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "project-completed-created",
+          "P95Milliseconds": 2.233,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_done_project_created (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "today",
+          "P95Milliseconds": 1.658,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_created (CreatedAt\u003E? AND CreatedAt\u003C?)"
+          ]
+        },
+        {
+          "Name": "project-today",
+          "P95Milliseconds": 1.684,
+          "Rows": 107,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_project_created (ProjectId=? AND CreatedAt\u003E? AND CreatedAt\u003C?)"
+          ]
+        },
+        {
+          "Name": "deep-cursor",
+          "P95Milliseconds": 1.716,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_open_created ((CreatedAt,Id)\u003C(?,?))"
+          ]
+        }
+      ]
+    },
+    {
+      "TaskCount": 100000,
+      "SeedMilliseconds": 4.3133,
+      "DatabaseBytes": 118484992,
+      "Queries": [
+        {
+          "Name": "all-deleted",
+          "P95Milliseconds": 1.9,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_deleted"
+          ]
+        },
+        {
+          "Name": "project-deleted",
+          "P95Milliseconds": 2.13,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_project_deleted (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "all-open",
+          "P95Milliseconds": 1.645,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_open_created"
+          ]
+        },
+        {
+          "Name": "project-open",
+          "P95Milliseconds": 2.095,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_open_project_created (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "all-completed-date",
+          "P95Milliseconds": 1.799,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_done_completed"
+          ]
+        },
+        {
+          "Name": "all-completed-created",
+          "P95Milliseconds": 1.698,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_done_created"
+          ]
+        },
+        {
+          "Name": "project-completed-date",
+          "P95Milliseconds": 1.948,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_done_project_completed (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "project-completed-created",
+          "P95Milliseconds": 1.969,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_done_project_created (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "today",
+          "P95Milliseconds": 1.409,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_created (CreatedAt\u003E? AND CreatedAt\u003C?)"
+          ]
+        },
+        {
+          "Name": "project-today",
+          "P95Milliseconds": 1.561,
+          "Rows": 107,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_project_created (ProjectId=? AND CreatedAt\u003E? AND CreatedAt\u003C?)"
+          ]
+        },
+        {
+          "Name": "deep-cursor",
+          "P95Milliseconds": 1.808,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_open_created ((CreatedAt,Id)\u003C(?,?))"
+          ]
+        }
+      ]
+    },
+    {
+      "TaskCount": 1000000,
+      "SeedMilliseconds": 30.9973,
+      "DatabaseBytes": 1191829504,
+      "Queries": [
+        {
+          "Name": "all-deleted",
+          "P95Milliseconds": 1.972,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_deleted"
+          ]
+        },
+        {
+          "Name": "project-deleted",
+          "P95Milliseconds": 2.144,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_project_deleted (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "all-open",
+          "P95Milliseconds": 1.634,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_open_created"
+          ]
+        },
+        {
+          "Name": "project-open",
+          "P95Milliseconds": 2.076,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_open_project_created (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "all-completed-date",
+          "P95Milliseconds": 1.713,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_done_completed"
+          ]
+        },
+        {
+          "Name": "all-completed-created",
+          "P95Milliseconds": 1.717,
+          "Rows": 200,
+          "Plan": [
+            "SCAN Tasks USING INDEX ix_done_created"
+          ]
+        },
+        {
+          "Name": "project-completed-date",
+          "P95Milliseconds": 2.025,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_done_project_completed (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "project-completed-created",
+          "P95Milliseconds": 2.093,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_done_project_created (ProjectId=?)"
+          ]
+        },
+        {
+          "Name": "today",
+          "P95Milliseconds": 1.489,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_created (CreatedAt\u003E? AND CreatedAt\u003C?)"
+          ]
+        },
+        {
+          "Name": "project-today",
+          "P95Milliseconds": 1.575,
+          "Rows": 107,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_project_created (ProjectId=? AND CreatedAt\u003E? AND CreatedAt\u003C?)"
+          ]
+        },
+        {
+          "Name": "deep-cursor",
+          "P95Milliseconds": 1.559,
+          "Rows": 200,
+          "Plan": [
+            "SEARCH Tasks USING INDEX ix_open_created ((CreatedAt,Id)\u003C(?,?))"
+          ]
+        }
+      ]
+    }
+  ]
+}

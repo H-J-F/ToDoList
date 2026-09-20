@@ -19,7 +19,7 @@ public sealed class StorageTests : IDisposable
         Assert.Single(await Library.ListAsync());
     }
     [Theory]
-    [InlineData("")][InlineData("Work 1")][InlineData("COM1")][InlineData("lpt9")][InlineData("Book_1")][InlineData("../Book")][InlineData("我的书")][InlineData("CON")][InlineData("aux")]
+    [InlineData("")][InlineData("Work 1")][InlineData("Book1\n")][InlineData("Book1\t")][InlineData("COM1")][InlineData("lpt9")][InlineData("Book_1")][InlineData("../Book")][InlineData("我的书")][InlineData("CON")][InlineData("aux")]
     public void InvalidBookNamesAreRejected(string name) => Assert.Throws<ArgumentException>(() => BookRules.ValidateName(name));
 
     [Fact] public async Task ProjectAndTaskAreAtomicAndAllMeansUnassigned()

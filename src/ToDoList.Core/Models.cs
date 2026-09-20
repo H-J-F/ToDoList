@@ -65,7 +65,7 @@ public sealed record RichContent(int Version, List<RichParagraph> Paragraphs)
 
 public static partial class BookRules
 {
-    [GeneratedRegex("^[A-Za-z0-9]{1,64}$")]
+    [GeneratedRegex(@"\A[A-Za-z0-9]{1,64}\z")]
     private static partial Regex NamePattern();
     public static void ValidateName(string name)
     {
