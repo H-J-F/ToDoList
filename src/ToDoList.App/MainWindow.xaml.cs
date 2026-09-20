@@ -18,9 +18,10 @@ using ToDoList.Core;
 using ToDoList.Storage;
 
 namespace ToDoList.App;
-public partial class MainWindow : Window
+public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 {
     public MainViewModel Model { get; }
+    public Wpf.Ui.Controls.ContentDialogHost DialogPresenter => DialogHost;
     private bool _sync = true, _initialized, _navigating, _closingApproved, _restoring;
     private TaskCard? _editingCard;
     private (string Id, double Y)? _anchor;
@@ -44,11 +45,11 @@ public partial class MainWindow : Window
         var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app-icon.png");
         if (File.Exists(iconPath))
         {
-            var bitmap = new BitmapImage(new Uri(iconPath)); bitmap.Freeze(); Icon = bitmap;
-            BrandIcon.Source = WelcomeIcon.Source = AboutIcon.Source = bitmap;
+            var bitmap = new BitmapImage(new Uri(iconPath)); bitmap.Freeze(); Icon = BitmapFrame.Create(new Uri(Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico")));
+            WelcomeIcon.Source = AboutIcon.Source = bitmap;
         }
         ModeSetting.ItemsSource = new[] { "浅色", "深色", "跟随系统" };
-        PaletteSetting.ItemsSource = new[] { "奶油", "薄荷", "蜜桃", "薰衣草" };
+        PaletteSetting.ItemsSource = new[] { "浅蓝", "青绿", "橙色", "紫色" };
         FontSetting.ItemsSource = new double[] { 12, 14, 16, 18 };
         DensitySetting.ItemsSource = new[] { "紧凑", "舒适" }; MotionSetting.ItemsSource = new[] { "标准", "减少动态效果" };
         SyncSettings();
@@ -79,11 +80,16 @@ public partial class MainWindow : Window
         SizeChanged += (_, _) =>
         {
             var compact = ActualHeight < 650;
-            PageSubtitle.Visibility = PageSticker.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
-            PageHeading.FontSize = compact ? 21 : 24;
-            BookmarkArea.Margin = new Thickness(0, compact ? 5 : 17, 0, 0);
-            DraftEditor.Height = compact ? 72 : 84;
-            MainPage.Margin = compact ? new Thickness(22, 14, 24, 14) : new Thickness(29, 18, 27, 18);
+            PageSubtitle.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+            PageHeading.FontSize = compact ? 22 : 26;
+            BookmarkArea.Margin = new Thickness(0, compact ? 8 : 16, 0, 0);
+            DraftEditor.Height = compact ? 72 : 82;
+            MainPage.Margin = new Thickness(24, compact ? 12 : 20, 24, compact ? 12 : 20);
+        };
+        Model.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Model.Message) && _initialized)
+                new Wpf.Ui.Controls.Snackbar(Notifications) { Content = Model.Message, MinWidth = 300, MaxWidth = 480, Timeout = TimeSpan.FromSeconds(3) }.Show();
         };
         Closed += (_, _) => { _calendar.Stop(); _settingsSave.Stop(); SystemEvents.UserPreferenceChanged -= OnPreferencesChanged; };
     }
@@ -93,6 +99,7 @@ public partial class MainWindow : Window
         Model.IsBusy = false; _sync = false; _initialized = true; _calendar.Start();
         var args = Environment.GetCommandLineArgs();
         if (args.Contains("--ui-smoke")) await Services.UiSmoke.RunAsync(this);
+        else if (args.Contains("--ui-demo")) await Services.UiDemo.RunAsync(this);
         else if (args.Contains("--ui-perf")) await Services.UiPerformance.RunAsync(this);
     }
     private void SyncSelectors()
@@ -101,7 +108,7 @@ public partial class MainWindow : Window
         BookSelector.SelectedItem = Model.Books.FirstOrDefault(b => b.Name == Model.CurrentBook?.Name);
         ProjectList.SelectedItem = Model.Projects.FirstOrDefault(p => p.Id == Model.CurrentProjectId);
         DraftProject.SelectedItem = Model.DraftProjects.FirstOrDefault(p => p.Id == Model.CurrentProjectId) ?? Model.DraftProjects.FirstOrDefault();
-        foreach (RadioButton tab in Tabs.Children) tab.IsChecked = (string)tab.Tag == Model.Filter.ToString();
+        foreach (TabItem tab in Tabs.Items) tab.IsSelected = (string)tab.Tag == Model.Filter.ToString();
         SortSelector.SelectedIndex = Model.Sort == TaskSort.Created ? 0 : 1;
         NewProjectName.Visibility = Visibility.Collapsed; _sync = previous;
         Title = "ToDoList · " + Model.BookTitle;
@@ -110,7 +117,7 @@ public partial class MainWindow : Window
     {
         try { await action(); } catch (OperationCanceledException) { } catch (Exception ex) { ShowError(ex); }
     }
-    private void ShowError(Exception ex) { Model.Message = "未能完成：" + ex.Message; Dialogs.Info(this, "这一步没有完成", ex.Message); }
+    private void ShowError(Exception ex) { Model.Message = "未能完成：" + ex.Message; _ = Dialogs.Info(this, "操作未完成", ex.Message); }
     private async Task NavigateAsync(Func<Task> action, bool bookOperation = false)
     {
         if (_navigating) { SyncSelectors(); return; }
@@ -123,7 +130,7 @@ public partial class MainWindow : Window
                 Model.IsBusy = true;
                 while (_pendingMutations > 0) await Task.Delay(20);
             }
-            _sync = true; await action();
+            _sync = true; await action(); Motion.Reveal(TaskContent);
         }
         catch (Exception ex) { ShowError(ex); }
         finally { _sync = false; _navigating = false; Model.IsBusy = false; SyncSelectors(); }
@@ -138,10 +145,12 @@ public partial class MainWindow : Window
         if (_sync || !_initialized || ProjectList.SelectedItem is not ProjectInfo project || project.Id == Model.CurrentProjectId) return;
         await NavigateAsync(() => Model.SelectProjectAsync(project.Id));
     }
-    private async void Tab_Click(object sender, RoutedEventArgs e)
+    private async void Tab_Changed(object sender, SelectionChangedEventArgs e)
     {
-        var filter = Enum.Parse<TaskFilter>((string)((RadioButton)sender).Tag);
-        if (filter == Model.Filter) return; await NavigateAsync(() => Model.SelectFilterAsync(filter));
+        if (_sync || !_initialized || !ReferenceEquals(e.Source, Tabs) || Tabs.SelectedItem is not TabItem tab) return;
+        var filter = Enum.Parse<TaskFilter>((string)tab.Tag);
+        if (filter == Model.Filter) return;
+        await NavigateAsync(() => Model.SelectFilterAsync(filter));
     }
     private async void Sort_Changed(object sender, SelectionChangedEventArgs e)
     {
@@ -155,20 +164,20 @@ public partial class MainWindow : Window
     }
     private async void NewBook_Click(object sender, RoutedEventArgs e)
     {
-        var input = Dialogs.CreateBook(this); if (input == null) return;
-        await NavigateAsync(async () => { var book = await Model.Library.CreateAsync(input.Value.Name, input.Value.Title); await Model.RefreshBooksAsync(); await Model.OpenBookAsync(book); }, true);
+        var input = await Dialogs.CreateBook(this); if (input == null) return;
+        await NavigateAsync(async () => { var book = await Model.Library.CreateAsync(input.Value.Name, input.Value.Title); Dialogs.ClearBookDraft(); await Model.RefreshBooksAsync(); await Model.OpenBookAsync(book); }, true);
     }
     private async void NewProject_Click(object sender, RoutedEventArgs e)
     {
         if (Model.Repository == null) return;
-        var input = Dialogs.Input(this, "加一个新的项目", "项目名称"); if (input == null) return;
+        var input = await Dialogs.Input(this, "加一个新的项目", "项目名称"); if (input == null) return;
         await SafeAsync(async () => { await Model.Repository.AddProjectAsync(input); _sync = true; await Model.RefreshProjectsAsync(); SyncSelectors(); _sync = false; Model.Message = "新项目已加入目录。"; });
         _sync = false;
     }
     private void BookMenu_Click(object sender, RoutedEventArgs e)
     {
-        var menu = new ContextMenu(); var import = new MenuItem { Header = "导入待办书…" }; import.Click += Import_Click; menu.Items.Add(import);
-        var export = new MenuItem { Header = "导出当前待办书…", IsEnabled = Model.HasBook }; export.Click += Export_Click; menu.Items.Add(export);
+        var menu = new ContextMenu(); var import = new MenuItem { Header = "导入待办书…", Icon = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.ArrowDownload20) }; import.Click += Import_Click; menu.Items.Add(import);
+        var export = new MenuItem { Header = "导出当前待办书…", Icon = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.ArrowUpload20), IsEnabled = Model.HasBook }; export.Click += Export_Click; menu.Items.Add(export);
         menu.PlacementTarget = (Button)sender; menu.IsOpen = true;
     }
     private async void Import_Click(object sender, RoutedEventArgs e)
@@ -182,7 +191,7 @@ public partial class MainWindow : Window
             var mode = ImportMode.Merge;
             if (existing != null)
             {
-                var choice = Dialogs.Choose(this, "已有相同的待办书", $"标识名：{existing.Name}\n\n合并：保留二者任务，同一任务采用最后修改的版本。\n覆盖：使用导入书替换现有书。\n\n原书会先备份到：\n{Model.Library.BackupDirectory}", "取消", "合并", "覆盖");
+                var choice = await Dialogs.Choose(this, "已有相同的待办书", $"标识名：{existing.Name}\n\n合并：保留二者任务，同一任务采用最后修改的版本。\n覆盖：使用导入书替换现有书。\n\n原书会先备份到：\n{Model.Library.BackupDirectory}", "取消", "合并", "覆盖");
                 if (choice < 1) return; mode = choice == 1 ? ImportMode.Merge : ImportMode.Replace;
             }
             var imported = await Model.Library.ImportAsync(prepared, existing, mode);
@@ -209,7 +218,7 @@ public partial class MainWindow : Window
         try
         {
             await Model.AddAsync(content, project?.Id == "__new" ? null : project?.Id, project?.Id == "__new" ? NewProjectName.Text : null);
-            DraftEditor.SetContent(RichContent.FromText("")); NewProjectName.Clear(); SyncSelectors(); DraftEditor.FocusEditor();
+            DraftEditor.SetContent(RichContent.FromText("")); NewProjectName.Clear(); SyncSelectors(); DraftEditor.FocusEditor(); Motion.Reveal(TaskContent, 4);
         }
         finally { _adding = false; DraftEditor.IsEnabled = true; _pendingMutations--; }
     }
@@ -220,9 +229,16 @@ public partial class MainWindow : Window
         try { await SafeAsync(() => Model.ChangeStatusAsync(row, e.LongPress)); }
         finally { _pendingMutations--; }
     }
+    private async void Task_DeleteRestoreRequested(object? sender, EventArgs e)
+    {
+        if (sender is not TaskCard { Row: { } row } || Model.IsBusy) return;
+        _pendingMutations++;
+        try { await SafeAsync(() => Model.DeleteRestoreAsync(row)); }
+        finally { _pendingMutations--; }
+    }
     private async void Task_EditRequested(object? sender, EventArgs e)
     {
-        if (sender is not TaskCard card || card.Row is not { IsBusy: false } || card == _editingCard) return;
+        if (sender is not TaskCard card || card.Row is not { IsBusy: false, IsDeleted: false } || card == _editingCard) return;
         if (!await TryLeaveRowEditAsync()) return;
         _editingCard = card;
         if (TaskList.ItemContainerGenerator.ContainerFromItem(card.Row) is DependencyObject container) VirtualizingPanel.SetIsContainerVirtualizable(container, false);
@@ -252,7 +268,7 @@ public partial class MainWindow : Window
     {
         while (_savingRow) await Task.Delay(20);
         if (_editingCard?.ActiveEditor is not { Dirty: true }) { EndRowEdit(); return true; }
-        int choice = Dialogs.Choose(this, "还有未保存的修改", "离开前，要保存这条任务的修改吗？", "取消", "放弃修改", "保存");
+        int choice = await Dialogs.Choose(this, "还有未保存的修改", "离开前，要保存这条任务的修改吗？", "取消", "放弃修改", "保存");
         if (choice <= 0) return false;
         if (choice == 2) { try { await SaveRowEditAsync(); } catch (Exception ex) { ShowError(ex); return false; } }
         else EndRowEdit(); return true;
@@ -262,7 +278,7 @@ public partial class MainWindow : Window
         if (!await TryLeaveRowEditAsync()) return false;
         if (!string.IsNullOrWhiteSpace(DraftEditor.GetContent().PlainText))
         {
-            var choice = Dialogs.Choose(this, "还有一件事没记下来", "输入栏中有未提交的任务，要先保存吗？", "取消", "放弃草稿", "保存");
+            var choice = await Dialogs.Choose(this, "还有一件事没记下来", "输入栏中有未提交的任务，要先保存吗？", "取消", "放弃草稿", "保存");
             if (choice <= 0) return false;
             if (choice == 2) { try { await AddDraftAsync(); } catch (Exception ex) { ShowError(ex); return false; } }
             else DraftEditor.SetContent(RichContent.FromText(""));
@@ -310,33 +326,31 @@ public partial class MainWindow : Window
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
         { var child = VisualTreeHelper.GetChild(root, i); if (child is T match) yield return match; foreach (var nested in Descendants<T>(child)) yield return nested; }
     }
-    private void Settings_Click(object sender, RoutedEventArgs e) => SettingsPanel.Visibility = Visibility.Visible;
-    private void CloseSettings_Click(object sender, RoutedEventArgs e) => SettingsPanel.Visibility = Visibility.Collapsed;
+    private bool _settingsClosing;
+    private void Settings_Click(object sender, RoutedEventArgs e) { if (_settingsClosing) return; SettingsPanel.Visibility = Visibility.Visible; Motion.Reveal(SettingsPanel, 32, 200); }
+    private async void CloseSettings_Click(object sender, RoutedEventArgs e) { if (_settingsClosing) return; _settingsClosing = true; await Motion.HideAsync(SettingsPanel); _settingsClosing = false; }
     private void SyncSettings()
     {
         var prior = _sync; _sync = true; var s = Model.Settings;
-        ModeSetting.SelectedItem = s.Mode; PaletteSetting.SelectedItem = s.Palette; FontSetting.SelectedItem = s.FontSize;
+        ModeSetting.SelectedItem = s.Mode; PaletteSetting.SelectedItem = s.AccentPreset; FontSetting.SelectedItem = s.FontSize;
         DensitySetting.SelectedItem = s.Density; MotionSetting.SelectedIndex = s.ReduceMotion ? 1 : 0; _sync = prior;
     }
     private void Setting_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_sync || !_initialized) return;
-        var s = Model.Settings; s.Mode = ModeSetting.SelectedItem as string ?? "浅色"; s.Palette = PaletteSetting.SelectedItem as string ?? "奶油";
+        var s = Model.Settings; s.Mode = ModeSetting.SelectedItem as string ?? "浅色"; s.AccentPreset = PaletteSetting.SelectedItem as string ?? "浅蓝";
         s.FontSize = FontSetting.SelectedItem is double size ? size : 14; s.Density = DensitySetting.SelectedItem as string ?? "舒适"; s.ReduceMotion = MotionSetting.SelectedIndex == 1;
         ThemeService.Apply(s); _settingsSave.Stop(); _settingsSave.Start();
     }
     private void ResetSettings_Click(object sender, RoutedEventArgs e)
     {
-        var s = Model.Settings; s.Mode = "浅色"; s.Palette = "奶油"; s.FontSize = 14; s.Density = "舒适"; s.ReduceMotion = !SystemParameters.ClientAreaAnimation;
+        var s = Model.Settings; s.Mode = "浅色"; s.AccentPreset = "浅蓝"; s.FontSize = 14; s.Density = "舒适"; s.ReduceMotion = !SystemParameters.ClientAreaAnimation;
         SyncSettings(); ThemeService.Apply(s); _settingsSave.Start();
     }
     private void OpenData_Click(object sender, RoutedEventArgs e) => OpenDirectory(Model.Library.DataDirectory);
     private void OpenBackup_Click(object sender, RoutedEventArgs e) => OpenDirectory(Model.Library.BackupDirectory);
     private void OpenDirectory(string path) { try { Directory.CreateDirectory(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); } catch (Exception ex) { ShowError(ex); } }
     private void OnPreferencesChanged(object sender, UserPreferenceChangedEventArgs e) => Dispatcher.BeginInvoke(() => ThemeService.Apply(Model.Settings));
-    private void Minimize_Click(object sender, RoutedEventArgs e) => SystemCommands.MinimizeWindow(this);
-    private void Maximize_Click(object sender, RoutedEventArgs e) { if (WindowState == WindowState.Maximized) SystemCommands.RestoreWindow(this); else SystemCommands.MaximizeWindow(this); }
-    private void Close_Click(object sender, RoutedEventArgs e) => Close();
     private async void Window_Closing(object? sender, CancelEventArgs e)
     {
         if (_closingApproved) return; e.Cancel = true;
@@ -354,20 +368,5 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { ShowError(ex); }
         finally { _closePending = false; }
-    }
-    private void Window_SourceInitialized(object? sender, EventArgs e) => HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(WindowProc);
-    private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-    {
-        if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
-        {
-            if (msg == 0x84) // WM_NCHITTEST: opt into Windows 11 snap layouts.
-            {
-                var packed = lParam.ToInt64(); var point = PointFromScreen(new Point((short)(packed & 0xffff), (short)((packed >> 16) & 0xffff)));
-                var topLeft = MaximizeButton.TranslatePoint(new Point(), this);
-                if (new Rect(topLeft, MaximizeButton.RenderSize).Contains(point)) { handled = true; return new IntPtr(9); }
-            }
-            else if (msg == 0xA2 && wParam.ToInt32() == 9) { Maximize_Click(this, new()); handled = true; }
-        }
-        return IntPtr.Zero;
     }
 }

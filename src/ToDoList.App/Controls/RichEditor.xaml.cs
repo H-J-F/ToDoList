@@ -71,20 +71,20 @@ public partial class RichEditor : UserControl
     private void Underline_Click(object sender, RoutedEventArgs e) => EditingCommands.ToggleUnderline.Execute(null, Editor);
     private void Color_Click(object sender, RoutedEventArgs e) { Editor.Selection.ApplyPropertyValue(TextElement.ForegroundProperty, new BrushConverter().ConvertFromString((string)((Button)sender).Tag)); Editor.Focus(); }
     private void ClearFormat_Click(object sender, RoutedEventArgs e) { Editor.Selection.ClearAllProperties(); Editor.Focus(); }
-    private void Link_Click(object sender, RoutedEventArgs e)
+    private async void Link_Click(object sender, RoutedEventArgs e)
     {
-        var value = Dialogs.Input(Window.GetWindow(this), "添加一个链接", "链接地址（https://…）", "https://");
+        var value = await Dialogs.Input(Window.GetWindow(this), "添加一个链接", "链接地址（https://…）", "https://");
         if (value == null) return;
-        if (!RichContent.IsSafeLink(value)) { Dialogs.Info(Window.GetWindow(this), "链接格式不正确", "请输入 http 或 https 链接。"); return; }
+        if (!RichContent.IsSafeLink(value)) { await Dialogs.Info(Window.GetWindow(this), "链接格式不正确", "请输入 http 或 https 链接。"); return; }
         if (Editor.Selection.Start.Paragraph != Editor.Selection.End.Paragraph)
-        { Dialogs.Info(Window.GetWindow(this), "请选择一段文字", "链接文字需要位于同一段落中。"); return; }
+        { await Dialogs.Info(Window.GetWindow(this), "请选择一段文字", "链接文字需要位于同一段落中。"); return; }
         try
         {
             if (Editor.Selection.IsEmpty) Editor.Selection.Text = value;
             var link = new Hyperlink(Editor.Selection.Start, Editor.Selection.End) { NavigateUri = new Uri(value) };
             link.SetResourceReference(TextElement.ForegroundProperty, "AccentInkBrush"); Editor.Focus();
         }
-        catch (ArgumentException) { Dialogs.Info(Window.GetWindow(this), "暂时无法添加链接", "请选择同一段落内、不包含已有链接的文字。"); }
+        catch (ArgumentException) { await Dialogs.Info(Window.GetWindow(this), "暂时无法添加链接", "请选择同一段落内、不包含已有链接的文字。"); }
     }
     private void Emoji_Click(object sender, RoutedEventArgs e)
     {
@@ -98,7 +98,7 @@ public partial class RichEditor : UserControl
         if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) { e.Handled = true; Submit?.Invoke(this, EventArgs.Empty); }
         else if (e.Key == Key.Escape) { e.Handled = true; Cancel?.Invoke(this, EventArgs.Empty); }
     }
-    private void Editor_TextChanged(object sender, TextChangedEventArgs e) { if (!_setting) Dirty = true; }
+    private void Editor_TextChanged(object sender, TextChangedEventArgs e) { if (!_setting) Dirty = true; if (Placeholder != null) Placeholder.Visibility = string.IsNullOrWhiteSpace(new TextRange(Editor.Document.ContentStart, Editor.Document.ContentEnd).Text) ? Visibility.Visible : Visibility.Collapsed; }
     private void OnPaste(object sender, DataObjectPastingEventArgs e)
     {
         if (e.DataObject.GetDataPresent(DataFormats.Rtf)) { e.FormatToApply = DataFormats.Rtf; return; }

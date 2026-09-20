@@ -24,7 +24,7 @@ public partial class App : Application
         {
             var library = new BookLibrary(data); library.EnsureWritable(); var settings = library.LoadSettings();
             if (!File.Exists(Path.Combine(data, "settings.json"))) settings.ReduceMotion = !SystemParameters.ClientAreaAnimation;
-            ThemeService.Apply(settings);
+            ThemeService.Apply(settings); InteractionMotion.Register();
             var window = new MainWindow(library, settings); MainWindow = window; window.Show();
         }
         catch (Exception ex) { MessageBox.Show("无法打开 Data 目录。请将程序放到可写入的位置。\n\n" + ex.Message, "ToDoList"); Shutdown(1); }

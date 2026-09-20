@@ -32,7 +32,7 @@ public sealed class MainViewModel : ObservableObject
     public string? CurrentProjectId { get; private set; }
     public TaskFilter Filter { get; private set; } = TaskFilter.Today;
     public TaskSort Sort { get; private set; } = TaskSort.Completed;
-    public string FilterTitle => Filter switch { TaskFilter.Completed => "完成的小成就", TaskFilter.Open => "慢慢来，一件一件做", TaskFilter.Month => "这个月的计划", TaskFilter.Week => "这一周的小目标", _ => "今天，也要好好生活" };
+    public string FilterTitle => Filter switch { TaskFilter.Deleted => "已删除", TaskFilter.Completed => "已完成", TaskFilter.Open => "未完成", TaskFilter.Month => "本月", TaskFilter.Week => "本周", _ => "今天" };
     public string DateSubtitle => DateTime.Now.ToString("yyyy 年 M 月 d 日  ·  dddd");
     public bool IsCompletedTab => Filter == TaskFilter.Completed;
     private bool _busy;
@@ -70,7 +70,7 @@ public sealed class MainViewModel : ObservableObject
         Projects.Clear(); DraftProjects.Clear();
         var all = new ProjectInfo(null, "全部"); Projects.Add(all); DraftProjects.Add(all);
         foreach (var p in projects) { Projects.Add(p); DraftProjects.Add(p); }
-        DraftProjects.Add(new("__new", "＋ 新增项目"));
+        DraftProjects.Add(new("__new", "新增项目"));
     }
     public async Task SelectProjectAsync(string? id) { CurrentProjectId = id; await ReloadAsync(); }
     public async Task SelectFilterAsync(TaskFilter filter) { Filter = filter; await ReloadAsync(); }
@@ -148,11 +148,11 @@ public sealed class MainViewModel : ObservableObject
         if (Repository == null) return;
         await Repository.AddTaskAsync(content, project, newProject);
         if (newProject != null) await RefreshProjectsAsync();
-        await ReloadAsync(); Message = "已记下。给未来的自己一个小小的约定。";
+        await ReloadAsync(); Message = "任务已添加。";
     }
     public async Task ChangeStatusAsync(TaskViewModel row, bool longPress)
     {
-        if (Repository == null || row.IsBusy || row.IsEditing) return;
+        if (Repository == null || row.IsBusy || row.IsEditing || row.IsDeleted) return;
         var repo = Repository; var epoch = _epoch; var old = row.Item;
         var status = longPress ? (old.Status == TodoStatus.Verification ? TodoStatus.Open : TodoStatus.Verification)
             : old.Status == TodoStatus.Completed ? TodoStatus.Open : TodoStatus.Completed;
@@ -173,7 +173,32 @@ public sealed class MainViewModel : ObservableObject
                 Tasks.Remove(row); UpdateHeaders(); NotifyList();
                 if (Tasks.Count < 30 && HasOlder) await LoadPageAsync(PageDirection.Older);
             }
-            Message = status switch { TodoStatus.Completed => "又完成了一件事，做得真好。", TodoStatus.Verification => "已标记待验证，确认后再打勾。", _ => "已放回未完成，按自己的节奏来。" };
+            Message = status switch { TodoStatus.Completed => "已完成。", TodoStatus.Verification => "已标记待验证，确认后再打勾。", _ => "已恢复为未完成。" };
+        }
+        catch { if (!committed) row.Item = old; throw; }
+        finally { row.IsBusy = false; }
+    }
+    public async Task DeleteRestoreAsync(TaskViewModel row)
+    {
+        if (Repository == null || row.IsBusy || row.IsEditing) return;
+        var repo = Repository; var epoch = _epoch; var old = row.Item; var restore = row.IsDeleted;
+        row.IsBusy = true; bool committed = false;
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        row.Item = restore ? old with { Status = old.PreviousStatus!.Value, CompletedAt = old.PreviousCompletedAt, DeletedAt = null, PreviousStatus = null, PreviousCompletedAt = null }
+            : old with { Status = TodoStatus.Deleted, DeletedAt = now, PreviousStatus = old.Status, PreviousCompletedAt = old.CompletedAt, CompletedAt = null };
+        try
+        {
+            var saved = restore ? await repo.RestoreTaskAsync(old.Id, old.Revision) : await repo.DeleteTaskAsync(old.Id, old.Revision);
+            committed = true; row.Item = saved;
+            if (epoch != _epoch) return;
+            if (!CurrentQuery!.Matches(saved))
+            {
+                if (AnimateRemoval != null) await AnimateRemoval(row);
+                if (epoch != _epoch) return;
+                Tasks.Remove(row); UpdateHeaders(); NotifyList();
+                if (Tasks.Count < 30 && HasOlder) await LoadPageAsync(PageDirection.Older);
+            }
+            Message = restore ? "已恢复至删除前的状态。" : "任务已删除，可通过右键菜单恢复。";
         }
         catch { if (!committed) row.Item = old; throw; }
         finally { row.IsBusy = false; }

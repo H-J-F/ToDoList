@@ -5,6 +5,8 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
+using System.Windows.Media;
+using ToDoList.App.Services;
 using System.Windows.Threading;
 using ToDoList.App.ViewModels;
 using ToDoList.Core;
@@ -15,6 +17,7 @@ public partial class TaskCard : UserControl
 {
     public event EventHandler<StatusRequestEventArgs>? StateRequested;
     public event EventHandler? EditRequested;
+    public event EventHandler? DeleteRestoreRequested;
     public event EventHandler? SaveRequested;
     public event EventHandler? CancelRequested;
     public TaskViewModel? Row => DataContext as TaskViewModel;
@@ -27,15 +30,16 @@ public partial class TaskCard : UserControl
     public TaskCard()
     {
         InitializeComponent();
+        MouseEnter += (_, _) => AnimateHover(true); MouseLeave += (_, _) => AnimateHover(false);
         _hold.Tick += (_, _) => { _hold.Stop(); if (!_pressed) return; _long = true; StateRequested?.Invoke(this, new(true)); };
-        DataContextChanged += (_, _) => BindRow(); Loaded += (_, _) => BindRow();
-        Unloaded += (_, _) => { StopPress(); StopAnimation(); if (_subscribed != null) _subscribed.PropertyChanged -= OnRowChanged; _subscribed = null; };
+        DataContextChanged += (_, _) => BindRow(); Loaded += (_, _) => { BindRow(); ThemeService.Changed -= RenderText; ThemeService.Changed += RenderText; };
+        Unloaded += (_, _) => { ThemeService.Changed -= RenderText; StopPress(); StopAnimation(); if (_subscribed != null) _subscribed.PropertyChanged -= OnRowChanged; _subscribed = null; };
     }
     private void BindRow()
     {
         if (_subscribed == Row) return;
         if (_subscribed != null) _subscribed.PropertyChanged -= OnRowChanged;
-        _subscribed = Row; StopPress(); StopAnimation(); EndEdit();
+        _subscribed = Row; StopPress(); StopAnimation(); EndEdit(); RowBorder.Background = new SolidColorBrush(Colors.Transparent);
         if (_subscribed != null) _subscribed.PropertyChanged += OnRowChanged;
         RenderText();
     }
@@ -51,16 +55,30 @@ public partial class TaskCard : UserControl
             foreach (var r in paragraph.Runs)
             {
                 var inline = RichEditor.CreateInline(r);
-                if (Row.IsCompleted) { var decorations = new TextDecorationCollection(inline.TextDecorations); decorations.Add(TextDecorations.Strikethrough[0]); inline.TextDecorations = decorations; }
+                if (Row.IsCompleted || Row.IsDeleted)
+                {
+                    var decorations = new TextDecorationCollection(inline.TextDecorations);
+                    var strike = TextDecorations.Strikethrough[0].Clone();
+                    if (Row.IsDeleted) strike.Pen = new Pen((Brush)FindResource("RedBrush"), 1.2);
+                    decorations.Add(strike); inline.TextDecorations = decorations;
+                }
                 if (inline is Hyperlink h) h.RequestNavigate += (_, e) => { if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); e.Handled = true; };
                 BodyText.Inlines.Add(inline);
             }
         }
         BodyText.Opacity = Row.IsCompleted ? .52 : 1;
+        var stateBrush = (Brush)FindResource(Row.IsVerification ? "YellowBrush" : "GreenBrush");
+        if (ThemeService.ReduceMotion)
+        {
+            CheckButton.ApplyTemplate();
+            if (CheckButton.Template.FindName("ControlIcon", CheckButton) is FrameworkElement glyph)
+            { glyph.BeginAnimation(FrameworkElement.TagProperty, null); glyph.Tag = 1d; }
+        }
+        foreach (var key in new[] { "CheckBoxCheckBackgroundFillChecked", "CheckBoxCheckBackgroundFillCheckedPointerOver", "CheckBoxCheckBackgroundFillCheckedPressed", "CheckBoxCheckBackgroundStrokeChecked", "CheckBoxCheckBackgroundStrokeCheckedPointerOver", "CheckBoxCheckBackgroundStrokeCheckedPressed" }) CheckButton.Resources[key] = stateBrush;
     }
     public void BeginEdit()
     {
-        if (Row == null) return; ActiveEditor = new RichEditor { MinHeight = 110, MaxHeight = 240 };
+        if (Row == null || Row.IsDeleted) return; ActiveEditor = new RichEditor { MinHeight = 110, MaxHeight = 240 };
         ActiveEditor.SetContent(RichContent.Parse(Row.Item.ContentJson));
         ActiveEditor.Submit += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
         ActiveEditor.Cancel += (_, _) => CancelRequested?.Invoke(this, EventArgs.Empty);
@@ -70,16 +88,22 @@ public partial class TaskCard : UserControl
         var save = new Button { Content = "保存  Ctrl+Enter", Style = (Style)FindResource("PrimaryButton"), Margin = new(0, 4, 0, 0), Padding = new(10, 5, 10, 5) }; save.Click += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
         actions.Children.Add(cancel); actions.Children.Add(save); panel.Children.Add(actions);
         EditorHost.Content = panel; EditorHost.Visibility = Visibility.Visible; BodyText.Visibility = Visibility.Collapsed;
-        Row.IsEditing = true; ActiveEditor.FocusEditor();
+        Row.IsEditing = true; ActiveEditor.FocusEditor(); Motion.Reveal(EditorHost, 4);
+        if (!ThemeService.ReduceMotion)
+        {
+            EditorHost.Measure(new Size(Math.Max(100, ActualWidth - 60), double.PositiveInfinity));
+            EditorHost.BeginAnimation(HeightProperty, new DoubleAnimation(0, EditorHost.DesiredSize.Height, TimeSpan.FromMilliseconds(180))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop });
+        }
     }
     public void EndEdit()
     {
-        EditorHost.Content = null; EditorHost.Visibility = Visibility.Collapsed; BodyText.Visibility = Visibility.Visible; ActiveEditor = null;
+        EditorHost.BeginAnimation(HeightProperty, null); EditorHost.BeginAnimation(OpacityProperty, null); EditorHost.Content = null; EditorHost.Visibility = Visibility.Collapsed; BodyText.Visibility = Visibility.Visible; ActiveEditor = null;
     }
-    private void Body_Down(object sender, MouseButtonEventArgs e) { if (e.ClickCount == 2 && Row is { IsBusy: false }) { e.Handled = true; EditRequested?.Invoke(this, EventArgs.Empty); } }
+    private void Body_Down(object sender, MouseButtonEventArgs e) { if (e.ClickCount == 2 && Row is { IsBusy: false, IsDeleted: false }) { e.Handled = true; EditRequested?.Invoke(this, EventArgs.Empty); } }
     private void Check_Down(object sender, MouseButtonEventArgs e)
     {
-        e.Handled = true; if (Row is not { IsBusy: false, IsEditing: false }) return;
+        e.Handled = true; if (Row is not { IsBusy: false, IsEditing: false, IsDeleted: false }) return;
         CheckButton.Focus(); _pressed = true; _long = false; CheckButton.CaptureMouse();
         if (!Row.IsCompleted) _hold.Start();
     }
@@ -94,6 +118,25 @@ public partial class TaskCard : UserControl
     private void Check_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Space && !e.IsRepeat) { e.Handled = true; StateRequested?.Invoke(this, new(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))); }
+    }
+    private void Check_Click(object sender, RoutedEventArgs e)
+    {
+        // UI Automation invokes Click; pointer and keyboard are handled before the native toggle.
+        CheckButton.GetBindingExpression(CheckBox.IsCheckedProperty)?.UpdateTarget();
+        if (Row is { IsBusy: false, IsEditing: false, IsDeleted: false }) StateRequested?.Invoke(this, new(false));
+    }
+    private void Menu_Opened(object sender, RoutedEventArgs e)
+    {
+        DeleteRestoreMenu.Header = Row?.IsDeleted == true ? "恢复任务" : "删除任务";
+        DeleteRestoreMenu.Icon = new Wpf.Ui.Controls.SymbolIcon(Row?.IsDeleted == true ? Wpf.Ui.Controls.SymbolRegular.ArrowUndo20 : Wpf.Ui.Controls.SymbolRegular.Delete20);
+        DeleteRestoreMenu.IsEnabled = Row is { IsBusy: false, IsEditing: false };
+    }
+    private void DeleteRestore_Click(object sender, RoutedEventArgs e) => DeleteRestoreRequested?.Invoke(this, EventArgs.Empty);
+    private void AnimateHover(bool hover)
+    {
+        var target = hover ? ((SolidColorBrush)FindResource("HoverBrush")).Color : Colors.Transparent;
+        if (RowBorder.Background is not SolidColorBrush brush || brush.IsFrozen) RowBorder.Background = brush = new SolidColorBrush(Colors.Transparent);
+        brush.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(target, TimeSpan.FromMilliseconds(ThemeService.ReduceMotion ? 0 : 140)));
     }
     public Task AnimateOutAsync(bool reduceMotion)
     {

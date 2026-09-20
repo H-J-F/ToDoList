@@ -21,7 +21,7 @@ internal static class UiPerformance
             var samples = new List<double>(); var model = window.Model; var list = (ListBox)window.FindName("TaskList");
             for (int i = 0; i < 30; i++)
             {
-                var watch = Stopwatch.StartNew(); await model.SelectFilterAsync((TaskFilter)(i % 5));
+                var watch = Stopwatch.StartNew(); await model.SelectFilterAsync((TaskFilter)(i % 6));
                 await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); watch.Stop(); samples.Add(watch.Elapsed.TotalMilliseconds);
             }
             await model.SelectFilterAsync(TaskFilter.Open);
