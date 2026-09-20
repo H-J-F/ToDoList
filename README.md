@@ -4,6 +4,8 @@
 
 ## 直接使用
 
+2026-09-20 补测修正版位于 `artifacts/publish-verified/ToDoList-win-x64`，修复了减少动态效果模式下的模板动画。升级时先关闭旧版，再将修正版 ZIP 解压覆盖原程序目录，保留原有 `Data`。
+
 发布目录为 `artifacts/publish/ToDoList-win-x64`，双击其中的 `ToDoList.exe`。便携版自带 .NET 运行时，不需要安装 Rider 或 .NET。请把**整个目录**放在可写位置，不要只复制 exe。
 
 首次启动没有预置数据。点击“创建待办书”，填写：

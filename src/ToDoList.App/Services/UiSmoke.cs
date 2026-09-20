@@ -96,6 +96,7 @@ internal static class UiSmoke
             Check(rejected && stale.Item.Status == staleStatus && !stale.IsBusy, "Stale deletion rolls UI back and clears busy state", log);
             await model.ReloadAsync(); await Settle();
             await Task.Delay(3200);
+            await CheckReducedMotionAsync(window, log);
             foreach (var palette in new[] { "浅蓝", "青绿", "橙色", "紫色" })
             {
                 model.Settings.AccentPreset = palette; ThemeService.Apply(model.Settings); await Settle(); Capture(window, Path.Combine(output, "theme-" + palette + ".png"));
@@ -158,6 +159,59 @@ internal static class UiSmoke
             File.WriteAllText(Path.Combine(output, "ui-smoke-results.json"), JsonSerializer.Serialize(new { Passed = false, Error = ex.ToString(), Checks = log }, new JsonSerializerOptions { WriteIndented = true }));
         }
         finally { window.Close(); }
+    }
+    private static async Task CheckReducedMotionAsync(MainWindow window, List<string> log)
+    {
+        var model = window.Model;
+        var motionSetting = (ComboBox)window.FindName("MotionSetting");
+        motionSetting.SelectedIndex = 1; await Settle();
+        Check(model.Settings.ReduceMotion && ThemeService.ReduceMotion, "Motion setting enables reduced effects", log);
+        var row = model.Tasks.First(t => !t.IsCompleted && !t.IsDeleted);
+        var card = window.FindCard(row)!;
+        await model.ChangeStatusAsync(row, false); await Settle();
+        var check = (CheckBox)card.FindName("CheckButton");
+        var glyph = (FrameworkElement)check.Template.FindName("ControlIcon", check);
+        Check(row.IsCompleted && Equals(glyph.Tag, 1d) && !DependencyPropertyHelper.GetValueSource(glyph, FrameworkElement.TagProperty).IsAnimated,
+            "Reduced-motion checkbox reaches its final glyph without an animation clock", log);
+        await model.ChangeStatusAsync(row, false);
+        card.BeginEdit();
+        var host = (ContentControl)card.FindName("EditorHost");
+        Check(!DependencyPropertyHelper.GetValueSource(host, FrameworkElement.HeightProperty).IsAnimated &&
+            host.RenderTransform is TranslateTransform { X: 0, HasAnimatedProperties: false }, "Reduced-motion editing has no height or position animation", log);
+        card.EndEdit(); row.IsEditing = false;
+        var settingsButton = MainWindow.Descendants<Button>(window).First(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "Settings");
+        settingsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Settle();
+        var panel = (Border)window.FindName("SettingsPanel");
+        Check(panel.IsVisible && panel.RenderTransform is TranslateTransform { X: 0, HasAnimatedProperties: false }, "Reduced-motion settings panel fades without sliding", log);
+        var palette = (ComboBox)window.FindName("PaletteSetting");
+        palette.IsDropDownOpen = true; await Settle();
+        var dropdown = (FrameworkElement)palette.Template.FindName("DropDownBorder", palette);
+        Check(palette.IsDropDownOpen && dropdown.RenderTransform is TranslateTransform { Y: 0, HasAnimatedProperties: false }, "Reduced-motion dropdown opens without translation", log);
+        palette.IsDropDownOpen = false; await Settle();
+        var chevron = (FrameworkElement)palette.Template.FindName("ChevronIcon", palette);
+        Check(chevron.RenderTransform is RotateTransform { Angle: 0, HasAnimatedProperties: false }, "Reduced-motion dropdown arrow resets without rotation", log);
+        motionSetting.SelectedIndex = 0;
+        palette.IsDropDownOpen = true; await Settle();
+        Check(dropdown.RenderTransform is TranslateTransform { HasAnimatedProperties: true }, "Re-enabling standard mode restores the library dropdown animation", log);
+        palette.IsDropDownOpen = false; motionSetting.SelectedIndex = 1;
+        MainWindow.Descendants<Button>(panel).First(b => Equals(b.ToolTip, "关闭设置")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Settle();
+        await model.SelectFilterAsync(TaskFilter.Open); await Settle();
+        row = model.Tasks.First(); card = window.FindCard(row)!;
+        var originalRemoval = model.AnimateRemoval;
+        model.AnimateRemoval = async removed =>
+        {
+            var height = card.ActualHeight;
+            await card.AnimateOutAsync(true);
+            Check(!DependencyPropertyHelper.GetValueSource(card, FrameworkElement.HeightProperty).IsAnimated && Math.Abs(card.Height - height) < .1,
+                "Reduced-motion removal fades without shrinking the row", log);
+        };
+        try { await model.ChangeStatusAsync(row, false); }
+        finally { model.AnimateRemoval = originalRemoval; }
+        Check(!model.Tasks.Contains(row), "Reduced-motion completion still removes the row", log);
+        await model.Repository!.SetStatusAsync(row.Id, TodoStatus.Open, row.Item.Revision);
+        motionSetting.SelectedIndex = 0; await Settle();
+        Check(!model.Settings.ReduceMotion && !ThemeService.ReduceMotion, "Standard animations can be re-enabled", log);
+        await model.SelectFilterAsync(TaskFilter.Today); await Settle();
     }
     private static void Check(bool condition, string text, List<string> log) { if (!condition) throw new InvalidOperationException(text); log.Add(text); }
     private static async Task Settle() { await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); await Task.Delay(150); }

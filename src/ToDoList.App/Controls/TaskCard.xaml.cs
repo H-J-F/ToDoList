@@ -69,11 +69,7 @@ public partial class TaskCard : UserControl
         BodyText.Opacity = Row.IsCompleted ? .52 : 1;
         var stateBrush = (Brush)FindResource(Row.IsVerification ? "YellowBrush" : "GreenBrush");
         if (ThemeService.ReduceMotion)
-        {
-            CheckButton.ApplyTemplate();
-            if (CheckButton.Template.FindName("ControlIcon", CheckButton) is FrameworkElement glyph)
-            { glyph.BeginAnimation(FrameworkElement.TagProperty, null); glyph.Tag = 1d; }
-        }
+            InteractionMotion.FinishCheckAnimation(CheckButton);
         foreach (var key in new[] { "CheckBoxCheckBackgroundFillChecked", "CheckBoxCheckBackgroundFillCheckedPointerOver", "CheckBoxCheckBackgroundFillCheckedPressed", "CheckBoxCheckBackgroundStrokeChecked", "CheckBoxCheckBackgroundStrokeCheckedPointerOver", "CheckBoxCheckBackgroundStrokeCheckedPressed" }) CheckButton.Resources[key] = stateBrush;
     }
     public void BeginEdit()

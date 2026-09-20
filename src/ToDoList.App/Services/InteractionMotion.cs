@@ -23,11 +23,7 @@ public static class InteractionMotion
         {
             if (!ThemeService.ReduceMotion) return;
             var check = (CheckBox)s;
-            check.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
-            {
-                if (check.Template.FindName("ControlIcon", check) is FrameworkElement glyph)
-                { glyph.BeginAnimation(FrameworkElement.TagProperty, null); glyph.Tag = 1d; }
-            }));
+            check.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => { if (ThemeService.ReduceMotion && check.IsLoaded) FinishCheckAnimation(check); }));
         }));
         EventManager.RegisterClassHandler(typeof(ComboBox), FrameworkElement.LoadedEvent, new RoutedEventHandler((s, _) =>
         {
@@ -37,11 +33,35 @@ public static class InteractionMotion
                 if (!ThemeService.ReduceMotion) return;
                 combo.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
                 {
-                    if (combo.Template.FindName("DropDownBorder", combo) is FrameworkElement border && border.RenderTransform is TranslateTransform transform)
-                    { transform.BeginAnimation(TranslateTransform.YProperty, null); transform.Y = 0; }
+                    if (!ThemeService.ReduceMotion || !combo.IsDropDownOpen) return;
+                    // Template storyboards use a separate animation layer. Replace their target
+                    // transforms so an old clock cannot override the reduced-motion final values.
+                    if (combo.Template.FindName("DropDownBorder", combo) is FrameworkElement border)
+                        border.RenderTransform = new TranslateTransform();
+                    if (combo.Template.FindName("ChevronIcon", combo) is FrameworkElement chevron)
+                        chevron.RenderTransform = new RotateTransform(180);
+                }));
+            };
+            combo.DropDownClosed += (_, _) =>
+            {
+                if (!ThemeService.ReduceMotion) return;
+                combo.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+                {
+                    if (!ThemeService.ReduceMotion || combo.IsDropDownOpen) return;
+                    if (combo.Template.FindName("ChevronIcon", combo) is FrameworkElement chevron)
+                        chevron.RenderTransform = new RotateTransform();
                 }));
             };
         }));
+    }
+    internal static void FinishCheckAnimation(CheckBox check)
+    {
+        check.ApplyTemplate();
+        foreach (var trigger in check.Template.Triggers.OfType<Trigger>())
+            foreach (var action in trigger.EnterActions.OfType<BeginStoryboard>())
+                if (action.Name == "SlideIn") action.Storyboard.Remove(check);
+        if (check.Template.FindName("ControlIcon", check) is FrameworkElement glyph)
+        { glyph.BeginAnimation(FrameworkElement.TagProperty, null); glyph.Tag = 1d; }
     }
     private static void Hover(object sender, MouseEventArgs e)
     {
