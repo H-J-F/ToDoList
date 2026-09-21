@@ -21,10 +21,10 @@ public sealed class TaskRepository(string path) : ITaskRepository
     private static ProjectInfo InsertProject(SqliteConnection c, string name)
     {
         name = BookRules.ValidateTitle(name);
-        if (name is "全部" or "新增") throw new ArgumentException("请使用其他项目名称。");
+        if (name is "全部" or "新增") throw new ArgumentException("请使用其他模块名称。");
         var p = new ProjectInfo(Guid.NewGuid().ToString("N"), name);
         try { Database.Exec(c, "INSERT INTO Projects VALUES($id,$name)", ("$id", p.Id), ("$name", p.Name)); }
-        catch (SqliteException ex) when (ex.SqliteErrorCode == 19) { throw new InvalidOperationException("已有相同名称的项目。", ex); }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19) { throw new InvalidOperationException("已有相同名称的模块。", ex); }
         return p;
     }
     public Task<TaskPage> QueryAsync(TaskQuery query, CancellationToken ct = default) => Run(c =>
@@ -34,7 +34,7 @@ public sealed class TaskRepository(string path) : ITaskRepository
         while (r.Read()) { ct.ThrowIfCancellationRequested(); rows.Add(Read(r)); }
         var more = rows.Count > query.PageSize;
         if (more) rows.RemoveAt(rows.Count - 1);
-        if (query.Direction == PageDirection.Newer) rows.Reverse();
+        if (query.Direction == PageDirection.Older) rows.Reverse();
         return new TaskPage(rows, more);
     }, ct);
 
@@ -52,7 +52,7 @@ public sealed class TaskRepository(string path) : ITaskRepository
         var newer = query.Direction == PageDirection.Newer;
         if (query.Cursor != null)
         {
-            conditions.Add($"({field},Id) {(newer ? ">" : "<")} ($time,$id)");
+            conditions.Add($"({field},Id) {(newer ? ">" : "<")}{(query.IncludeCursor ? "=" : "")} ($time,$id)");
             args.Add(("$time", query.Cursor.Time)); args.Add(("$id", query.Cursor.Id));
         }
         args.Add(("$limit", query.PageSize + 1));

@@ -78,8 +78,8 @@ public sealed class DeletionTests : IDisposable
             tx.Commit();
         }
         var query = new TaskQuery(null, TaskFilter.Deleted, TaskSort.Deleted);
-        var first = await repo.QueryAsync(query); var second = await repo.QueryAsync(query with { Cursor = query.CursorFor(first.Items[^1]) });
-        var back = await repo.QueryAsync(query with { Cursor = query.CursorFor(second.Items[0]), Direction = PageDirection.Newer });
+        var first = await repo.QueryAsync(query); var second = await repo.QueryAsync(query with { Cursor = query.CursorFor(first.Items[0]) });
+        var back = await repo.QueryAsync(query with { Cursor = query.CursorFor(second.Items[^1]), Direction = PageDirection.Newer });
         Assert.Equal(200, first.Items.Count); Assert.Empty(first.Items.Select(t => t.Id).Intersect(second.Items.Select(t => t.Id)));
         Assert.Equal(first.Items.Select(t => t.Id), back.Items.Select(t => t.Id));
     }

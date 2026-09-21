@@ -23,6 +23,7 @@ public sealed class MainViewModel : ObservableObject
     public TaskQuery? CurrentQuery { get; private set; }
     public event Action? LayoutChanging;
     public event Action? LayoutChanged;
+    public event Action? LatestRequested;
     public Func<TaskViewModel, Task>? AnimateRemoval { get; set; }
     public Func<bool>? IsEditing { get; set; }
     private BookInfo? _book;
@@ -61,7 +62,7 @@ public sealed class MainViewModel : ObservableObject
         CancelQuery(); CurrentBook = book; Repository = new(book.Path); CurrentProjectId = null; Filter = TaskFilter.Today;
         Sort = await Repository.GetSettingAsync("CompletedSort") == "Created" ? TaskSort.Created : TaskSort.Completed;
         Settings.LastBook = book.Name; Library.SaveSettings(Settings);
-        await RefreshProjectsAsync(); await ReloadAsync(); Raise(nameof(Sort));
+        await RefreshProjectsAsync(); await ReloadAsync(true); Raise(nameof(Sort));
     }
     public async Task RefreshProjectsAsync()
     {
@@ -70,24 +71,63 @@ public sealed class MainViewModel : ObservableObject
         Projects.Clear(); DraftProjects.Clear();
         var all = new ProjectInfo(null, "全部"); Projects.Add(all); DraftProjects.Add(all);
         foreach (var p in projects) { Projects.Add(p); DraftProjects.Add(p); }
-        DraftProjects.Add(new("__new", "新增项目"));
+        DraftProjects.Add(new("__new", "新增模块"));
     }
-    public async Task SelectProjectAsync(string? id) { CurrentProjectId = id; await ReloadAsync(); }
-    public async Task SelectFilterAsync(TaskFilter filter) { Filter = filter; await ReloadAsync(); }
+    public async Task SelectProjectAsync(string? id) { CurrentProjectId = id; await ReloadAsync(true); }
+    public async Task SelectFilterAsync(TaskFilter filter) { Filter = filter; await ReloadAsync(true); }
     public async Task SelectSortAsync(TaskSort sort)
     {
         Sort = sort;
         if (Repository != null) await Repository.SetSettingAsync("CompletedSort", sort.ToString());
-        await ReloadAsync();
+        await ReloadAsync(true);
     }
     private void CancelQuery() { _epoch++; _queryCancellation.Cancel(); _queryCancellation.Dispose(); _queryCancellation = new(); _paging = false; }
-    public async Task ReloadAsync()
+    public async Task ReloadAsync(bool showLatest = false)
     {
+        if (!showLatest && Tasks.Count > 0 && Repository != null && CurrentQuery != null)
+        { await RefreshWindowAsync(); return; }
         CancelQuery(); Tasks.Clear(); HasOlder = HasNewer = false;
+        var epoch = _epoch;
         Raise(nameof(Filter)); Raise(nameof(FilterTitle)); Raise(nameof(IsCompletedTab)); Raise(nameof(DateSubtitle));
         var range = DateRanges.For(Filter, DateTime.Now);
         CurrentQuery = new(CurrentProjectId, Filter, Sort, range.From, range.Until);
         await LoadPageAsync(PageDirection.Older); NotifyList();
+        if (showLatest && epoch == _epoch) LatestRequested?.Invoke();
+    }
+    private async Task RefreshWindowAsync()
+    {
+        var cursor = CurrentQuery!.CursorFor(Tasks[0].Item); var count = Tasks.Count;
+        CancelQuery(); var epoch = _epoch; var token = _queryCancellation.Token; var repository = Repository!;
+        _paging = true; var completion = _pageCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        var range = DateRanges.For(Filter, DateTime.Now);
+        CurrentQuery = new(CurrentProjectId, Filter, Sort, range.From, range.Until);
+        var query = CurrentQuery with { Direction = PageDirection.Newer, Cursor = cursor, IncludeCursor = true };
+        var rows = new List<TodoItem>(); bool more = false, budgetReached = false; long bytes = 0;
+        IsLoading = true;
+        try
+        {
+            do
+            {
+                query = query with { PageSize = Math.Min(200, count - rows.Count) };
+                var page = await repository.QueryAsync(query, token); more = page.HasMore;
+                foreach (var item in page.Items)
+                {
+                    var size = 256L + (item.ContentJson.Length + item.PlainText.Length) * 2L;
+                    if (rows.Count > 0 && bytes + size > 32L * 1024 * 1024) { more = true; budgetReached = true; break; }
+                    rows.Add(item); bytes += size;
+                }
+                if (page.Items.Count == 0 || rows.Count >= count || budgetReached) break;
+                query = query with { Cursor = query.CursorFor(rows[^1]), IncludeCursor = false };
+            } while (more && rows.Count < 2000);
+            if (epoch != _epoch) return;
+            if (rows.Count == 0) { await ReloadAsync(true); return; }
+            var older = await repository.QueryAsync(CurrentQuery with { Cursor = CurrentQuery.CursorFor(rows[0]), PageSize = 1 }, token);
+            if (epoch != _epoch) return;
+            LayoutChanging?.Invoke(); Tasks.Clear(); foreach (var item in rows) Tasks.Add(MakeRow(item));
+            HasOlder = older.Items.Count > 0; HasNewer = more; UpdateHeaders(); LayoutChanged?.Invoke();
+        }
+        catch (OperationCanceledException) { }
+        finally { if (epoch == _epoch) { _paging = false; IsLoading = false; NotifyList(); Raise(nameof(DateSubtitle)); } completion.TrySetResult(); }
     }
     public async Task LoadPageAsync(PageDirection direction)
     {
@@ -106,7 +146,7 @@ public sealed class MainViewModel : ObservableObject
         _paging = true; IsLoading = true;
         var completion = _pageCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         var epoch = _epoch; var token = _queryCancellation.Token;
-        var query = CurrentQuery with { Direction = direction, Cursor = Tasks.Count == 0 ? null : CurrentQuery.CursorFor(direction == PageDirection.Older ? Tasks[^1].Item : Tasks[0].Item) };
+        var query = CurrentQuery with { Direction = direction, Cursor = Tasks.Count == 0 ? null : CurrentQuery.CursorFor(direction == PageDirection.Older ? Tasks[0].Item : Tasks[^1].Item) };
         try
         {
             var page = await Repository.QueryAsync(query, token);
@@ -114,12 +154,12 @@ public sealed class MainViewModel : ObservableObject
             LayoutChanging?.Invoke();
             var ids = Tasks.Select(t => t.Id).ToHashSet();
             var rows = page.Items.Where(t => !ids.Contains(t.Id)).Select(MakeRow).ToList();
-            if (direction == PageDirection.Older) { foreach (var row in rows) Tasks.Add(row); HasOlder = page.HasMore; }
-            else { for (int i = rows.Count - 1; i >= 0; i--) Tasks.Insert(0, rows[i]); HasNewer = page.HasMore; }
+            if (direction == PageDirection.Older) { for (int i = rows.Count - 1; i >= 0; i--) Tasks.Insert(0, rows[i]); HasOlder = page.HasMore; }
+            else { foreach (var row in rows) Tasks.Add(row); HasNewer = page.HasMore; }
             var bytes = Tasks.Sum(t => t.EstimatedBytes);
             while ((Tasks.Count > 2000 || bytes > 32L * 1024 * 1024) && Tasks.Count > 1)
             {
-                var index = direction == PageDirection.Older ? 0 : Tasks.Count - 1;
+                var index = direction == PageDirection.Older ? Tasks.Count - 1 : 0;
                 if (Tasks[index].IsBusy || Tasks[index].IsEditing) break;
                 bytes -= Tasks[index].EstimatedBytes; Tasks.RemoveAt(index);
                 if (direction == PageDirection.Older) HasNewer = true; else HasOlder = true;
@@ -146,9 +186,12 @@ public sealed class MainViewModel : ObservableObject
     public async Task AddAsync(RichContent content, string? project, string? newProject)
     {
         if (Repository == null) return;
-        await Repository.AddTaskAsync(content, project, newProject);
+        var repository = Repository;
+        var added = await repository.AddTaskAsync(content, project, newProject);
+        if (Repository != repository) return;
         if (newProject != null) await RefreshProjectsAsync();
-        await ReloadAsync(); Message = "任务已添加。";
+        if (CurrentQuery?.Matches(added) == true) { await ReloadAsync(true); Message = "任务已添加。"; }
+        else Message = $"任务已添加到{Projects.FirstOrDefault(p => p.Id == added.ProjectId)?.Name ?? "全部"}模块的未完成列表。";
     }
     public async Task ChangeStatusAsync(TaskViewModel row, bool longPress)
     {

@@ -15,7 +15,7 @@ public static class ThemeService
     [
         new("浅蓝", Color.FromRgb(0x33, 0x7E, 0xBB)),
         new("青绿", Color.FromRgb(0x13, 0x8A, 0x83)),
-        new("橙色", Color.FromRgb(0xC5, 0x6A, 0x24)),
+        new("橙色", Color.FromRgb(0xF4, 0xB5, 0x6A)),
         new("紫色", Color.FromRgb(0x80, 0x61, 0xCC))
     ];
     public static event Action? Changed;
@@ -35,6 +35,11 @@ public static class ThemeService
         var accentColor = option.Color;
         var accent = accentColor.ToString();
         ApplicationAccentColorManager.Apply(accentColor, theme, false);
+        if (option.Name == "橙色")
+        {
+            var orange = dark ? Color.FromRgb(0xFF, 0xC9, 0x8A) : accentColor;
+            ApplicationAccentColorManager.Apply(accentColor, orange, orange, orange);
+        }
         RefreshControlAccentBrushes();
         void Brush(string key, string hex) { var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); brush.Freeze(); Application.Current.Resources[key] = brush; }
         Brush("CanvasBrush", dark ? "#202020" : "#F3F5F8"); Brush("SidebarBrush", dark ? "#202020" : "#F3F5F8");

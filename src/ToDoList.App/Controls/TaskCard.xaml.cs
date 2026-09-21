@@ -67,6 +67,7 @@ public partial class TaskCard : UserControl
             }
         }
         BodyText.Opacity = Row.IsCompleted ? .52 : 1;
+        AnimateHover(IsMouseOver);
         var stateBrush = (Brush)FindResource(Row.IsVerification ? "YellowBrush" : "GreenBrush");
         if (ThemeService.ReduceMotion)
             InteractionMotion.FinishCheckAnimation(CheckButton);
@@ -130,9 +131,12 @@ public partial class TaskCard : UserControl
     private void DeleteRestore_Click(object sender, RoutedEventArgs e) => DeleteRestoreRequested?.Invoke(this, EventArgs.Empty);
     private void AnimateHover(bool hover)
     {
-        var target = hover ? ((SolidColorBrush)FindResource("HoverBrush")).Color : Colors.Transparent;
-        if (RowBorder.Background is not SolidColorBrush brush || brush.IsFrozen) RowBorder.Background = brush = new SolidColorBrush(Colors.Transparent);
-        brush.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(target, TimeSpan.FromMilliseconds(ThemeService.ReduceMotion ? 0 : 140)));
+        var color = ((SolidColorBrush)FindResource("HoverBrush")).Color;
+        if (RowBorder.Background is not SolidColorBrush brush || brush.IsFrozen || brush.Color == Colors.Transparent)
+            RowBorder.Background = brush = new SolidColorBrush(color) { Opacity = 0 };
+        brush.Color = color;
+        brush.BeginAnimation(Brush.OpacityProperty, new DoubleAnimation(hover ? 1 : 0,
+            TimeSpan.FromMilliseconds(ThemeService.ReduceMotion ? 0 : 140)) { EasingFunction = new QuadraticEase() });
     }
     public Task AnimateOutAsync(bool reduceMotion)
     {
@@ -152,6 +156,8 @@ public partial class TaskCard : UserControl
     private void StopAnimation()
     {
         _animationVersion++; _animation?.TrySetResult(); _animation = null;
+        if (RowBorder.Background is SolidColorBrush brush && !brush.IsFrozen)
+        { brush.BeginAnimation(Brush.OpacityProperty, null); brush.Opacity = 0; }
         BeginAnimation(OpacityProperty, null); BeginAnimation(HeightProperty, null); Opacity = 1; Height = double.NaN;
     }
 }

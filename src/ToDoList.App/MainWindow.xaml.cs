@@ -21,6 +21,7 @@ namespace ToDoList.App;
 public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
 {
     public MainViewModel Model { get; }
+    internal Action<string> OpenExternal { get; set; } = url => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     public Wpf.Ui.Controls.ContentDialogHost DialogPresenter => DialogHost;
     private bool _sync = true, _initialized, _navigating, _closingApproved, _restoring;
     private TaskCard? _editingCard;
@@ -43,25 +44,23 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         { Left = settings.Left.Value; Top = settings.Top.Value; }
         else WindowStartupLocation = WindowStartupLocation.CenterScreen;
         if (settings.Maximized) WindowState = WindowState.Maximized;
-        var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app-icon.png");
-        if (File.Exists(iconPath))
-        {
-            var bitmap = new BitmapImage(new Uri(iconPath)); bitmap.Freeze(); Icon = BitmapFrame.Create(new Uri(Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico")));
-            WelcomeIcon.Source = AboutIcon.Source = bitmap;
-        }
+        var bitmap = new BitmapImage(new Uri("pack://application:,,,/Assets/app-icon.png")); bitmap.Freeze();
+        Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/app.ico"));
+        WelcomeIcon.Source = AboutIcon.Source = bitmap;
         ModeSetting.ItemsSource = new[] { "浅色", "深色", "跟随系统" };
         PaletteSetting.ItemsSource = ThemeService.Accents;
         FontSetting.ItemsSource = new double[] { 12, 14, 16, 18 };
         DensitySetting.ItemsSource = new[] { "紧凑", "舒适" }; MotionSetting.ItemsSource = new[] { "标准", "减少动态效果" };
         SyncSettings();
         Model.LayoutChanging += CaptureAnchor; Model.LayoutChanged += RestoreAnchor;
+        Model.LatestRequested += ScrollToLatest;
         Model.IsEditing = () => _editingCard != null;
         Model.AnimateRemoval = row => FindCard(row)?.AnimateOutAsync(Model.Settings.ReduceMotion) ?? Task.CompletedTask;
-        TaskList.PreviewMouseWheel += (_, e) => _scrollIntent = e.Delta > 0 ? PageDirection.Newer : PageDirection.Older;
+        TaskList.PreviewMouseWheel += (_, e) => _scrollIntent = e.Delta > 0 ? PageDirection.Older : PageDirection.Newer;
         TaskList.PreviewKeyDown += (_, e) =>
         {
-            if (e.Key is Key.Up or Key.PageUp or Key.Home) _scrollIntent = PageDirection.Newer;
-            else if (e.Key is Key.Down or Key.PageDown or Key.End) _scrollIntent = PageDirection.Older;
+            if (e.Key is Key.Up or Key.PageUp or Key.Home) _scrollIntent = PageDirection.Older;
+            else if (e.Key is Key.Down or Key.PageDown or Key.End) _scrollIntent = PageDirection.Newer;
         };
         TaskList.PreviewMouseDown += (_, e) =>
         {
@@ -177,8 +176,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private async void NewProject_Click(object sender, RoutedEventArgs e)
     {
         if (Model.Repository == null) return;
-        var input = await Dialogs.Input(this, "加一个新的项目", "项目名称"); if (input == null) return;
-        await SafeAsync(async () => { await Model.Repository.AddProjectAsync(input); _sync = true; await Model.RefreshProjectsAsync(); SyncSelectors(); _sync = false; Model.Message = "新项目已加入目录。"; });
+        var input = await Dialogs.Input(this, "加一个新的模块", "模块名称"); if (input == null) return;
+        await SafeAsync(async () => { await Model.Repository.AddProjectAsync(input); _sync = true; await Model.RefreshProjectsAsync(); SyncSelectors(); _sync = false; Model.Message = "新模块已加入目录。"; });
         _sync = false;
     }
     private void BookMenu_Click(object sender, RoutedEventArgs e)
@@ -296,10 +295,27 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         if (_restoring || !_initialized || e.OriginalSource is not ScrollViewer scroll || e.VerticalChange == 0 ||
             !ReferenceEquals(scroll, Descendants<ScrollViewer>(TaskList).FirstOrDefault()) || (!_scrollbarGesture && _scrollIntent == null)) return;
-        if (scroll.VerticalOffset < 150 && e.VerticalChange < 0 && (_scrollbarGesture || _scrollIntent == PageDirection.Newer))
-        { _scrollIntent = null; await SafeAsync(() => Model.LoadPageAsync(PageDirection.Newer)); }
-        else if (scroll.ScrollableHeight - scroll.VerticalOffset < 300 && e.VerticalChange > 0 && (_scrollbarGesture || _scrollIntent == PageDirection.Older))
+        if (scroll.VerticalOffset < 150 && e.VerticalChange < 0 && (_scrollbarGesture || _scrollIntent == PageDirection.Older))
         { _scrollIntent = null; await SafeAsync(() => Model.LoadPageAsync(PageDirection.Older)); }
+        else if (scroll.ScrollableHeight - scroll.VerticalOffset < 300 && e.VerticalChange > 0 && (_scrollbarGesture || _scrollIntent == PageDirection.Newer))
+        { _scrollIntent = null; await SafeAsync(() => Model.LoadPageAsync(PageDirection.Newer)); }
+    }
+    private void ScrollToLatest()
+    {
+        var epoch = Model.QueryEpoch;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        {
+            if (epoch != Model.QueryEpoch || Model.Tasks.Count == 0) return;
+            _restoring = true;
+            TaskList.ScrollIntoView(Model.Tasks[^1]); TaskList.UpdateLayout();
+            Descendants<ScrollViewer>(TaskList).FirstOrDefault()?.ScrollToEnd();
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() => _restoring = false));
+        }));
+    }
+    private void OpenRepository_Click(object sender, RoutedEventArgs e)
+    {
+        try { OpenExternal(ApplicationLinks.RepositoryUrl); }
+        catch (Exception) { Model.Message = "无法打开浏览器，请访问 " + ApplicationLinks.RepositoryUrl; }
     }
     private void CaptureAnchor()
     {

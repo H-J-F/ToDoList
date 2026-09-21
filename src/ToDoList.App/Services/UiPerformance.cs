@@ -30,7 +30,7 @@ internal static class UiPerformance
             for (int i = 0; i < 35; i++)
             {
                 await model.LoadPageAsync(PageDirection.Older);
-                list.ScrollIntoView(model.Tasks[^1]);
+                list.ScrollIntoView(model.Tasks[0]);
                 await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
                 maxContainers = Math.Max(maxContainers, MainWindow.Descendants<TaskCard>(list).Count());
                 maxCache = Math.Max(maxCache, model.Tasks.Count); maxContent = Math.Max(maxContent, model.Tasks.Sum(t => t.EstimatedBytes));

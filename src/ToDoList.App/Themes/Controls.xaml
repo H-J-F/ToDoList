@@ -17,7 +17,10 @@
         <Style.Triggers><Trigger Property="HasItems" Value="False"><Setter Property="IsEnabled" Value="False"/><Setter Property="IsDropDownOpen" Value="False"/></Trigger></Style.Triggers>
     </Style>
     <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}"><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/></Style>
-    <Style TargetType="fluent:SymbolIcon"><Setter Property="FontSize" Value="20"/></Style>
+    <Style TargetType="fluent:SymbolIcon">
+        <Setter Property="FontSize" Value="20"/><Setter Property="FontWeight" Value="Normal"/><Setter Property="FontStyle" Value="Normal"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="Grayscale"/><Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+    </Style>
     <Style x:Key="QuietButton" TargetType="fluent:Button" BasedOn="{StaticResource {x:Type fluent:Button}}"><Setter Property="Appearance" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/></Style>
     <Style x:Key="PrimaryButton" TargetType="fluent:Button" BasedOn="{StaticResource {x:Type fluent:Button}}"><Setter Property="Appearance" Value="Primary"/></Style>
     <Style x:Key="IconButton" TargetType="fluent:Button" BasedOn="{StaticResource QuietButton}"><Setter Property="Width" Value="40"/><Setter Property="Height" Value="40"/><Setter Property="Padding" Value="0"/></Style>

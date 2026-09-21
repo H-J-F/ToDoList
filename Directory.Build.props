@@ -4,6 +4,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
-    <Version>1.0.0</Version>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <Version>2.1.0</Version>
+    <Authors>H-J-F</Authors>
+    <Copyright>Copyright (c) 2026 H-J-F</Copyright>
+    <RepositoryUrl>https://github.com/H-J-F/ToDoList</RepositoryUrl>
   </PropertyGroup>
 </Project>

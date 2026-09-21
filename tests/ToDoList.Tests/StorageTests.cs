@@ -66,11 +66,25 @@ public sealed class StorageTests : IDisposable
     {
         var (book, repo) = await Create(); Seed(book.Path, 550);
         var query = new TaskQuery(null, TaskFilter.Open, TaskSort.Created);
-        var a = await repo.QueryAsync(query); var b = await repo.QueryAsync(query with { Cursor = query.CursorFor(a.Items[^1]) });
-        var back = await repo.QueryAsync(query with { Cursor = query.CursorFor(b.Items[0]), Direction = PageDirection.Newer });
+        var a = await repo.QueryAsync(query); var b = await repo.QueryAsync(query with { Cursor = query.CursorFor(a.Items[0]) });
+        var back = await repo.QueryAsync(query with { Cursor = query.CursorFor(b.Items[^1]), Direction = PageDirection.Newer });
         Assert.Equal(200, a.Items.Count); Assert.True(a.HasMore);
+        Assert.Equal(a.Items.OrderBy(t => t.CreatedAt).ThenBy(t => t.Id, StringComparer.Ordinal).Select(t => t.Id), a.Items.Select(t => t.Id));
         Assert.Empty(a.Items.Select(t => t.Id).Intersect(b.Items.Select(t => t.Id)));
         Assert.Equal(a.Items.Select(t => t.Id), back.Items.Select(t => t.Id)); Assert.False(back.HasMore);
+    }
+    [Fact] public async Task LatestWindowIsAscendingAndInclusiveRefreshDoesNotDropAnchor()
+    {
+        var (book, repo) = await Create(); Seed(book.Path, 550);
+        var query = new TaskQuery(null, TaskFilter.Open, TaskSort.Created);
+        var page = await repo.QueryAsync(query);
+        using var connection = Database.Open(book.Path);
+        using var command = Database.Command(connection, "SELECT Id FROM Tasks WHERE Status IN (0,1) ORDER BY CreatedAt DESC,Id DESC LIMIT 200");
+        using var reader = command.ExecuteReader(); var expected = new List<string>(); while (reader.Read()) expected.Add(reader.GetString(0)); expected.Reverse();
+        Assert.Equal(expected, page.Items.Select(t => t.Id));
+        var refreshed = await repo.QueryAsync(query with { Cursor = query.CursorFor(page.Items[0]), Direction = PageDirection.Newer, IncludeCursor = true });
+        Assert.Equal(expected, refreshed.Items.Select(t => t.Id));
+        Assert.False(refreshed.HasMore);
     }
     [Fact] public async Task AllQueryShapesUseIndexesWithoutTemporarySort()
     {

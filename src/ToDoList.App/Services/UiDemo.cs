@@ -35,6 +35,14 @@ internal static class UiDemo
         timer.Tick += (_, _) =>
         {
             var bitmap = new RenderTargetBitmap(1100, 760, 96, 96, PixelFormats.Pbgra32); bitmap.Render(window);
+            var draft = (RichEditor)window.FindName("DraftEditor");
+            if (draft.ToolContent is { IsVisible: true, ActualWidth: > 0, ActualHeight: > 0 } popup)
+            {
+                var layer = new RenderTargetBitmap((int)Math.Ceiling(popup.ActualWidth), (int)Math.Ceiling(popup.ActualHeight), 96, 96, PixelFormats.Pbgra32); layer.Render(popup);
+                var overlay = new DrawingVisual(); using (var drawing = overlay.RenderOpen())
+                { drawing.DrawImage(layer, new Rect(window.PointFromScreen(popup.PointToScreen(new Point())), popup.RenderSize)); }
+                bitmap.Render(overlay);
+            }
             bitmap.Freeze(); var name = $"{frame:D5}.png";
             if (frames.Writer.TryWrite((bitmap, name))) { timings.Add((name, captureClock.Elapsed.TotalSeconds)); frame++; }
         };
@@ -45,7 +53,7 @@ internal static class UiDemo
             {
                 var book = await model.Library.CreateAsync("Demo2026", "产品设计工作台");
                 await model.RefreshBooksAsync(); await model.OpenBookAsync(book);
-                foreach (var text in new[] { "整理用户访谈记录", "检查桌面端窗口缩放", "准备本周项目进度", "验证导入与备份流程", "完成新版交互设计" })
+                foreach (var text in new[] { "整理用户访谈记录", "检查桌面端窗口缩放", "准备本周模块进度", "验证导入与备份流程", "完成新版交互设计" })
                     await model.Repository!.AddTaskAsync(RichContent.FromText(text), null);
                 await model.ReloadAsync();
                 ((ComboBox)window.FindName("BookSelector")).SelectedItem = model.Books[0];
@@ -78,6 +86,13 @@ internal static class UiDemo
             await model.DeleteRestoreAsync(model.Tasks[0]); await Task.Delay(600);
             Select("Today"); await Task.Delay(500);
             var card = window.FindCard(model.Tasks[0]); card?.BeginEdit(); await Task.Delay(700); card?.EndEdit(); if (card?.Row != null) card.Row.IsEditing = false;
+            var editor = (RichEditor)window.FindName("DraftEditor");
+            editor.SetContent(new(1, [new([new("把今天的小目标写下来 ", Color: "#64B5F6"), new("👩🏽‍💻 ✨ ❤️")])]));
+            ((Button)editor.FindName("ColorButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(1400); editor.CloseTool();
+            ((Button)editor.FindName("EmojiButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(1600); editor.CloseTool();
+            var mode = (ComboBox)window.FindName("ModeSetting"); mode.SelectedItem = "深色"; await Task.Delay(800);
+            ((Button)editor.FindName("EmojiButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(1400); editor.CloseTool();
+            editor.SetContent(RichContent.FromText(""));
             await Task.Delay(500);
         }
         catch (Exception ex) { File.WriteAllText(Path.Combine(output, "error.txt"), ex.ToString()); }

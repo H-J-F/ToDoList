@@ -11,7 +11,7 @@ using ToDoList.Core;
 using ToDoList.Storage;
 
 namespace ToDoList.App.Services;
-internal static class UiSmoke
+internal static partial class UiSmoke
 {
     public static async Task RunAsync(MainWindow window)
     {
@@ -38,7 +38,7 @@ internal static class UiSmoke
             {
                 var book = await model.Library.CreateAsync("Journal", "我的工作与生活");
                 var repo = new TaskRepository(book.Path);
-                await repo.AddTaskAsync(new(1, [new([new("给新项目画一张草图", true), new("  ✨")])]), null, "设计工作");
+                await repo.AddTaskAsync(new(1, [new([new("给新模块画一张草图", true), new("  ✨")])]), null, "设计工作");
                 await repo.AddTaskAsync(RichContent.FromText("读完《小王子》的下一章 📚"), null, "学习充电");
                 await repo.AddTaskAsync(RichContent.FromText("傍晚散步，给自己一点放空时间 🌱"), null, "好好生活");
                 var done = await repo.AddTaskAsync(RichContent.FromText("整理桌面，泡一杯喜欢的茶 ☕"), null);
@@ -79,6 +79,7 @@ internal static class UiSmoke
             card.ActiveEditor.SetContent(new(1, [new([new("富文本 👩‍💻❤️", true, true, true, "#BC6852", "https://example.com")])]));
             var roundTrip = card.ActiveEditor.GetContent(); log.Add("Editor roundtrip: " + roundTrip.ToJson()); Check(roundTrip.PlainText == "富文本 👩‍💻❤️" && roundTrip.Paragraphs[0].Runs[0].Bold && roundTrip.Paragraphs[0].Runs[0].Link == "https://example.com", "WPF editor rich-text roundtrip", log);
             card.ActiveEditor.SetContent(original); card.EndEdit(); row.IsEditing = false;
+            await CheckEditorAsync(window, output, log);
             var completedRow = model.Tasks.First(r => r.IsCompleted); var originalCompleted = completedRow.Item.CompletedAt;
             var completedCard = window.FindCard(completedRow)!;
             var deleteMenu = (MenuItem)completedCard.FindName("DeleteRestoreMenu");
@@ -145,12 +146,27 @@ internal static class UiSmoke
                     """, ("$json", content.ToJson()), ("$text", content.PlainText), ("$now", now));
             }
             await model.SelectFilterAsync(TaskFilter.Open);
+            await Settle();
+            Check(model.Tasks.Count == 200 && model.HasOlder && !model.HasNewer, "Filter opens only the newest 200 tasks", log);
+            var viewer = MainWindow.Descendants<ScrollViewer>(list).First();
+            Check(Math.Abs(viewer.VerticalOffset - viewer.ScrollableHeight) < 2, "Initial newest page is positioned at the bottom", log);
             for (int i = 0; i < 12; i++) await model.LoadPageAsync(PageDirection.Older);
             await Settle(); Check(model.Tasks.Count <= 2000 && model.HasNewer, "Sliding page cache evicts old pages", log);
             list.ScrollIntoView(model.Tasks[^1]); await Settle();
             var realized = MainWindow.Descendants<TaskCard>(list).Count(); Check(realized < 80, $"Virtualized controls bounded ({realized} realized)", log);
             var firstId = model.Tasks[0].Id; await model.LoadPageAsync(PageDirection.Newer); await Settle();
             Check(model.Tasks[0].Id != firstId && model.Tasks.Count <= 2000, "Evicted pages load backwards", log);
+            var retained = model.Tasks.Select(t => t.Id).ToArray();
+            await model.ReloadAsync(); await Settle();
+            Check(retained.SequenceEqual(model.Tasks.Select(t => t.Id)), "Ordinary refresh retains the historical cache window", log);
+            Check(model.Tasks.Select(t => t.Id).Distinct().Count() == model.Tasks.Count && model.Tasks.Select(t => t.Item).SequenceEqual(model.Tasks.Select(t => t.Item).OrderBy(t => t.CreatedAt).ThenBy(t => t.Id, StringComparer.Ordinal)), "Bidirectional cache is unique and ascending", log);
+            await model.AddAsync(RichContent.FromText("新增任务应位于底部"), null, null); await Settle();
+            Check(model.Tasks[^1].Item.PlainText == "新增任务应位于底部" && !model.HasNewer && Math.Abs(viewer.VerticalOffset - viewer.ScrollableHeight) < 2, "Adding from historical position returns to the latest task at bottom", log);
+            var project = (await model.Repository!.GetProjectsAsync()).First(); await model.SelectProjectAsync(project.Id);
+            retained = model.Tasks.Select(t => t.Id).ToArray();
+            await model.AddAsync(RichContent.FromText("全部内的任务"), null, null); await Settle();
+            Check(retained.SequenceEqual(model.Tasks.Select(t => t.Id)) && model.Message.Contains("全部"), "Adding outside active module preserves its view and reports location", log);
+            await model.SelectProjectAsync(null);
             for (int i = 0; i < 10; i++) await model.LoadPageAsync(PageDirection.Newer);
             await model.SelectFilterAsync(TaskFilter.Today); await Settle();
             Capture(window, Path.Combine(output, "dpi-125.png"), 1.25); Capture(window, Path.Combine(output, "06-dpi-150.png"), 1.5); Capture(window, Path.Combine(output, "07-dpi-200.png"), 2);
@@ -160,7 +176,7 @@ internal static class UiSmoke
         {
             File.WriteAllText(Path.Combine(output, "ui-smoke-results.json"), JsonSerializer.Serialize(new { Passed = false, Error = ex.ToString(), Checks = log }, new JsonSerializerOptions { WriteIndented = true }));
         }
-        finally { window.Close(); }
+        finally { ((RichEditor)window.FindName("DraftEditor")).SetContent(RichContent.FromText("")); Application.Current.Shutdown(); }
     }
     private static async Task CheckReducedMotionAsync(MainWindow window, List<string> log)
     {
@@ -280,6 +296,21 @@ internal static class UiSmoke
         mode.SelectedItem = "浅色"; palette.SelectedValue = "浅蓝"; font.SelectedItem = 14d;
         window.Width = 1100; window.Height = 760; await Settle();
         Capture(window, Path.Combine(output, "settings-light.png"));
+        var about = (Wpf.Ui.Controls.CardAction)window.FindName("AboutCard");
+        var launch = window.OpenExternal; var links = new List<string>();
+        try
+        {
+            window.OpenExternal = links.Add;
+            scroll.ScrollToEnd(); await Settle();
+            about.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            var peer = System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(about);
+            ((System.Windows.Automation.Provider.IInvokeProvider)peer.GetPattern(System.Windows.Automation.Peers.PatternInterface.Invoke)).Invoke(); await Settle();
+            Check(links.Count == 2 && links.All(u => u == ApplicationLinks.RepositoryUrl), "About CardAction click and accessible invoke open the repository URL", log);
+            window.OpenExternal = _ => throw new InvalidOperationException("simulated browser failure");
+            about.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Check(model.Message.Contains("无法打开浏览器"), "About browser failure provides feedback", log);
+        }
+        finally { window.OpenExternal = launch; }
         panel.Visibility = Visibility.Collapsed;
     }
     private static void Check(bool condition, string text, List<string> log) { if (!condition) throw new InvalidOperationException(text); log.Add(text); }

@@ -110,7 +110,7 @@ public sealed class BookLibrary
         using (var r = cmd.ExecuteReader()) while (r.Read())
         {
             ct.ThrowIfCancellationRequested();
-            if (!Guid.TryParse(r.GetString(0), out _)) throw new InvalidDataException("项目标识无效。");
+            if (!Guid.TryParse(r.GetString(0), out _)) throw new InvalidDataException("模块标识无效。");
             BookRules.ValidateTitle(r.GetString(1));
         }
         using (var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks"))
@@ -214,7 +214,13 @@ public sealed class BookLibrary
     {
         var path = System.IO.Path.Combine(DataDirectory, "settings.json");
         if (!File.Exists(path)) return new();
-        try { return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path)) ?? new(); }
+        try
+        {
+            var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path)) ?? new();
+            settings.RecentColors = (settings.RecentColors ?? []).Where(c => c != null && System.Text.RegularExpressions.Regex.IsMatch(c, "^#[0-9a-fA-F]{6}$")).Select(c => c.ToUpperInvariant()).Distinct().Take(8).ToList();
+            settings.RecentEmoji = (settings.RecentEmoji ?? []).Where(e => !string.IsNullOrWhiteSpace(e) && e.Length <= 64).Distinct().Take(24).ToList();
+            return settings;
+        }
         catch (JsonException) { return new(); }
     }
     public void SaveSettings(AppSettings settings)

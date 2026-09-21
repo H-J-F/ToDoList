@@ -16,7 +16,7 @@ public sealed record TodoItem(string Id, string? ProjectId, string ContentJson, 
 public sealed record PageCursor(long Time, string Id);
 public sealed record TaskQuery(string? ProjectId, TaskFilter Filter, TaskSort Sort,
     long? From = null, long? Until = null, PageCursor? Cursor = null,
-    PageDirection Direction = PageDirection.Older, int PageSize = 200)
+    PageDirection Direction = PageDirection.Older, int PageSize = 200, bool IncludeCursor = false)
 {
     public bool ByCompletion => Filter == TaskFilter.Completed && Sort == TaskSort.Completed;
     public bool ByDeletion => Filter == TaskFilter.Deleted;
@@ -105,6 +105,8 @@ public static class DateRanges
 
 public sealed class AppSettings
 {
+    public List<string> RecentColors { get; set; } = [];
+    public List<string> RecentEmoji { get; set; } = [];
     public int SettingsVersion { get; set; }
     public string? AccentPreset { get; set; }
     public string Mode { get; set; } = "浅色";

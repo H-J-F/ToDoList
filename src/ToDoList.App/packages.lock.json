@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "Emoji.Wpf": {
+        "type": "Direct",
+        "requested": "[0.3.4, )",
+        "resolved": "0.3.4",
+        "contentHash": "3ouEfw6Mo5Czk0TJd4BWrElB21jK9lKWqB1ZZF1DEBDRLNmOvJJbT51/ELLMIyqyn4p/mh10XC9Kmqmb1IbmnQ==",
+        "dependencies": {
+          "JeremyAnsel.HLSL.Targets": "1.0.13",
+          "Stfu": "0.1.1"
+        }
+      },
+      "WPF-UI": {
+        "type": "Direct",
+        "requested": "[4.3.0, )",
+        "resolved": "4.3.0",
+        "contentHash": "SIHhc8lIrhEQ/1cLFZN6Dtf8cqsLm4myBULj9obnacd9TyDs2vizhKYzRzTlcPEcnzb3L4EstvPN3M6kcXbJCA==",
+        "dependencies": {
+          "WPF-UI.Abstractions": "4.3.0"
+        }
+      },
+      "JeremyAnsel.HLSL.Targets": {
+        "type": "Transitive",
+        "resolved": "1.0.13",
+        "contentHash": "uLfE1STTM/o8G2eWEtQWMHm91nO47BIEsjXhO3c6hvsjx+bInTA7LnqI9iAWUWr58Sug+NSoNNZT83i2mWMl7g=="
+      },
+      "Microsoft.Data.Sqlite": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "58JwZ39lCvRXHfV5O6RQfbHEDu8ZsXI7weRoVRR4jrGRxxkS+qyeuGrN2xD+9VYEICApYr0iTSL6PuU+DdsvPg==",
+        "dependencies": {
+          "Microsoft.Data.Sqlite.Core": "10.0.10",
+          "SQLitePCLRaw.bundle_e_sqlite3": "2.1.11",
+          "SQLitePCLRaw.core": "2.1.11"
+        }
+      },
+      "Microsoft.Data.Sqlite.Core": {
+        "type": "Transitive",
+        "resolved": "10.0.10",
+        "contentHash": "TPCs0ldm7AWqcKmp6f/Xr+14sat7hx4rHfRlS4RgCURBH2thEWbAKEyX7cCWr63zVJVOJIJZTg2cBiUXa8ys6g==",
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.11"
+        }
+      },
+      "SQLite": {
+        "type": "Transitive",
+        "resolved": "3.53.4",
+        "contentHash": "KN7jeWqgUPeBRe1FlcpZURzxomuKKEKHmBBQfg+Nx7NkY1LjKhzHvH+3ASkNvhayESE34nMBinL9CV21JfPRJw=="
+      },
+      "SQLitePCLRaw.bundle_e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "3.0.5",
+        "contentHash": "SW8iASIyWMrLzqabUHYQRvALhvD4ylSBsj4PgEVGwc36kQjc9xT5kSV/XQ9rU7nIpBWD+LPyX3Hlw5FzyUzGeQ==",
+        "dependencies": {
+          "SQLite": "3.53.4",
+          "SQLitePCLRaw.config.e_sqlite3": "3.0.5"
+        }
+      },
+      "SQLitePCLRaw.config.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "3.0.5",
+        "contentHash": "aSk8WE5tF2MybESMgtZAEyMVCAWA0nBqOMc48HFoa9UoSdtm3goDXVzNRnefeKIwE6bV9NaNXptn1F9ReMQI0Q==",
+        "dependencies": {
+          "SQLitePCLRaw.provider.e_sqlite3": "3.0.5"
+        }
+      },
+      "SQLitePCLRaw.core": {
+        "type": "Transitive",
+        "resolved": "3.0.5",
+        "contentHash": "k81AYXXRCw3Zj8rOhyBoCsx/U97KYDFI2CSKr/ijl5BwpsW/hX/4kBiDmerFaoust8nxBwa0IHQFw8MmSHRtnQ=="
+      },
+      "SQLitePCLRaw.provider.e_sqlite3": {
+        "type": "Transitive",
+        "resolved": "3.0.5",
+        "contentHash": "um8YSWduhhuskTG2bHfZrBqMNQOydfU8pcseT+cu5RivOGyoUbCrGXxgoRNTmRYw2VbMWnEZVVFcneZT/5dsBg==",
+        "dependencies": {
+          "SQLitePCLRaw.core": "3.0.5"
+        }
+      },
+      "Stfu": {
+        "type": "Transitive",
+        "resolved": "0.1.1",
+        "contentHash": "wUd0joqQoZ1B/wULKx1gGTY9zxiDbsW3Y6W0G0guCTL/jRMdDBPr9FMHfkoOKB0JIYGlup3NqXrsqs8fPrCdrw=="
+      },
+      "WPF-UI.Abstractions": {
+        "type": "Transitive",
+        "resolved": "4.3.0",
+        "contentHash": "7Kj9DmCCo4SOCd1jAiw4+EcMFP2nR8rLLvitAYzVtzbWToTsodkbie24+8x9C4LDLxkopWEUGX62szqqNy7oeg=="
+      },
+      "todolist.core": {
+        "type": "Project"
+      },
+      "todolist.storage": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Data.Sqlite": "[10.0.10, )",
+          "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )",
+          "ToDoList.Core": "[2.1.0, )"
+        }
+      }
+    },
+    "net10.0-windows7.0/win-x64": {
+      "SQLite": {
+        "type": "Transitive",
+        "resolved": "3.53.4",
+        "contentHash": "KN7jeWqgUPeBRe1FlcpZURzxomuKKEKHmBBQfg+Nx7NkY1LjKhzHvH+3ASkNvhayESE34nMBinL9CV21JfPRJw=="
+      }
+    }
+  }
+}

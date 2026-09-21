@@ -17,7 +17,7 @@ foreach (var size in sizes)
         if (Convert.ToInt64(Database.Scalar(c, "SELECT COUNT(*) FROM Tasks")) == 0)
         {
             using var transaction = c.BeginTransaction();
-            for (int i = 0; i < 10; i++) Database.Exec(c, "INSERT INTO Projects VALUES($id,$name)", ("$id", (i + 1).ToString("x32")), ("$name", "项目 " + i));
+            for (int i = 0; i < 10; i++) Database.Exec(c, "INSERT INTO Projects VALUES($id,$name)", ("$id", (i + 1).ToString("x32")), ("$name", "模块 " + i));
             var content = RichContent.FromText("完成今天的一件小事：整理资料、记录想法，并给自己一点休息时间。🌱");
             Database.Exec(c, """
                 WITH RECURSIVE seq(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM seq WHERE x<$count)
