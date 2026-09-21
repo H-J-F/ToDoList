@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Controls;
 using TextBlock = System.Windows.Controls.TextBlock;
-using TextBox = System.Windows.Controls.TextBox;
+using TextBox = Wpf.Ui.Controls.TextBox;
 
 namespace ToDoList.App.Services;
 public static class Dialogs

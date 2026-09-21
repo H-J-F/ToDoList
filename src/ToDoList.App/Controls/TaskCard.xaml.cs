@@ -80,8 +80,8 @@ public partial class TaskCard : UserControl
         ActiveEditor.Cancel += (_, _) => CancelRequested?.Invoke(this, EventArgs.Empty);
         var panel = new StackPanel(); panel.Children.Add(ActiveEditor);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-        var cancel = new Button { Content = "取消", Margin = new(0, 4, 8, 0), Padding = new(10, 5, 10, 5) }; cancel.Click += (_, _) => CancelRequested?.Invoke(this, EventArgs.Empty);
-        var save = new Button { Content = "保存  Ctrl+Enter", Style = (Style)FindResource("PrimaryButton"), Margin = new(0, 4, 0, 0), Padding = new(10, 5, 10, 5) }; save.Click += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
+        var cancel = new Wpf.Ui.Controls.Button { Content = "取消", Margin = new(0, 4, 8, 0), Padding = new(10, 5, 10, 5) }; cancel.Click += (_, _) => CancelRequested?.Invoke(this, EventArgs.Empty);
+        var save = new Wpf.Ui.Controls.Button { Content = "保存  Ctrl+Enter", Style = (Style)FindResource("PrimaryButton"), Margin = new(0, 4, 0, 0), Padding = new(10, 5, 10, 5) }; save.Click += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
         actions.Children.Add(cancel); actions.Children.Add(save); panel.Children.Add(actions);
         EditorHost.Content = panel; EditorHost.Visibility = Visibility.Visible; BodyText.Visibility = Visibility.Collapsed;
         Row.IsEditing = true; ActiveEditor.FocusEditor(); Motion.Reveal(EditorHost, 4);

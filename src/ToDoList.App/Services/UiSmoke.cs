@@ -21,6 +21,7 @@ internal static class UiSmoke
         {
             var model = window.Model;
             await Settle(); Capture(window, Path.Combine(output, "01-first-launch.png"));
+            Check(!((ComboBox)window.FindName("BookSelector")).IsEnabled, "Empty book selector is disabled on first launch", log);
             var createDialog = Dialogs.CreateBook(window); await Settle();
             var dialog = MainWindow.Descendants<Wpf.Ui.Controls.ContentDialog>(window).Single();
             var fields = MainWindow.Descendants<TextBox>(dialog).Where(t => t.MaxLength is 64 or 100).ToList();
@@ -97,6 +98,7 @@ internal static class UiSmoke
             await model.ReloadAsync(); await Settle();
             await Task.Delay(3200);
             await CheckReducedMotionAsync(window, log);
+            await CheckSettingsAsync(window, output, log);
             foreach (var palette in new[] { "浅蓝", "青绿", "橙色", "紫色" })
             {
                 model.Settings.AccentPreset = palette; ThemeService.Apply(model.Settings); await Settle(); Capture(window, Path.Combine(output, "theme-" + palette + ".png"));
@@ -212,6 +214,73 @@ internal static class UiSmoke
         motionSetting.SelectedIndex = 0; await Settle();
         Check(!model.Settings.ReduceMotion && !ThemeService.ReduceMotion, "Standard animations can be re-enabled", log);
         await model.SelectFilterAsync(TaskFilter.Today); await Settle();
+    }
+    private static async Task CheckSettingsAsync(MainWindow window, string output, List<string> log)
+    {
+        var model = window.Model;
+        var panel = (Border)window.FindName("SettingsPanel");
+        var scroll = (ScrollViewer)window.FindName("SettingsScroll");
+        var content = (StackPanel)window.FindName("SettingsContent");
+        var palette = (ComboBox)window.FindName("PaletteSetting");
+        var mode = (ComboBox)window.FindName("ModeSetting");
+        var font = (ComboBox)window.FindName("FontSetting");
+        var close = (Wpf.Ui.Controls.Button)window.FindName("CloseSettingsButton");
+        var add = MainWindow.Descendants<Wpf.Ui.Controls.Button>(window).Single(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "AddTask");
+        panel.Visibility = Visibility.Visible;
+        window.SyncSettings(); await Settle();
+        Check(MainWindow.Descendants<Wpf.Ui.Controls.CardControl>(content).Where(c => c.Icon != null).All(c => c.Icon is Wpf.Ui.Controls.SymbolIcon { FontSize: 24 }),
+            "Setting cards use explicit 24 DIP library icons", log);
+        Check(MainWindow.Descendants<Button>(content).All(b => b is Wpf.Ui.Controls.Button) && add.ActualHeight == 40,
+            "Settings actions and task submit use WPF UI buttons with consistent sizing", log);
+        Check(((ComboBox)window.FindName("BookSelector")).IsEnabled, "Book selector enables automatically after a book is created", log);
+        var items = new System.Collections.ObjectModel.ObservableCollection<string>();
+        var empty = new ComboBox { ItemsSource = items };
+        content.Children.Insert(0, empty); await Settle();
+        Check(!empty.IsEnabled && !empty.IsDropDownOpen, "Empty dropdown inherits disabled WPF UI style", log);
+        items.Add("测试"); await Settle();
+        Check(empty.IsEnabled, "Dropdown enables when its collection is populated", log);
+        empty.IsDropDownOpen = true; await Settle(); items.Clear(); await Settle();
+        Check(!empty.IsEnabled && !empty.IsDropDownOpen, "Clearing an open dropdown closes and disables it", log);
+        content.Children.Remove(empty);
+        foreach (var displayMode in new[] { "浅色", "深色" })
+        {
+            mode.SelectedItem = displayMode;
+            foreach (var option in ThemeService.Accents)
+            {
+                palette.IsDropDownOpen = true; palette.SelectedValue = option.Name; palette.IsDropDownOpen = false; await Settle();
+                var actual = (SolidColorBrush)add.Background;
+                var expected = (SolidColorBrush)window.FindResource("AccentFillColorDefaultBrush");
+                log.Add($"Accent {displayMode}/{option.Name}: button={actual.Color}, accent={expected.Color}, swatch={option.Color}");
+                Check(model.Settings.AccentPreset == option.Name && Equals(palette.SelectedValue, option.Name) &&
+                    Wpf.Ui.Appearance.ApplicationAccentColorManager.SystemAccent == option.Color && actual.Color == expected.Color,
+                    $"Selecting {displayMode}/{option.Name} updates the actual primary button and preserves selection", log);
+                Check(((SolidColorBrush)window.FindResource("TabViewItemForegroundSelected")).Color ==
+                    (displayMode == "深色" ? Wpf.Ui.Appearance.ApplicationAccentColorManager.SecondaryAccent : option.Color),
+                    $"Selected tab uses {displayMode}/{option.Name} instead of a fixed blue", log);
+                Capture(window, Path.Combine(output, $"settings-{displayMode}-{option.Name}.png"));
+            }
+        }
+        model.SaveSettings();
+        Check(model.Library.LoadSettings().AccentPreset == "紫色", "Accent chosen through dropdown persists to settings.json", log);
+        foreach (var size in new double[] { 12, 14, 16, 18 })
+        {
+            window.Width = 800; window.Height = 560; font.SelectedItem = size; scroll.ScrollToTop(); await Settle();
+            var scrollbar = MainWindow.Descendants<System.Windows.Controls.Primitives.ScrollBar>(scroll).Single(b => b.Orientation == Orientation.Vertical);
+            var left = scrollbar.TransformToAncestor(panel).Transform(new Point()).X;
+            Check(MainWindow.Descendants<ComboBox>(content).All(c => c.ActualHeight >= 40 &&
+                    c.TransformToAncestor(panel).Transform(new Point(c.ActualWidth, 0)).X <= left - 8),
+                $"Settings selectors have uniform height and a separate scrollbar gutter at font {size}", log);
+            var before = close.TransformToAncestor(panel).Transform(new Point());
+            scroll.ScrollToEnd(); await Settle();
+            Check(close.TransformToAncestor(panel).Transform(new Point()) == before && close.ActualWidth == 40 && close.ActualHeight == 40 &&
+                ((Wpf.Ui.Controls.SymbolIcon)close.Content).FontSize == 24, $"Settings close button stays visible while scrolling at font {size}", log);
+        }
+        Capture(window, Path.Combine(output, "settings-minimum-bottom.png"));
+        scroll.ScrollToTop(); await Settle(); Capture(window, Path.Combine(output, "settings-minimum-top.png"));
+        mode.SelectedItem = "浅色"; palette.SelectedValue = "浅蓝"; font.SelectedItem = 14d;
+        window.Width = 1100; window.Height = 760; await Settle();
+        Capture(window, Path.Combine(output, "settings-light.png"));
+        panel.Visibility = Visibility.Collapsed;
     }
     private static void Check(bool condition, string text, List<string> log) { if (!condition) throw new InvalidOperationException(text); log.Add(text); }
     private static async Task Settle() { await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); await Task.Delay(150); }

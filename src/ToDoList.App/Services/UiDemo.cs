@@ -62,6 +62,14 @@ internal static class UiDemo
             var settingsButton = MainWindow.Descendants<Button>(window).First(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "Settings");
             settingsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(800);
             var panel = (Border)window.FindName("SettingsPanel");
+            var palette = (ComboBox)window.FindName("PaletteSetting");
+            foreach (var accent in new[] { "青绿", "橙色", "紫色", "浅蓝" })
+            {
+                palette.IsDropDownOpen = true; await Task.Delay(300);
+                palette.SelectedValue = accent; palette.IsDropDownOpen = false; await Task.Delay(550);
+            }
+            var settingsScroll = (ScrollViewer)window.FindName("SettingsScroll");
+            settingsScroll.ScrollToEnd(); await Task.Delay(700); settingsScroll.ScrollToTop(); await Task.Delay(400);
             var close = MainWindow.Descendants<Button>(panel).First(b => Equals(b.ToolTip, "关闭设置"));
             close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(400);
             Select("Today"); await Task.Delay(400);

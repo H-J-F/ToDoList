@@ -50,7 +50,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             WelcomeIcon.Source = AboutIcon.Source = bitmap;
         }
         ModeSetting.ItemsSource = new[] { "浅色", "深色", "跟随系统" };
-        PaletteSetting.ItemsSource = new[] { "浅蓝", "青绿", "橙色", "紫色" };
+        PaletteSetting.ItemsSource = ThemeService.Accents;
         FontSetting.ItemsSource = new double[] { 12, 14, 16, 18 };
         DensitySetting.ItemsSource = new[] { "紧凑", "舒适" }; MotionSetting.ItemsSource = new[] { "标准", "减少动态效果" };
         SyncSettings();
@@ -84,7 +84,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             PageSubtitle.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
             PageHeading.FontSize = compact ? 22 : 26;
             BookmarkArea.Margin = new Thickness(0, compact ? 8 : 16, 0, 0);
-            DraftEditor.Height = compact ? 72 : 82;
+            DraftEditor.Height = compact ? 80 : 92;
             MainPage.Margin = new Thickness(24, compact ? 12 : 20, 24, compact ? 12 : 20);
         };
         Model.PropertyChanged += (_, e) =>
@@ -339,15 +339,23 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     internal void SyncSettings()
     {
         var prior = _sync; _sync = true; var s = Model.Settings;
-        ModeSetting.SelectedItem = s.Mode; PaletteSetting.SelectedItem = s.AccentPreset; FontSetting.SelectedItem = s.FontSize;
+        ModeSetting.SelectedItem = s.Mode; PaletteSetting.SelectedValue = s.AccentPreset; FontSetting.SelectedItem = s.FontSize;
         DensitySetting.SelectedItem = s.Density; MotionSetting.SelectedIndex = s.ReduceMotion ? 1 : 0; _sync = prior;
     }
     private void Setting_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (_sync || !_initialized) return;
-        var s = Model.Settings; s.Mode = ModeSetting.SelectedItem as string ?? "浅色"; s.AccentPreset = PaletteSetting.SelectedItem as string ?? "浅蓝";
-        s.FontSize = FontSetting.SelectedItem is double size ? size : 14; s.Density = DensitySetting.SelectedItem as string ?? "舒适"; s.ReduceMotion = MotionSetting.SelectedIndex == 1;
-        ThemeService.Apply(s); _settingsSave.Stop(); _settingsSave.Start();
+        if (_sync || !_initialized || sender is not ComboBox { SelectedItem: not null } selector || e.OriginalSource != sender) return;
+        var s = Model.Settings;
+        if (selector == ModeSetting) s.Mode = (string)selector.SelectedItem;
+        else if (selector == PaletteSetting) s.AccentPreset = ((ThemeService.AccentOption)selector.SelectedItem).Name;
+        else if (selector == FontSetting) s.FontSize = (double)selector.SelectedItem;
+        else if (selector == DensitySetting) s.Density = (string)selector.SelectedItem;
+        else if (selector == MotionSetting) s.ReduceMotion = selector.SelectedIndex == 1;
+        // Theme replacement can raise selection events while templates are rebuilt.
+        _sync = true;
+        try { ThemeService.Apply(s); }
+        finally { _sync = false; }
+        _settingsSave.Stop(); _settingsSave.Start();
     }
     private void ResetSettings_Click(object sender, RoutedEventArgs e)
     {

@@ -28,6 +28,10 @@ public static class InteractionMotion
         EventManager.RegisterClassHandler(typeof(ComboBox), FrameworkElement.LoadedEvent, new RoutedEventHandler((s, _) =>
         {
             var combo = (ComboBox)s; if (WiredCombos.TryGetValue(combo, out var existing)) return; WiredCombos.Add(combo, new());
+            combo.IsEnabledChanged += (_, _) =>
+            {
+                if (!combo.IsEnabled) combo.SetCurrentValue(ComboBox.IsDropDownOpenProperty, false);
+            };
             combo.DropDownOpened += (_, _) =>
             {
                 if (!ThemeService.ReduceMotion) return;

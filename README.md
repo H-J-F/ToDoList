@@ -4,9 +4,9 @@
 
 ## 直接使用
 
-2026-09-20 补测修正版位于 `artifacts/publish-verified/ToDoList-win-x64`，修复了减少动态效果模式下的模板动画。升级时先关闭旧版，再将修正版 ZIP 解压覆盖原程序目录，保留原有 `Data`。
+最新便携版位于 `artifacts/publish-ui-polish/ToDoList-win-x64`，压缩包为同级 `ToDoList-win-x64.zip`。2026-09-21 更新了设置布局、控件尺寸、图标和强调色切换；同时包含此前的减少动态效果修复。
 
-发布目录为 `artifacts/publish/ToDoList-win-x64`，双击其中的 `ToDoList.exe`。便携版自带 .NET 运行时，不需要安装 Rider 或 .NET。请把**整个目录**放在可写位置，不要只复制 exe。
+双击发布目录中的 `ToDoList.exe`。便携版自带 .NET 运行时，不需要安装 Rider 或 .NET。请把**整个目录**放在可写位置，不要只复制 exe。升级时先关闭旧版，再解压覆盖程序文件，保留原有 `Data`。
 
 首次启动没有预置数据。点击“创建待办书”，填写：
 
@@ -53,6 +53,12 @@
 ## 外观与交互
 
 设置包含浅色／深色／跟随系统，浅蓝／青绿／橙色／紫色强调色，12／14／16／18 DIP 字号，紧凑／舒适间距，以及减少动态效果。设置即时生效并保存；原配色偏好自动迁移，书内数据不受影响。窗口按钮和控件图标采用 WPF UI，包含按钮反馈、下拉、切换、设置面板、编辑展开以及状态退出动画。
+
+设置使用 WPF UI 卡片布局，标题与关闭按钮固定，内容滚动区域为滚动条单独留出空间。常规按钮／输入框高度统一为 40 DIP，编辑工具栏按钮为 32 DIP；功能图标 20 DIP，设置卡片及关闭图标 24 DIP。强调色选项显示色块，切换后即时刷新按钮、焦点边框和选中状态。无选项的下拉框自动禁用，已有内容被清空时自动关闭。
+
+控件采用 WPF UI 4.3.0 的 `Button`、`TextBox`、`CardControl`、`DynamicScrollViewer`、`TitleBar`、`ContentDialog` 与 `Snackbar`。ComboBox、CheckBox、菜单等使用该库为原生 WPF 控件提供的官方模板；不复制或自行重画其模板。
+
+2026-09-21 更新的便携包：`artifacts/publish-ui-polish/ToDoList-win-x64.zip`，可运行目录为同级 `ToDoList-win-x64`。旧目录及其 Data 保留；迁移已有数据请关闭旧程序后复制整个 Data 文件夹，或使用导入功能。
 
 ## Rider 开发
 

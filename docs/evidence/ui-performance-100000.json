@@ -1,10 +1,10 @@
 {
-  "StartupMilliseconds": 921.3,
-  "TabSwitchP95Milliseconds": 77.77,
-  "MaximumRealizedTaskControls": 7,
+  "StartupMilliseconds": 968.56,
+  "TabSwitchP95Milliseconds": 72.98,
+  "MaximumRealizedTaskControls": 6,
   "MaximumCachedTasks": 2000,
   "MaximumCachedContentBytes": 1924000,
-  "InitialWorkingSetBytes": 213884928,
-  "WorkingSetAfterScrollingBytes": 220745728,
+  "InitialWorkingSetBytes": 212439040,
+  "WorkingSetAfterScrollingBytes": 222810112,
   "Passed": true
 }

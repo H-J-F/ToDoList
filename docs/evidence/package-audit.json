@@ -1,6 +1,6 @@
 {
-  "Package": "artifacts/publish-verified/ToDoList-win-x64.zip",
-  "SHA256": "97472E0EC77B2D5614EBA95606E89A5BEEA6601646D2AB15BF55DFE969760FBD",
+  "Package": "artifacts/publish-ui-polish/ToDoList-win-x64.zip",
+  "SHA256": "534B9C1DBDF375B06282BDC5BA6DBC1655EDF5E3C8656EF0C24392E00DE259DD",
   "CheckedFiles": 415,
   "Mismatches": [],
   "DataEntries": 0,

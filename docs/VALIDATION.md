@@ -1,5 +1,18 @@
 # ToDoList 2.0 验证记录
 
+## 2026-09-21：控件与设置界面修正
+
+- 按钮和单行文本输入改用 WPF UI 控件，设置改为官方 CardControl 与 DynamicScrollViewer；保留库的模板、焦点反馈和动画。下拉框／复选框沿用 WPF UI 提供的原生控件样式。
+- 常规操作控件高度 40 DIP，工具栏按钮 32 DIP，功能图标 20 DIP；设置图标和关闭图标 24 DIP，关闭按钮点击区 40×40 DIP。设置标题固定，滚动区域为滚动条预留独立空间；任务列表也预留右侧间距。
+- 实测复现并修复强调色不一致：选择青绿后原按钮画笔仍为 `#FF2C6DA2`，而主题已是 `#FF0F716B`。现在更新库控件使用的画笔资源；颜色选项与主题共用一份定义，设置事件仅修改当前字段。
+- Windows x64 自包含发布版真实 WPF 检查 **72 项断言通过**；覆盖空列表禁用、填充后启用、清空已展开列表后关闭，深浅模式×四种颜色的实际按钮画笔，设置保存，四档字号、最小窗口下的滚动条间距和固定关闭按钮，以及既有状态／富文本／分页／动画回归。42 项业务与存储测试全部通过，Release 构建无警告和错误。
+- 10 万条落盘数据复测：首屏 **968.56ms**，页签切换 **P95 72.98ms**，最多 **6 个任务控件**、**2,000 条缓存**，内容缓存 **1,924,000 字节**。本次只改界面，因此复用既有数据库基准数据，未重复百万条 SQL 基准。
+- 最新包：`artifacts/publish-ui-polish/ToDoList-win-x64.zip`；运行目录：`artifacts/publish-ui-polish/ToDoList-win-x64`。旧发布目录和任务数据保持原样。
+- 检查记录：`artifacts/ui-polish-final/screenshots/ui-smoke-results.json`、`artifacts/ui-polish-perf/ui-results.json`；主要截图与 JSON 同步到 `docs/evidence`。新版动画演示：`artifacts/ui-polish-demo/ToDoList-interactions.mp4`，包含四色切换、设置滚动、状态改变与编辑动画。
+- 本次仍在 Windows 10 环境验证；物理 DPI 切换、Windows 11 和多显示器的覆盖边界见下文。
+
+以下保留前次重构及数据迁移的验证记录。
+
 日期：2026-09-20。环境：Windows 10 x64（19045），.NET SDK 10.0.302 / Runtime 10.0.10，Release，WPF UI 4.3.0。
 
 ## 构建、数据与界面

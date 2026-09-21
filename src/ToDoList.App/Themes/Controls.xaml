@@ -1,12 +1,29 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:fluent="http://schemas.lepo.co/wpfui/2022/xaml">
     <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
-    <Style x:Key="QuietButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="10,6"/>
+    <!-- Retain the library templates, focus rings and visual states. -->
+    <Style TargetType="fluent:Button" BasedOn="{StaticResource DefaultUiButtonStyle}">
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+        <Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="14,7"/><Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
-    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Background" Value="{DynamicResource AccentInkBrush}"/><Setter Property="Foreground" Value="White"/><Setter Property="Padding" Value="16,7"/>
+    <Style TargetType="fluent:TextBox" BasedOn="{StaticResource {x:Type fluent:TextBox}}">
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+        <Setter Property="MinHeight" Value="40"/><Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
-    <Style x:Key="ToolbarButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
-        <Setter Property="Width" Value="30"/><Setter Property="Height" Value="28"/><Setter Property="Padding" Value="0"/><Setter Property="Focusable" Value="False"/>
+    <!-- WPF UI supplies the native ComboBox template; it has no separate ComboBox class. -->
+    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
+        <Setter Property="MinHeight" Value="40"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="MaxDropDownHeight" Value="320"/>
+        <Style.Triggers><Trigger Property="HasItems" Value="False"><Setter Property="IsEnabled" Value="False"/><Setter Property="IsDropDownOpen" Value="False"/></Trigger></Style.Triggers>
     </Style>
+    <Style TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}"><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/></Style>
+    <Style TargetType="fluent:SymbolIcon"><Setter Property="FontSize" Value="20"/></Style>
+    <Style x:Key="QuietButton" TargetType="fluent:Button" BasedOn="{StaticResource {x:Type fluent:Button}}"><Setter Property="Appearance" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/></Style>
+    <Style x:Key="PrimaryButton" TargetType="fluent:Button" BasedOn="{StaticResource {x:Type fluent:Button}}"><Setter Property="Appearance" Value="Primary"/></Style>
+    <Style x:Key="IconButton" TargetType="fluent:Button" BasedOn="{StaticResource QuietButton}"><Setter Property="Width" Value="40"/><Setter Property="Height" Value="40"/><Setter Property="Padding" Value="0"/></Style>
+    <Style x:Key="ToolbarButton" TargetType="fluent:Button" BasedOn="{StaticResource QuietButton}">
+        <Setter Property="Width" Value="32"/><Setter Property="Height" Value="32"/><Setter Property="MinHeight" Value="32"/><Setter Property="Padding" Value="0"/><Setter Property="Focusable" Value="False"/>
+    </Style>
+    <Style x:Key="SettingCard" TargetType="fluent:CardControl" BasedOn="{StaticResource {x:Type fluent:CardControl}}"><Setter Property="MinHeight" Value="76"/><Setter Property="Margin" Value="0,0,0,8"/><Setter Property="Focusable" Value="False"/></Style>
+    <Style x:Key="SettingSelector" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}"><Setter Property="Width" Value="164"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/></Style>
 </ResourceDictionary>
