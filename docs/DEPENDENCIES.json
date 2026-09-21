@@ -11,7 +11,7 @@
   },
   {
     "package": "JeremyAnsel.HLSL.Targets/1.0.13",
-    "scope": "application",
+    "scope": "build-time",
     "authors": "Jérémy Ansel",
     "copyright": "Copyright © 2019 Jérémy Ansel",
     "license": "LICENSE.txt",
@@ -38,6 +38,16 @@
     "licenseUrl": "https://licenses.nuget.org/MIT",
     "source": "https://docs.microsoft.com/dotnet/standard/data/sqlite/",
     "packageSha512": "TPCs0ldm7AWqcKmp6f/Xr+14sat7hx4rHfRlS4RgCURBH2thEWbAKEyX7cCWr63zVJVOJIJZTg2cBiUXa8ys6g=="
+  },
+  {
+    "package": "Microsoft.NET.ILLink.Tasks/10.0.10",
+    "scope": "build-time",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://dot.net/",
+    "packageSha512": "f5VCIE7AJpd5YvzNTeMGVzQIgyE9tX+AreTYwQF+REbu+DZo/2Ae+jNSwhPEYrVz6RRkd7y8ubXjk6Nn6Ka+Cg=="
   },
   {
     "package": "SQLite/3.53.4",

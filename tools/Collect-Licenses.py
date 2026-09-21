@@ -34,6 +34,7 @@ for name, url in sources.items():
 
 local = {
     "SQLite-package.txt": "sqlite/3.53.4/LICENSE.txt",
+    "ILLink-build-NOTICES.txt": "microsoft.net.illink.tasks/10.0.10/THIRD-PARTY-NOTICES.TXT",
     "JeremyAnsel-HLSL-Targets.txt": "jeremyansel.hlsl.targets/1.0.13/LICENSE.txt",
     "NET-runtime-LICENSE.txt": "microsoft.netcore.app.runtime.win-x64/10.0.10/LICENSE.TXT",
     "NET-runtime-NOTICES.txt": "microsoft.netcore.app.runtime.win-x64/10.0.10/THIRD-PARTY-NOTICES.TXT",
@@ -77,7 +78,8 @@ for project in ["src/ToDoList.App", "tests/ToDoList.Tests"]:
         # Nuspec schema namespace differs between older test packages.
         metadata = next(x for x in doc.getroot() if x.tag.endswith("metadata"))
         values = {x.tag.split("}")[-1]: x.text for x in metadata}
-        inventory.append({"package": key, "scope": "application" if project.startswith("src") else "development/test",
+        scope = "build-time" if key.startswith(("JeremyAnsel.HLSL.Targets/", "Microsoft.NET.ILLink.Tasks/")) else "application" if project.startswith("src") else "development/test"
+        inventory.append({"package": key, "scope": scope,
                           "authors": values.get("authors"), "copyright": values.get("copyright"),
                           "license": values.get("license"), "licenseUrl": values.get("licenseUrl"),
                           "source": values.get("projectUrl"), "packageSha512": item.get("sha512")})

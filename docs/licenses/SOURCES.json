@@ -50,6 +50,11 @@
     "sha256": "99464c3a88df7b708ce59e462cdcb85f72dfc9b1335b4fcc68be56131b634b95"
   },
   {
+    "file": "ILLink-build-NOTICES.txt",
+    "source": "nuget:microsoft.net.illink.tasks/10.0.10/THIRD-PARTY-NOTICES.TXT",
+    "sha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+  },
+  {
     "file": "JeremyAnsel-HLSL-Targets.txt",
     "source": "nuget:jeremyansel.hlsl.targets/1.0.13/LICENSE.txt",
     "sha256": "372fe193e5ada6f0f06e0b80c9e9702314361ce9d80b11ff564f1582b5139350"

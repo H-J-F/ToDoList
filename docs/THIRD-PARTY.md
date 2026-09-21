@@ -15,6 +15,7 @@
 | SQLite 3.53.4（原生 e_sqlite3） | [SQLite](https://sqlite.org/)，NuGet 打包者 Eric Sink / SourceGear | Public domain，`licenses/SQLite-public-domain.md` |
 | .NET、WPF / WindowsDesktop 10.0.10（便携版） | Microsoft、.NET Foundation and other contributors | `licenses/NET-runtime-LICENSE.txt`、`NET-runtime-NOTICES.txt`、`WindowsDesktop-runtime-LICENSE.txt`、`WPF-runtime-NOTICES.txt`；包含适用第三方 NOTICE |
 | JeremyAnsel.HLSL.Targets 1.0.13 | [Jérémy Ansel](https://github.com/JeremyAnsel/JeremyAnsel.HLSL.Targets)，Copyright © 2019 Jérémy Ansel | MIT，`licenses/JeremyAnsel-HLSL-Targets.txt`；Emoji.Wpf 声明的构建工具依赖，无该工具 DLL 随应用运行 |
+| Microsoft.NET.ILLink.Tasks 10.0.10 | [dotnet/runtime](https://github.com/dotnet/runtime/tree/v10.0.10)，Microsoft / .NET Foundation and contributors | MIT，`licenses/NET-runtime-LICENSE.txt`、`ILLink-build-NOTICES.txt`；单文件发布引入的 SDK 构建工具，本应用明确 `PublishTrimmed=false`，不裁剪 WPF |
 
 Typography 内置程序集根据 Emoji.Wpf DLL 的 InformationalVersion 追溯到确切源提交，再解析其固定子模块。`Typography-LICENSE.md` 保留上游整体来源列表；`Typography-source-notices.txt` 收录 OpenFont / GlyphLayout 及 N20 构建共享代码的版权及许可声明，包括 Adobe 字形数据的完整 BSD 条款、Mono.Xna Team 2006 的 System.Numerics 兼容代码 MIT 原文。`Typography-MIT.txt`、`Apache-2.0.txt`、`FreeType-FTL.txt`、Unicode 原文补充完整许可。上游整体来源表还列有演示、几何及平台代码；本应用不因此分发这些演示程序或字体文件。
 
