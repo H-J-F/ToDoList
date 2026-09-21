@@ -1,0 +1,1810 @@
+{
+  "Passed": true,
+  "Failures": [],
+  "Records": [
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "begin-edit",
+      "ExpectedSize": 12,
+      "SynchronousMilliseconds": 23.7833
+    },
+    {
+      "Stage": "expand",
+      "ExpectedSize": 12,
+      "EditorHeights": [
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2
+      ]
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "begin-edit",
+      "ExpectedSize": 14,
+      "SynchronousMilliseconds": 19.8256
+    },
+    {
+      "Stage": "expand",
+      "ExpectedSize": 14,
+      "EditorHeights": [
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2
+      ]
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 14,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 14,
+      "Kind": "Run",
+      "FontSize": 14,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "begin-edit",
+      "ExpectedSize": 16,
+      "SynchronousMilliseconds": 10.967
+    },
+    {
+      "Stage": "expand",
+      "ExpectedSize": 16,
+      "EditorHeights": [
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2
+      ]
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 16,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 16,
+      "Kind": "Run",
+      "FontSize": 16,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "first-add",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "second-add",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "begin-edit",
+      "ExpectedSize": 18,
+      "SynchronousMilliseconds": 9.4429
+    },
+    {
+      "Stage": "expand",
+      "ExpectedSize": 18,
+      "EditorHeights": [
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2,
+        75.2
+      ]
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "edit-original",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "edit-typed",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "paste",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 18,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "roundtrip",
+      "ExpectedSize": 18,
+      "Kind": "Run",
+      "FontSize": 18,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u666E\u901A\u6587\u5B57 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u6B63\u6587 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u7C97\u4F53\u7ED3\u5C3E "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\uD83D\uDC4D\uD83C\uDFFD"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Bold",
+      "Text": "\u65B0\u8F93\u5165\u4E2D\u6587ABC"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\u7C98\u8D34 "
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 12,
+      "Kind": "ColorEmojiInline",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": "\uD83D\uDC69\u200D\uD83D\uDCBB"
+    },
+    {
+      "Stage": "live-font-change",
+      "ExpectedSize": 12,
+      "Kind": "Run",
+      "FontSize": 12,
+      "Family": "Microsoft YaHei UI, Segoe UI Emoji",
+      "Weight": "Normal",
+      "Text": " \u5185\u5BB9"
+    }
+  ]
+}

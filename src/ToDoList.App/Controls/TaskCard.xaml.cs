@@ -27,6 +27,7 @@ public partial class TaskCard : UserControl
     private bool _pressed, _long;
     private TaskCompletionSource? _animation;
     private int _animationVersion;
+    private int _editVersion;
     public TaskCard()
     {
         InitializeComponent();
@@ -75,26 +76,49 @@ public partial class TaskCard : UserControl
     }
     public void BeginEdit()
     {
-        if (Row == null || Row.IsDeleted) return; ActiveEditor = new RichEditor { MinHeight = 110, MaxHeight = 240 };
+        if (Row == null || Row.IsDeleted || ActiveEditor != null) return;
+        ActiveEditor = (Window.GetWindow(this) as MainWindow)?.TaskEditor ?? new RichEditor { MinHeight = 110, MaxHeight = 240 };
         ActiveEditor.SetContent(RichContent.Parse(Row.Item.ContentJson));
-        ActiveEditor.Submit += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
-        ActiveEditor.Cancel += (_, _) => CancelRequested?.Invoke(this, EventArgs.Empty);
+        ActiveEditor.Submit += EditorSubmit;
+        ActiveEditor.Cancel += EditorCancel;
         var panel = new StackPanel(); panel.Children.Add(ActiveEditor);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         var cancel = new Wpf.Ui.Controls.Button { Content = "取消", Margin = new(0, 4, 8, 0), Padding = new(10, 5, 10, 5) }; cancel.Click += (_, _) => CancelRequested?.Invoke(this, EventArgs.Empty);
         var save = new Wpf.Ui.Controls.Button { Content = "保存  Ctrl+Enter", Style = (Style)FindResource("PrimaryButton"), Margin = new(0, 4, 0, 0), Padding = new(10, 5, 10, 5) }; save.Click += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
         actions.Children.Add(cancel); actions.Children.Add(save); panel.Children.Add(actions);
         EditorHost.Content = panel; EditorHost.Visibility = Visibility.Visible; BodyText.Visibility = Visibility.Collapsed;
-        Row.IsEditing = true; ActiveEditor.FocusEditor(); Motion.Reveal(EditorHost, 4);
+        Row.IsEditing = true;
+        // Measure the editor once at its final size. Only the clipping host shrinks,
+        // so the RichTextBox does not reformat its document on each animation frame.
+        panel.VerticalAlignment = VerticalAlignment.Top;
+        EditorHost.ClipToBounds = true;
+        panel.Measure(new Size(Math.Max(100, BodyText.ActualWidth), double.PositiveInfinity));
+        var version = ++_editVersion;
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        {
+            if (_editVersion == version) ActiveEditor?.FocusEditor();
+        }));
         if (!ThemeService.ReduceMotion)
         {
-            EditorHost.Measure(new Size(Math.Max(100, ActualWidth - 60), double.PositiveInfinity));
-            EditorHost.BeginAnimation(HeightProperty, new DoubleAnimation(0, EditorHost.DesiredSize.Height, TimeSpan.FromMilliseconds(180))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop });
+            panel.Height = panel.DesiredSize.Height;
+            var expand = new DoubleAnimation(0, panel.Height, TimeSpan.FromMilliseconds(180))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop };
+            expand.Completed += (_, _) => { if (_editVersion == version) panel.Height = double.NaN; };
+            EditorHost.BeginAnimation(HeightProperty, expand);
         }
+        EditorHost.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(ThemeService.ReduceMotion ? 90 : 180)));
     }
+    private void EditorSubmit(object? sender, EventArgs e) => SaveRequested?.Invoke(this, EventArgs.Empty);
+    private void EditorCancel(object? sender, EventArgs e) => CancelRequested?.Invoke(this, EventArgs.Empty);
     public void EndEdit()
     {
+        _editVersion++;
+        if (ActiveEditor != null)
+        {
+            ActiveEditor.Submit -= EditorSubmit; ActiveEditor.Cancel -= EditorCancel;
+            ActiveEditor.CloseTool();
+            if (EditorHost.Content is Panel panel) panel.Children.Remove(ActiveEditor);
+        }
         EditorHost.BeginAnimation(HeightProperty, null); EditorHost.BeginAnimation(OpacityProperty, null); EditorHost.Content = null; EditorHost.Visibility = Visibility.Collapsed; BodyText.Visibility = Visibility.Visible; ActiveEditor = null;
     }
     private void Body_Down(object sender, MouseButtonEventArgs e) { if (e.ClickCount == 2 && Row is { IsBusy: false, IsDeleted: false }) { e.Handled = true; EditRequested?.Invoke(this, EventArgs.Empty); } }

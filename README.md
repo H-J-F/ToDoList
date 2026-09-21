@@ -14,10 +14,10 @@
 
 | 包名 | 适用情况 |
 | --- | --- |
-| `ToDoList-2.1.0-win-x64-lite.zip` | 精简版，需要安装 [.NET 10 Desktop Runtime x64](https://dotnet.microsoft.com/zh-cn/download/dotnet/10.0)，交付文件总量小于 50,000,000 字节 |
-| `ToDoList-2.1.0-win-x64-portable.zip` | 自带运行时，程序压缩为单个 EXE；无需预装 .NET，首次运行会解压必要原生组件 |
+| `Build/ToDoList-2.1.0-win-x64-lite/` | 精简版，需要安装 [.NET 10 Desktop Runtime x64](https://dotnet.microsoft.com/zh-cn/download/dotnet/10.0)，交付文件总量小于 50,000,000 字节 |
+| `Build/ToDoList-2.1.0-win-x64-portable/` | 自带运行时，程序压缩为单个 EXE；无需预装 .NET，首次运行会解压必要原生组件 |
 
-解压到可写目录，双击 `ToDoList.exe`。两版均在程序同级 `Data` 保存任务和设置，数据互通；体积统计不包含用户数据及单独安装的共享运行时。请保留随包提供的使用说明和许可证材料。当前构建**尚未进行代码签名**；可信签名及 Microsoft Store 为后续事项。
+在可写目录中双击 `ToDoList.exe`。本地构建只生成程序目录，不自动创建压缩包。两版均在程序同级 `Data` 保存任务和设置，数据互通；体积统计不包含用户数据及单独安装的共享运行时。请保留随程序提供的使用说明和许可证材料。当前构建**尚未进行代码签名**；可信签名及 Microsoft Store 为后续事项。
 
 升级前关闭应用并备份整个 `Data`，解压新程序后保留原 `Data`。不要运行时手动替换数据库。应用不会上传任务；关于卡片只通过默认浏览器打开公开仓库。
 
@@ -68,7 +68,7 @@ WPF UI 的 FluentWindow、TitleBar、CardAction、按钮、文本框、ContentDi
 
 浅色／深色／跟随系统，蓝、青绿、浅橙、紫四种强调色，12／14／16／18 DIP，紧凑／舒适及减少动态效果。正文使用系统 Microsoft YaHei UI，Normal 字重，Display + ClearType；图标使用库字体、Ideal + Grayscale。实际清晰度也受屏幕 DPI、ClearType 校准及系统字体影响，不分发 Windows 字体文件。
 
-SQLite 索引与双向游标分页，每批 200 条，最多 2,000 条／32MiB 内容缓存，Recycling 虚拟化；只有编辑时创建 RichTextBox。状态持久化与历史写入同事务；每行独立退出动画，容器复用清理动画。数据查询在后台执行，旧请求取消且按查询代号隔离。
+SQLite 索引与双向游标分页，每批 200 条，最多 2,000 条／32MiB 内容缓存，Recycling 虚拟化；任务编辑共用一个空闲时预热的 RichTextBox，不为每行创建编辑器。状态持久化与历史写入同事务；每行独立退出动画，容器复用清理动画。数据查询在后台执行，旧请求取消且按查询代号隔离。
 
 ## Rider 开发与本地打包
 
@@ -77,12 +77,13 @@ SQLite 索引与双向游标分页，每批 200 条，最多 2,000 条／32MiB �
 ```powershell
 dotnet build ToDoList.sln -c Release
 dotnet test tests/ToDoList.Tests -c Release
-./tools/Publish.ps1 -Variant Both -OutputRoot ./artifacts/build-2.1.0
+./tools/Publish.ps1 -Variant Both
+python tools/Verify-Build.py Build
 ```
 
-打包脚本可选 `Lite`、`Portable` 或 `Both`，输出两个 ZIP、体积记录和 `SHA256SUMS.txt`；已有输出目录会拒绝覆盖，避免混入用户数据。脚本不会上传、创建标签或发布 Release。使用 Release、关闭调试符号、保留中文及中性资源，不采用不受支持的 WPF 裁剪。
+构建脚本可选 `Lite`、`Portable` 或 `Both`，统一输出到项目一级目录 `Build`（与 `artifacts` 同级），不存在时自动创建，并记录程序体积。需要保留多个构建时可指定 `-OutputRoot ./Build/自定义目录`；禁止输出到 Build 之外。已有程序目录会拒绝覆盖，避免破坏 Data。更新前关闭应用并备份整个 Data，移除旧程序目录后重新构建，再复制 Data 到新程序同级目录；不要合并不同待办书数据库文件。脚本不生成 ZIP、上传、创建标签或发布 Release。使用 Release、关闭调试符号、保留中文及中性资源，不采用不受支持的 WPF 裁剪。
 
-测试工具与实际覆盖范围见 [2.1 验证报告](docs/VALIDATION-2.1.md)，历史报告见 [VALIDATION](docs/VALIDATION.md)。应用支持 `--data-dir <独立测试目录> --ui-smoke`、`--ui-perf` 和 `--ui-demo`；测试必须使用隔离目录，不能指向真实数据。
+测试工具与实际覆盖范围见 [字体与构建回归报告](docs/VALIDATION-TYPOGRAPHY.md)、[2.1 验证报告](docs/VALIDATION-2.1.md)，历史报告见 [VALIDATION](docs/VALIDATION.md)。应用支持 `--data-dir <独立测试目录> --ui-smoke`、`--ui-typography`、`--ui-perf` 和 `--ui-demo`；测试必须使用隔离目录，不能指向真实数据。
 
 ## 版权与第三方
 

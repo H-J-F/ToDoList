@@ -63,11 +63,15 @@ public partial class RichEditor : UserControl
     }
     public void SetContent(RichContent content)
     {
+        CloseTool(); _selectionStart = _selectionEnd = null; _composing = false;
         _pendingColor = null;
         _setting = true;
         try
         {
             var doc = new FlowDocument { PagePadding = new Thickness(0) };
+            doc.SetResourceReference(TextElement.FontSizeProperty, "BodyFontSize");
+            doc.SetResourceReference(TextElement.FontFamilyProperty, "BodyFontFamily");
+            doc.FontWeight = FontWeights.Normal; doc.FontStyle = FontStyles.Normal;
             foreach (var p in content.Paragraphs) { var paragraph = new Paragraph { Margin = new Thickness(0, 0, 0, 3) }; foreach (var r in p.Runs) paragraph.Inlines.Add(CreateInline(r)); doc.Blocks.Add(paragraph); }
             Editor.Document = doc; Dirty = false;
         }
@@ -80,16 +84,35 @@ public partial class RichEditor : UserControl
         if (elements.Any(EmojiRendering.IsEmoji))
         {
             var span = new Span();
-            foreach (var element in elements)
-                span.Inlines.Add(EmojiRendering.IsEmoji(element) && EmojiRendering.Drawing(element) != null ? new ColorEmojiInline(element) : new Run(element));
+            foreach (var inline in TextInlines(elements)) span.Inlines.Add(inline);
             run = span;
         }
         else run = new Run(data.Text);
+        SetDisplayTypography(run);
         run.FontWeight = data.Bold ? FontWeights.Bold : FontWeights.Normal; run.FontStyle = data.Italic ? FontStyles.Italic : FontStyles.Normal;
         if (data.Underline) run.TextDecorations = TextDecorations.Underline;
         if (data.Color != null) run.Foreground = (Brush)new BrushConverter().ConvertFromString(data.Color)!;
         if (data.Link == null) return run;
         var link = new Hyperlink(run) { NavigateUri = new Uri(data.Link) }; link.SetResourceReference(TextElement.ForegroundProperty, "AccentInkBrush"); return link;
+    }
+    private static void SetDisplayTypography(TextElement element)
+    {
+        element.SetResourceReference(TextElement.FontSizeProperty, "BodyFontSize");
+        element.SetResourceReference(TextElement.FontFamilyProperty, "BodyFontFamily");
+    }
+    private static IEnumerable<Inline> TextInlines(IEnumerable<string> elements)
+    {
+        var plain = new System.Text.StringBuilder();
+        foreach (var text in elements)
+        {
+            if (EmojiRendering.IsEmoji(text) && EmojiRendering.Drawing(text) != null)
+            {
+                if (plain.Length > 0) { var run = new Run(plain.ToString()); SetDisplayTypography(run); yield return run; plain.Clear(); }
+                var emoji = new ColorEmojiInline(text); SetDisplayTypography(emoji); yield return emoji;
+            }
+            else plain.Append(text);
+        }
+        if (plain.Length > 0) { var run = new Run(plain.ToString()); SetDisplayTypography(run); yield return run; }
     }
     private void Bold_Click(object sender, RoutedEventArgs e) => EditingCommands.ToggleBold.Execute(null, Editor);
     private void Italic_Click(object sender, RoutedEventArgs e) => EditingCommands.ToggleItalic.Execute(null, Editor);
@@ -127,7 +150,12 @@ public partial class RichEditor : UserControl
             try { var content = RichContent.Parse((string)e.DataObject.GetData(ClipboardFormat)); e.CancelCommand(); InsertContent(content); return; }
             catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidDataException) { e.CancelCommand(); return; }
         }
-        if (e.DataObject.GetDataPresent(DataFormats.Rtf)) { e.FormatToApply = DataFormats.Rtf; return; }
+        if (e.DataObject.GetDataPresent(DataFormats.Rtf))
+        {
+            e.FormatToApply = DataFormats.Rtf;
+            Dispatcher.BeginInvoke(new Action(() => { NormalizeTypography(); RenderTypedEmoji(); }));
+            return;
+        }
         if (e.DataObject.GetDataPresent(DataFormats.UnicodeText)) e.FormatToApply = DataFormats.UnicodeText; else e.CancelCommand();
     }
 }

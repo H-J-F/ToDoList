@@ -195,7 +195,7 @@ internal static partial class UiSmoke
         card.BeginEdit();
         var host = (ContentControl)card.FindName("EditorHost");
         Check(!DependencyPropertyHelper.GetValueSource(host, FrameworkElement.HeightProperty).IsAnimated &&
-            host.RenderTransform is TranslateTransform { X: 0, HasAnimatedProperties: false }, "Reduced-motion editing has no height or position animation", log);
+            !host.RenderTransform.HasAnimatedProperties && host.RenderTransform.Value.IsIdentity, "Reduced-motion editing has no height or position animation", log);
         card.EndEdit(); row.IsEditing = false;
         var settingsButton = MainWindow.Descendants<Button>(window).First(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "Settings");
         settingsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Settle();

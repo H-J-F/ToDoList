@@ -2,6 +2,8 @@
 
 2026-09-21，Windows 10 x64 19045，.NET SDK 10.0.302 / Runtime 10.0.10，Release 构建。维护者要求本轮暂不发布 GitHub Release；未创建版本标签或 Release。
 
+本文记录此前 2.1.0 的验收；后续字号、编辑展开及 Build 目录调整见 [字体与构建回归报告](VALIDATION-TYPOGRAPHY.md)。下文 ZIP 体积和 artifacts 路径为历史记录，当前脚本仅在 Build 下生成程序目录，不生成压缩包。
+
 ## 自动化与实际界面
 
 - 43 项业务／存储测试通过，覆盖事务、v1→v2、删除恢复、冲突合并、WAL 导出、校验拒绝、游标往返、最新页升序与相同时间稳定排序。
@@ -42,7 +44,7 @@ dotnet run --project tools/ToDoList.Benchmarks -c Release -- artifacts/benchmark
 # 下列应用参数只能用于隔离数据目录
 ./src/ToDoList.App/bin/Release/net10.0-windows/ToDoList.exe --data-dir H:/temporary-test/Data --ui-smoke
 ./src/ToDoList.App/bin/Release/net10.0-windows/ToDoList.exe --data-dir H:/benchmark-test/Data --ui-perf
-./tools/Publish.ps1 -Variant Both -OutputRoot ./artifacts/build-2.1.0
+./tools/Publish.ps1 -Variant Both
 ```
 
 打包不包含 Data、Backup、测试数据、调试符号或编辑器缓存。精简版小于 50,000,000 字节由脚本强制检查。两版携带完整许可与来源清单；便携版包含运行时，精简版依赖单独安装的 .NET 10 Desktop Runtime x64。

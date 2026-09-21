@@ -206,7 +206,7 @@ public partial class RichEditor
         try
         {
             if (inheritFormat) { Editor.Selection.Text = content.PlainText; Editor.CaretPosition = Editor.Selection.End; return; }
-            var temporary = new FlowDocument();
+            var temporary = new FlowDocument { FontSize = Editor.FontSize, FontFamily = Editor.FontFamily };
             foreach (var paragraph in content.Paragraphs)
             {
                 var p = new Paragraph { Margin = new Thickness(0) };
@@ -214,6 +214,7 @@ public partial class RichEditor
             }
             using var stream = new MemoryStream(); new TextRange(temporary.ContentStart, temporary.ContentEnd).Save(stream, DataFormats.Rtf); stream.Position = 0;
             Editor.Selection.Load(stream, DataFormats.Rtf); Editor.CaretPosition = Editor.Selection.End;
+            NormalizeTypography();
         }
         finally { Editor.EndChange(); RenderTypedEmoji(); }
     }
@@ -233,6 +234,14 @@ public partial class RichEditor
         catch (System.Runtime.InteropServices.COMException)
         { if (Window.GetWindow(this) is MainWindow window) window.Model.Message = "剪贴板正忙，请稍后再复制或剪切；原文已保留。"; }
         e.Handled = true;
+    }
+    private void NormalizeTypography()
+    {
+        foreach (var paragraph in Paragraphs(Editor.Document.Blocks))
+        {
+            SetDisplayTypography(paragraph);
+            foreach (var inline in AllInlines(paragraph.Inlines)) SetDisplayTypography(inline);
+        }
     }
     internal DataObject CreateClipboardData()
     {
@@ -288,8 +297,9 @@ public partial class RichEditor
                 var parent = run.Parent is Paragraph p ? p.Inlines : run.Parent is Span span ? span.Inlines : null;
                 if (parent == null) continue;
                 var replacement = new Span { FontWeight = run.FontWeight, FontStyle = run.FontStyle, TextDecorations = run.TextDecorations.Clone() };
-                if (run.ReadLocalValue(TextElement.ForegroundProperty) is SolidColorBrush brush) replacement.Foreground = brush;
-                foreach (var element in elements) replacement.Inlines.Add(EmojiRendering.IsEmoji(element) && EmojiRendering.Drawing(element) != null ? new ColorEmojiInline(element) : new Run(element));
+                SetDisplayTypography(replacement);
+                if (run.ReadLocalValue(TextElement.ForegroundProperty) is Brush brush) replacement.Foreground = brush;
+                foreach (var inline in TextInlines(elements)) replacement.Inlines.Add(inline);
                 bool caretInRun = Editor.Selection.IsEmpty && Editor.CaretPosition.CompareTo(run.ElementStart) >= 0 && Editor.CaretPosition.CompareTo(run.ElementEnd) <= 0;
                 var offset = caretInRun ? new TextRange(run.ContentStart, Editor.CaretPosition).Text.Length : -1;
                 parent.InsertBefore(run, replacement); parent.Remove(run);

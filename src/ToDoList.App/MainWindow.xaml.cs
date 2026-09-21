@@ -25,6 +25,8 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     public Wpf.Ui.Controls.ContentDialogHost DialogPresenter => DialogHost;
     private bool _sync = true, _initialized, _navigating, _closingApproved, _restoring;
     private TaskCard? _editingCard;
+    private RichEditor? _taskEditor;
+    internal RichEditor TaskEditor => _taskEditor ??= new RichEditor { MinHeight = 110, MaxHeight = 240 };
     private (string Id, double Y)? _anchor;
     private readonly DispatcherTimer _feedbackTimer = new() { Interval = TimeSpan.FromMilliseconds(180) };
     private readonly DispatcherTimer _calendar = new() { Interval = TimeSpan.FromSeconds(20) };
@@ -103,8 +105,16 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         await SafeAsync(async () => { Model.IsBusy = true; await Model.InitializeAsync(); SyncSelectors(); });
         Model.IsBusy = false; _sync = false; _initialized = true; _calendar.Start();
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
+        {
+            if (!IsLoaded) return;
+            if (TaskEditor.Parent != null) return;
+            TaskEditor.ApplyTemplate();
+            TaskEditor.Measure(new Size(Math.Max(100, TaskList.ActualWidth - 60), double.PositiveInfinity));
+        }));
         var args = Environment.GetCommandLineArgs();
         if (args.Contains("--ui-smoke")) await Services.UiSmoke.RunAsync(this);
+        else if (args.Contains("--ui-typography")) await Services.UiTypography.RunAsync(this);
         else if (args.Contains("--ui-demo")) await Services.UiDemo.RunAsync(this);
         else if (args.Contains("--ui-perf")) await Services.UiPerformance.RunAsync(this);
     }

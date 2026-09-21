@@ -3,6 +3,7 @@
 .idea/
 .vs/
 artifacts/
+Build/
 **/Data/
 **/Backup/
 TestResults/
