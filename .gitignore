@@ -4,5 +4,6 @@
 .vs/
 artifacts/
 **/Data/
+**/Backup/
 TestResults/
 *.user

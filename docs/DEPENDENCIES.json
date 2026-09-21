@@ -1,0 +1,332 @@
+[
+  {
+    "package": "Emoji.Wpf/0.3.4",
+    "scope": "application",
+    "authors": "Sam Hocevar",
+    "copyright": "Copyright © 2017–2021 Sam Hocevar",
+    "license": "WTFPL",
+    "licenseUrl": "https://licenses.nuget.org/WTFPL",
+    "source": "https://github.com/samhocevar/emoji.wpf",
+    "packageSha512": "3ouEfw6Mo5Czk0TJd4BWrElB21jK9lKWqB1ZZF1DEBDRLNmOvJJbT51/ELLMIyqyn4p/mh10XC9Kmqmb1IbmnQ=="
+  },
+  {
+    "package": "JeremyAnsel.HLSL.Targets/1.0.13",
+    "scope": "application",
+    "authors": "Jérémy Ansel",
+    "copyright": "Copyright © 2019 Jérémy Ansel",
+    "license": "LICENSE.txt",
+    "licenseUrl": "https://aka.ms/deprecateLicenseUrl",
+    "source": "https://github.com/JeremyAnsel/JeremyAnsel.HLSL.Targets",
+    "packageSha512": "uLfE1STTM/o8G2eWEtQWMHm91nO47BIEsjXhO3c6hvsjx+bInTA7LnqI9iAWUWr58Sug+NSoNNZT83i2mWMl7g=="
+  },
+  {
+    "package": "Microsoft.Data.Sqlite/10.0.10",
+    "scope": "application",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://docs.microsoft.com/dotnet/standard/data/sqlite/",
+    "packageSha512": "58JwZ39lCvRXHfV5O6RQfbHEDu8ZsXI7weRoVRR4jrGRxxkS+qyeuGrN2xD+9VYEICApYr0iTSL6PuU+DdsvPg=="
+  },
+  {
+    "package": "Microsoft.Data.Sqlite.Core/10.0.10",
+    "scope": "application",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://docs.microsoft.com/dotnet/standard/data/sqlite/",
+    "packageSha512": "TPCs0ldm7AWqcKmp6f/Xr+14sat7hx4rHfRlS4RgCURBH2thEWbAKEyX7cCWr63zVJVOJIJZTg2cBiUXa8ys6g=="
+  },
+  {
+    "package": "SQLite/3.53.4",
+    "scope": "application",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2026 SourceGear, LLC",
+    "license": "LICENSE.txt",
+    "licenseUrl": "https://aka.ms/deprecateLicenseUrl",
+    "source": "https://sqlite.org/",
+    "packageSha512": "KN7jeWqgUPeBRe1FlcpZURzxomuKKEKHmBBQfg+Nx7NkY1LjKhzHvH+3ASkNvhayESE34nMBinL9CV21JfPRJw=="
+  },
+  {
+    "package": "SQLitePCLRaw.bundle_e_sqlite3/3.0.5",
+    "scope": "application",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2026 SourceGear, LLC",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "SW8iASIyWMrLzqabUHYQRvALhvD4ylSBsj4PgEVGwc36kQjc9xT5kSV/XQ9rU7nIpBWD+LPyX3Hlw5FzyUzGeQ=="
+  },
+  {
+    "package": "SQLitePCLRaw.config.e_sqlite3/3.0.5",
+    "scope": "application",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2026 SourceGear, LLC",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "aSk8WE5tF2MybESMgtZAEyMVCAWA0nBqOMc48HFoa9UoSdtm3goDXVzNRnefeKIwE6bV9NaNXptn1F9ReMQI0Q=="
+  },
+  {
+    "package": "SQLitePCLRaw.core/3.0.5",
+    "scope": "application",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2025 SourceGear, LLC",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "k81AYXXRCw3Zj8rOhyBoCsx/U97KYDFI2CSKr/ijl5BwpsW/hX/4kBiDmerFaoust8nxBwa0IHQFw8MmSHRtnQ=="
+  },
+  {
+    "package": "SQLitePCLRaw.provider.e_sqlite3/3.0.5",
+    "scope": "application",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2025 SourceGear, LLC",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "um8YSWduhhuskTG2bHfZrBqMNQOydfU8pcseT+cu5RivOGyoUbCrGXxgoRNTmRYw2VbMWnEZVVFcneZT/5dsBg=="
+  },
+  {
+    "package": "Stfu/0.1.1",
+    "scope": "application",
+    "authors": "Sam Hocevar",
+    "copyright": "Copyright © 2017—2021 Sam Hocevar",
+    "license": "WTFPL",
+    "licenseUrl": "https://licenses.nuget.org/WTFPL",
+    "source": "https://github.com/samhocevar/stfu",
+    "packageSha512": "wUd0joqQoZ1B/wULKx1gGTY9zxiDbsW3Y6W0G0guCTL/jRMdDBPr9FMHfkoOKB0JIYGlup3NqXrsqs8fPrCdrw=="
+  },
+  {
+    "package": "WPF-UI/4.3.0",
+    "scope": "application",
+    "authors": "lepo.co",
+    "copyright": "Copyright (C) 2021-2026 Leszek Pomianowski and WPF UI Contributors",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://github.com/lepoco/wpfui",
+    "packageSha512": "SIHhc8lIrhEQ/1cLFZN6Dtf8cqsLm4myBULj9obnacd9TyDs2vizhKYzRzTlcPEcnzb3L4EstvPN3M6kcXbJCA=="
+  },
+  {
+    "package": "WPF-UI.Abstractions/4.3.0",
+    "scope": "application",
+    "authors": "lepo.co",
+    "copyright": "Copyright (C) 2021-2026 Leszek Pomianowski and WPF UI Contributors",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://github.com/lepoco/wpfui",
+    "packageSha512": "7Kj9DmCCo4SOCd1jAiw4+EcMFP2nR8rLLvitAYzVtzbWToTsodkbie24+8x9C4LDLxkopWEUGX62szqqNy7oeg=="
+  },
+  {
+    "package": "coverlet.collector/6.0.4",
+    "scope": "development/test",
+    "authors": "tonerdo",
+    "copyright": null,
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://github.com/coverlet-coverage/coverlet",
+    "packageSha512": "lkhqpF8Pu2Y7IiN7OntbsTtdbpR1syMsm2F3IgX6ootA4ffRqWL5jF7XipHuZQTdVuWG/gVAAcf8mjk8Tz0xPg=="
+  },
+  {
+    "package": "Microsoft.CodeCoverage/17.14.1",
+    "scope": "development/test",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://github.com/microsoft/vstest",
+    "packageSha512": "pmTrhfFIoplzFVbhVwUquT+77CbGH+h4/3mBpdmIlYtBi9nAB+kKI6dN3A/nV4DFi3wLLx/BlHIPK+MkbQ6Tpg=="
+  },
+  {
+    "package": "Microsoft.Data.Sqlite/10.0.10",
+    "scope": "development/test",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://docs.microsoft.com/dotnet/standard/data/sqlite/",
+    "packageSha512": "58JwZ39lCvRXHfV5O6RQfbHEDu8ZsXI7weRoVRR4jrGRxxkS+qyeuGrN2xD+9VYEICApYr0iTSL6PuU+DdsvPg=="
+  },
+  {
+    "package": "Microsoft.Data.Sqlite.Core/10.0.10",
+    "scope": "development/test",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://docs.microsoft.com/dotnet/standard/data/sqlite/",
+    "packageSha512": "TPCs0ldm7AWqcKmp6f/Xr+14sat7hx4rHfRlS4RgCURBH2thEWbAKEyX7cCWr63zVJVOJIJZTg2cBiUXa8ys6g=="
+  },
+  {
+    "package": "Microsoft.NET.Test.Sdk/17.14.1",
+    "scope": "development/test",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://github.com/microsoft/vstest",
+    "packageSha512": "HJKqKOE+vshXra2aEHpi2TlxYX7Z9VFYkr+E5rwEvHC8eIXiyO+K9kNm8vmNom3e2rA56WqxU+/N9NJlLGXsJQ=="
+  },
+  {
+    "package": "Microsoft.TestPlatform.ObjectModel/17.14.1",
+    "scope": "development/test",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://github.com/microsoft/vstest",
+    "packageSha512": "xTP1W6Mi6SWmuxd3a+jj9G9UoC850WGwZUps1Wah9r1ZxgXhdJfj1QqDLJkFjHDCvN42qDL2Ps5KjQYWUU0zcQ=="
+  },
+  {
+    "package": "Microsoft.TestPlatform.TestHost/17.14.1",
+    "scope": "development/test",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://github.com/microsoft/vstest",
+    "packageSha512": "d78LPzGKkJwsJXAQwsbJJ7LE7D1wB+rAyhHHAaODF+RDSQ0NgMjDFkSA1Djw18VrxO76GlKAjRUhl+H8NL8Z+Q=="
+  },
+  {
+    "package": "Newtonsoft.Json/13.0.3",
+    "scope": "development/test",
+    "authors": "James Newton-King",
+    "copyright": "Copyright © James Newton-King 2008",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://www.newtonsoft.com/json",
+    "packageSha512": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+  },
+  {
+    "package": "SQLite/3.53.4",
+    "scope": "development/test",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2026 SourceGear, LLC",
+    "license": "LICENSE.txt",
+    "licenseUrl": "https://aka.ms/deprecateLicenseUrl",
+    "source": "https://sqlite.org/",
+    "packageSha512": "KN7jeWqgUPeBRe1FlcpZURzxomuKKEKHmBBQfg+Nx7NkY1LjKhzHvH+3ASkNvhayESE34nMBinL9CV21JfPRJw=="
+  },
+  {
+    "package": "SQLitePCLRaw.bundle_e_sqlite3/3.0.5",
+    "scope": "development/test",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2026 SourceGear, LLC",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "SW8iASIyWMrLzqabUHYQRvALhvD4ylSBsj4PgEVGwc36kQjc9xT5kSV/XQ9rU7nIpBWD+LPyX3Hlw5FzyUzGeQ=="
+  },
+  {
+    "package": "SQLitePCLRaw.config.e_sqlite3/3.0.5",
+    "scope": "development/test",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2026 SourceGear, LLC",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "aSk8WE5tF2MybESMgtZAEyMVCAWA0nBqOMc48HFoa9UoSdtm3goDXVzNRnefeKIwE6bV9NaNXptn1F9ReMQI0Q=="
+  },
+  {
+    "package": "SQLitePCLRaw.core/3.0.5",
+    "scope": "development/test",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2025 SourceGear, LLC",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "k81AYXXRCw3Zj8rOhyBoCsx/U97KYDFI2CSKr/ijl5BwpsW/hX/4kBiDmerFaoust8nxBwa0IHQFw8MmSHRtnQ=="
+  },
+  {
+    "package": "SQLitePCLRaw.provider.e_sqlite3/3.0.5",
+    "scope": "development/test",
+    "authors": "Eric Sink",
+    "copyright": "Copyright 2014-2025 SourceGear, LLC",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "um8YSWduhhuskTG2bHfZrBqMNQOydfU8pcseT+cu5RivOGyoUbCrGXxgoRNTmRYw2VbMWnEZVVFcneZT/5dsBg=="
+  },
+  {
+    "package": "xunit/2.9.3",
+    "scope": "development/test",
+    "authors": "jnewkirk,bradwilson",
+    "copyright": "Copyright (C) .NET Foundation",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "TlXQBinK35LpOPKHAqbLY4xlEen9TBafjs0V5KnA4wZsoQLQJiirCR4CbIXvOH8NzkW4YeJKP5P/Bnrodm0h9Q=="
+  },
+  {
+    "package": "xunit.abstractions/2.0.3",
+    "scope": "development/test",
+    "authors": "James Newkirk,Brad Wilson",
+    "copyright": null,
+    "license": null,
+    "licenseUrl": "https://raw.githubusercontent.com/xunit/xunit/master/license.txt",
+    "source": "https://github.com/xunit/xunit",
+    "packageSha512": "pot1I4YOxlWjIb5jmwvvQNbTrZ3lJQ+jUGkGjWE3hEFM0l5gOnBWS+H3qsex68s5cO52g+44vpGzhAt+42vwKg=="
+  },
+  {
+    "package": "xunit.analyzers/1.18.0",
+    "scope": "development/test",
+    "authors": "jnewkirk,bradwilson,marcind",
+    "copyright": "Copyright (C) .NET Foundation",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "OtFMHN8yqIcYP9wcVIgJrq01AfTxijjAqVDy/WeQVSyrDC1RzBWeQPztL49DN2syXRah8TYnfvk035s7L95EZQ=="
+  },
+  {
+    "package": "xunit.assert/2.9.3",
+    "scope": "development/test",
+    "authors": "jnewkirk,bradwilson",
+    "copyright": "Copyright (C) .NET Foundation",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "/Kq28fCE7MjOV42YLVRAJzRF0WmEqsmflm0cfpMjGtzQ2lR5mYVj1/i0Y8uDAOLczkL3/jArrwehfMD0YogMAA=="
+  },
+  {
+    "package": "xunit.core/2.9.3",
+    "scope": "development/test",
+    "authors": "jnewkirk,bradwilson",
+    "copyright": "Copyright (C) .NET Foundation",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "BiAEvqGvyme19wE0wTKdADH+NloYqikiU0mcnmiNyXaF9HyHmE6sr/3DC5vnBkgsWaE6yPyWszKSPSApWdRVeQ=="
+  },
+  {
+    "package": "xunit.extensibility.core/2.9.3",
+    "scope": "development/test",
+    "authors": "jnewkirk,bradwilson",
+    "copyright": "Copyright (C) .NET Foundation",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "kf3si0YTn2a8J8eZNb+zFpwfoyvIrQ7ivNk5ZYA5yuYk1bEtMe4DxJ2CF/qsRgmEnDr7MnW1mxylBaHTZ4qErA=="
+  },
+  {
+    "package": "xunit.extensibility.execution/2.9.3",
+    "scope": "development/test",
+    "authors": "jnewkirk,bradwilson",
+    "copyright": "Copyright (C) .NET Foundation",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "yMb6vMESlSrE3Wfj7V6cjQ3S4TXdXpRqYeNEI3zsX31uTsGMJjEw6oD5F5u1cHnMptjhEECnmZSsPxB6ChZHDQ=="
+  },
+  {
+    "package": "xunit.runner.visualstudio/3.1.4",
+    "scope": "development/test",
+    "authors": "jnewkirk,bradwilson",
+    "copyright": "Copyright (C) .NET Foundation",
+    "license": "Apache-2.0",
+    "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+    "source": null,
+    "packageSha512": "5mj99LvCqrq3CNi06xYdyIAXOEh+5b33F2nErCzI5zWiDdLHXiPXEWFSUAF8zlIv0ZWqjZNCwHTQeAPYbF3pCg=="
+  }
+]

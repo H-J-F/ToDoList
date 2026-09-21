@@ -1,0 +1,72 @@
+[
+  {
+    "file": "Emoji-Wpf-WTFPL.txt",
+    "source": "https://raw.githubusercontent.com/samhocevar/emoji.wpf/488c716cd4255506fe073e3d80ecbbfdfe4c6cf5/COPYING",
+    "sha256": "51aece000df7ec969f08603556286d69012abf27b78c9c014b63f06e59751fa5"
+  },
+  {
+    "file": "Typography-LICENSE.md",
+    "source": "https://raw.githubusercontent.com/samhocevar-forks/typography/e413bc6c20709d71ed6f06e152eaa63a891cdd11/LICENSE.md",
+    "sha256": "e2449e386e85f43cd5ad20869d23653315d656ac0ffb8630143308a83bd79522"
+  },
+  {
+    "file": "Apache-2.0.txt",
+    "source": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "FreeType-FTL.txt",
+    "source": "https://raw.githubusercontent.com/freetype/freetype/VER-2-6-5/docs/FTL.TXT",
+    "sha256": "4a9a548027a2c1d37788519dea833294c9c81f1ebc280e817f41f50d0c642d78"
+  },
+  {
+    "file": "Unicode-CLDR.txt",
+    "source": "https://raw.githubusercontent.com/unicode-org/cldr/fd39b21340a0f6e8eb27758c5094f1a66379a051/unicode-license.txt",
+    "sha256": "80b381b2f157c31e7f3222bdb932bda9fbd7b335e888beec56820fb2993363de"
+  },
+  {
+    "file": "Microsoft-Data-Sqlite.txt",
+    "source": "https://raw.githubusercontent.com/dotnet/efcore/v10.0.10/LICENSE.txt",
+    "sha256": "ae48df11a335dc1a615f4f938b69cba73bcf4485c4f97af49b38efb0f216353b"
+  },
+  {
+    "file": "SQLitePCLRaw.txt",
+    "source": "https://raw.githubusercontent.com/ericsink/SQLitePCL.raw/v3.0.5/LICENSE.TXT",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "SQLite-public-domain.md",
+    "source": "https://raw.githubusercontent.com/sqlite/sqlite/version-3.53.4/LICENSE.md",
+    "sha256": "ee6af51062b30d532991face5164136ae6f84e265ecf8abe89dc69dac45ca1e7"
+  },
+  {
+    "file": "WPF-runtime-NOTICES.txt",
+    "source": "https://raw.githubusercontent.com/dotnet/wpf/v10.0.10/THIRD-PARTY-NOTICES.TXT",
+    "sha256": "d23dba2fee20c6b59d8f7088ee9ed372459c952a319b7ca90f3eec370cc76eb9"
+  },
+  {
+    "file": "SQLite-package.txt",
+    "source": "nuget:sqlite/3.53.4/LICENSE.txt",
+    "sha256": "99464c3a88df7b708ce59e462cdcb85f72dfc9b1335b4fcc68be56131b634b95"
+  },
+  {
+    "file": "JeremyAnsel-HLSL-Targets.txt",
+    "source": "nuget:jeremyansel.hlsl.targets/1.0.13/LICENSE.txt",
+    "sha256": "372fe193e5ada6f0f06e0b80c9e9702314361ce9d80b11ff564f1582b5139350"
+  },
+  {
+    "file": "NET-runtime-LICENSE.txt",
+    "source": "nuget:microsoft.netcore.app.runtime.win-x64/10.0.10/LICENSE.TXT",
+    "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+  },
+  {
+    "file": "NET-runtime-NOTICES.txt",
+    "source": "nuget:microsoft.netcore.app.runtime.win-x64/10.0.10/THIRD-PARTY-NOTICES.TXT",
+    "sha256": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21"
+  },
+  {
+    "file": "WindowsDesktop-runtime-LICENSE.txt",
+    "source": "nuget:microsoft.windowsdesktop.app.runtime.win-x64/10.0.10/LICENSE",
+    "sha256": "a89886665765362eb77e0f8e26602c924520041d1711b2eedc136434fe4d01ab"
+  }
+]

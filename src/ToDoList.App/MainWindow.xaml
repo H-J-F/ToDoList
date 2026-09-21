@@ -102,8 +102,8 @@
                             <TextBlock Text="数据与关于" FontWeight="SemiBold" Margin="4,0,0,12"/>
                             <fluent:Button Content="打开 Data 目录" Icon="{fluent:SymbolIcon FolderOpen20, FontSize=20}" Click="OpenData_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="0,0,0,8"/>
                             <fluent:Button Content="打开备份目录" Icon="{fluent:SymbolIcon History20, FontSize=20}" Click="OpenBackup_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="0,0,0,16"/>
-                            <fluent:CardAction x:Name="AboutCard" Click="OpenRepository_Click" ToolTip="打开 GitHub 仓库" AutomationProperties.Name="打开 ToDoList GitHub 仓库">
-                                <fluent:CardAction.Content><StackPanel Orientation="Horizontal"><Image x:Name="AboutIcon" Width="40" Height="40" Margin="0,0,12,0"/><StackPanel VerticalAlignment="Center"><TextBlock Text="ToDoList  2.1.0" FontWeight="SemiBold"/><TextBlock Text="H-J-F · MIT · GitHub" FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0"/></StackPanel></StackPanel></fluent:CardAction.Content>
+                            <fluent:CardAction x:Name="AboutCard" Click="OpenRepository_Click" IsChevronVisible="False" HorizontalContentAlignment="Stretch" ToolTip="打开 GitHub 仓库" AutomationProperties.Name="打开 ToDoList GitHub 仓库">
+                                <fluent:CardAction.Content><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Image x:Name="AboutIcon" Width="40" Height="40" Margin="0,0,12,0"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="ToDoList  2.1.0" FontWeight="SemiBold"/><TextBlock Text="H-J-F · MIT · GitHub" FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0"/></StackPanel><fluent:SymbolIcon Grid.Column="2" Symbol="Open20" FontSize="20" Margin="12,0,0,0"/></Grid></fluent:CardAction.Content>
                             </fluent:CardAction>
                         </StackPanel>
                     </fluent:DynamicScrollViewer>

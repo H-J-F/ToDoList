@@ -1,0 +1,5 @@
+{
+  "ExitCode": -2147450730,
+  "Error": "You must install or update .NET to run this application.\r\n\r\nApp: H:\\Projects\\WPF_ToDoList\\artifacts\\v21-candidate\\ToDoList-2.1.0-win-x64-lite\\ToDoList.exe\r\nArchitecture: x64\r\nFramework: 'Microsoft.NETCore.App', version '10.0.0' (x64)\r\n.NET location: H:\\Projects\\WPF_ToDoList\\artifacts\\runtime-isolation\\dotnet\r\n\r\nNo frameworks were found.\r\n\r\nThe following frameworks for other architectures were found:\r\n  x86\r\n    3.1.26 at [C:\\Program Files (x86)\\dotnet\\shared\\Microsoft.NETCore.App]\r\n    6.0.6 at [C:\\Program Files (x86)\\dotnet\\shared\\Microsoft.NETCore.App]\r\n\r\nLearn more:\r\nhttps://aka.ms/dotnet/app-launch-failed\r\n\r\nTo install missing framework, download:\r\nhttps://aka.ms/dotnet-core-applaunch?framework=Microsoft.NETCore.App&framework_version=10.0.0&arch=x64&rid=win-x64&os=win10\r\n",
+  "IsolatedRoot": "H:\\Projects\\WPF_ToDoList\\artifacts\\runtime-isolation\\dotnet"
+}
