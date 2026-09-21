@@ -73,5 +73,20 @@
     "file": "WindowsDesktop-runtime-LICENSE.txt",
     "source": "nuget:microsoft.windowsdesktop.app.runtime.win-x64/10.0.10/LICENSE",
     "sha256": "a89886665765362eb77e0f8e26602c924520041d1711b2eedc136434fe4d01ab"
+  },
+  {
+    "file": "PDFsharp-MigraDoc-MIT.txt",
+    "source": "https://raw.githubusercontent.com/empira/PDFsharp/v6.2.4/LICENSE",
+    "sha256": "3c648a5072bd7f7386ca28687780489a708a57ed75f13927bc16dd3e34af3bf7"
+  },
+  {
+    "file": "Microsoft-Extensions-LICENSE.txt",
+    "source": "nuget:microsoft.extensions.logging.abstractions/8.0.3/LICENSE.TXT",
+    "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+  },
+  {
+    "file": "Microsoft-Extensions-NOTICES.txt",
+    "source": "nuget:microsoft.extensions.logging.abstractions/8.0.3/THIRD-PARTY-NOTICES.TXT",
+    "sha256": "b60b2912da28eaa6518593c9e2efb5334ee062d3c42e80d8fdfa806b3dc52977"
   }
 ]

@@ -23,18 +23,18 @@
                         <ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal"><fluent:SymbolIcon Symbol="Folder20" Margin="0,0,10,0"/><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
                         <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Padding" Value="12,11"/><Setter Property="Border.CornerRadius" Value="6"/><Setter Property="Margin" Value="0,2"/><Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource AccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/><Setter Property="FontWeight" Value="SemiBold"/></Trigger></Style.Triggers></Style></ListBox.ItemContainerStyle>
                     </ListBox>
-                    <fluent:Button Grid.Row="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource QuietButton}" Click="Settings_Click" AutomationProperties.AutomationId="Settings"><StackPanel Orientation="Horizontal"><fluent:SymbolIcon Symbol="Settings20" Margin="0,0,10,0"/><TextBlock Text="设置"/></StackPanel></fluent:Button>
+                    <fluent:Button x:Name="SettingsButton" Grid.Row="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource QuietButton}" Click="Settings_Click" AutomationProperties.AutomationId="Settings"><StackPanel Orientation="Horizontal"><fluent:SymbolIcon Symbol="Settings20" Margin="0,0,10,0"/><TextBlock Text="设置"/></StackPanel></fluent:Button>
                 </Grid>
                 <Border Grid.Column="1" Background="{DynamicResource PaperBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1,1,0,0" CornerRadius="10,0,0,0">
                     <Grid x:Name="MainPage" Margin="24,20,24,20" Visibility="{Binding HasBook, Converter={StaticResource BoolVisibility}}">
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                        <StackPanel><TextBlock x:Name="PageHeading" Text="{Binding FilterTitle}" FontSize="26" FontWeight="SemiBold"/><TextBlock x:Name="PageSubtitle" Text="{Binding DateSubtitle}" Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,6,0,0"/></StackPanel>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel><TextBlock x:Name="PageHeading" Text="{Binding FilterTitle}" FontSize="26" FontWeight="SemiBold"/><TextBlock x:Name="PageSubtitle" Text="{Binding DateSubtitle}" Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,6,0,0"/></StackPanel><fluent:Button Grid.Column="1" Content="导出报告" Click="Report_Click" Style="{StaticResource QuietButton}" AutomationProperties.AutomationId="ExportReport"/></Grid>
                         <Grid x:Name="BookmarkArea" Grid.Row="1" Margin="0,16,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="44"/></Grid.RowDefinitions>
                             <fluent:DynamicScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                                <TabControl x:Name="Tabs" Background="Transparent" BorderThickness="0" SelectionChanged="Tab_Changed" Padding="0">
+                                <StackPanel Orientation="Horizontal"><TabControl x:Name="Tabs" Background="Transparent" BorderThickness="0" SelectionChanged="Tab_Changed" Padding="0">
                                     <TabControl.Resources><Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}"><Setter Property="HeaderTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" Margin="8,3"/></DataTemplate></Setter.Value></Setter><Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="FontWeight" Value="SemiBold"/></Trigger></Style.Triggers></Style></TabControl.Resources>
-                                    <TabItem Header="已删除" Tag="Deleted"/><TabItem Header="已完成" Tag="Completed"/><TabItem Header="未完成" Tag="Open"/><TabItem Header="本月" Tag="Month"/><TabItem Header="本周" Tag="Week"/><TabItem Header="今天" Tag="Today" IsSelected="True"/>
-                                </TabControl>
+                                    <TabItem Header="所有" Tag="All"/><TabItem Header="已删除" Tag="Deleted"/><TabItem Header="已完成" Tag="Completed"/><TabItem Header="未完成" Tag="Open"/><TabItem Header="本月" Tag="Month"/><TabItem Header="本周" Tag="Week"/><TabItem Header="今天" Tag="Today" IsSelected="True"/>
+                                </TabControl><fluent:Button x:Name="CalendarButton" Click="Calendar_Click" ToolTip="按年、月、日查看任务" AutomationProperties.AutomationId="CalendarFilter" Margin="4,0,0,0"><fluent:Button.Style><Style TargetType="fluent:Button" BasedOn="{StaticResource IconButton}"><Style.Triggers><DataTrigger Binding="{Binding IsCalendarFilter}" Value="True"><Setter Property="Background" Value="{DynamicResource AccentBrush}"/></DataTrigger></Style.Triggers></Style></fluent:Button.Style><fluent:SymbolIcon Symbol="CalendarLtr20"/></fluent:Button></StackPanel>
                             </fluent:DynamicScrollViewer>
                             <TextBlock Grid.Row="1" Text="{Binding LoadedLabel}" FontSize="11" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"/>
                             <Border Grid.Row="1" HorizontalAlignment="Right" Width="132" Background="Transparent" Visibility="{Binding IsCompletedTab, Converter={StaticResource BoolVisibility}}">
@@ -59,9 +59,9 @@
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <ComboBox x:Name="DraftProject" ItemsSource="{Binding DraftProjects}" DisplayMemberPath="Name" SelectionChanged="DraftProject_Changed"/>
                                     <fluent:TextBox x:Name="NewProjectName" Grid.Column="1" Margin="8,0" Visibility="Collapsed" ToolTip="新模块名称" MaxLength="100"/>
-                                    <fluent:Button Grid.Column="2" Content="添加任务" Icon="{fluent:SymbolIcon Add20, FontSize=20}" Appearance="Primary" Click="AddTask_Click" ToolTip="Ctrl+Enter" AutomationProperties.AutomationId="AddTask"/>
+                                    <fluent:Button Grid.Column="2" Content="添加任务" Icon="{fluent:SymbolIcon Add20, FontSize=20}" Appearance="Primary" Click="AddTask_Click" ToolTip="Enter 添加，Shift+Enter 换行" AutomationProperties.AutomationId="AddTask"/>
                                 </Grid>
-                                <ui:RichEditor x:Name="DraftEditor" Grid.Row="1" Height="92" Margin="0,8,0,0" Submit="Draft_Submit"/>
+                                <ui:RichEditor x:Name="DraftEditor" Grid.Row="1" Height="80" Margin="0,8,0,0" Submit="Draft_Submit"/>
                             </Grid>
                         </Border>
                     </Grid>

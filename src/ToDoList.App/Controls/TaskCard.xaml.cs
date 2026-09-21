@@ -77,14 +77,15 @@ public partial class TaskCard : UserControl
     public void BeginEdit()
     {
         if (Row == null || Row.IsDeleted || ActiveEditor != null) return;
-        ActiveEditor = (Window.GetWindow(this) as MainWindow)?.TaskEditor ?? new RichEditor { MinHeight = 110, MaxHeight = 240 };
+        ActiveEditor = (Window.GetWindow(this) as MainWindow)?.TaskEditor ?? new RichEditor { MinHeight = 92, MaxHeight = 240 };
+        ActiveEditor.SubmitLabel = "保存";
         ActiveEditor.SetContent(RichContent.Parse(Row.Item.ContentJson));
         ActiveEditor.Submit += EditorSubmit;
         ActiveEditor.Cancel += EditorCancel;
         var panel = new StackPanel(); panel.Children.Add(ActiveEditor);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         var cancel = new Wpf.Ui.Controls.Button { Content = "取消", Margin = new(0, 4, 8, 0), Padding = new(10, 5, 10, 5) }; cancel.Click += (_, _) => CancelRequested?.Invoke(this, EventArgs.Empty);
-        var save = new Wpf.Ui.Controls.Button { Content = "保存  Ctrl+Enter", Style = (Style)FindResource("PrimaryButton"), Margin = new(0, 4, 0, 0), Padding = new(10, 5, 10, 5) }; save.Click += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
+        var save = new Wpf.Ui.Controls.Button { Content = "保存  Enter", Style = (Style)FindResource("PrimaryButton"), Margin = new(0, 4, 0, 0), Padding = new(10, 5, 10, 5) }; save.Click += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
         actions.Children.Add(cancel); actions.Children.Add(save); panel.Children.Add(actions);
         EditorHost.Content = panel; EditorHost.Visibility = Visibility.Visible; BodyText.Visibility = Visibility.Collapsed;
         Row.IsEditing = true;

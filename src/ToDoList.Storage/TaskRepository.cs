@@ -18,6 +18,23 @@ public sealed class TaskRepository(string path) : ITaskRepository
     }, ct);
 
     public Task<ProjectInfo> AddProjectAsync(string name, CancellationToken ct = default) => Run(c => InsertProject(c, name), ct);
+    public Task<ReportSnapshot> ReadReportAsync(ReportOptions options, CancellationToken ct = default) => Run(c =>
+    {
+        var query = options.Query();
+        using var tx = c.BeginTransaction(deferred: true);
+        var book = BookLibrary.ReadInfo(c, Path);
+        var projects = new List<ProjectInfo>();
+        using (var cmd = Database.Command(c, "SELECT Id,Name FROM Projects ORDER BY Name"))
+        using (var reader = cmd.ExecuteReader())
+            while (reader.Read()) { ct.ThrowIfCancellationRequested(); projects.Add(new(reader.GetString(0), reader.GetString(1))); }
+        if (options.ProjectId != null && !projects.Any(p => p.Id == options.ProjectId)) throw new ArgumentException("所选模块已不存在。");
+        using var tasksCommand = BuildQuery(c, query, forReport: true);
+        var tasks = new List<TodoItem>();
+        using (var reader = tasksCommand.ExecuteReader())
+            while (reader.Read()) { ct.ThrowIfCancellationRequested(); tasks.Add(Read(reader)); }
+        tx.Commit();
+        return new ReportSnapshot(book.Title, projects, tasks);
+    }, ct);
     private static ProjectInfo InsertProject(SqliteConnection c, string name)
     {
         name = BookRules.ValidateTitle(name);
@@ -38,7 +55,7 @@ public sealed class TaskRepository(string path) : ITaskRepository
         return new TaskPage(rows, more);
     }, ct);
 
-    public static SqliteCommand BuildQuery(SqliteConnection c, TaskQuery query, bool explain = false)
+    public static SqliteCommand BuildQuery(SqliteConnection c, TaskQuery query, bool explain = false, bool forReport = false)
     {
         if (query.PageSize is < 1 or > 200) throw new ArgumentOutOfRangeException(nameof(query.PageSize));
         var conditions = new List<string>(); var args = new List<(string, object?)>();
@@ -48,18 +65,18 @@ public sealed class TaskRepository(string path) : ITaskRepository
         if (query.Filter == TaskFilter.Completed) conditions.Add("Status=2");
         if (query.From.HasValue) { conditions.Add("CreatedAt >= $from"); args.Add(("$from", query.From)); }
         if (query.Until.HasValue) { conditions.Add("CreatedAt < $until"); args.Add(("$until", query.Until)); }
-        var field = query.ByDeletion ? "DeletedAt" : query.ByCompletion ? "CompletedAt" : "CreatedAt";
-        var newer = query.Direction == PageDirection.Newer;
-        if (query.Cursor != null)
+        var field = forReport ? "CreatedAt" : query.ByDeletion ? "DeletedAt" : query.ByCompletion ? "CompletedAt" : "CreatedAt";
+        var newer = forReport || query.Direction == PageDirection.Newer;
+        if (!forReport && query.Cursor != null)
         {
             conditions.Add($"({field},Id) {(newer ? ">" : "<")}{(query.IncludeCursor ? "=" : "")} ($time,$id)");
             args.Add(("$time", query.Cursor.Time)); args.Add(("$id", query.Cursor.Id));
         }
-        args.Add(("$limit", query.PageSize + 1));
+        if (!forReport) args.Add(("$limit", query.PageSize + 1));
         var where = conditions.Count == 0 ? "" : " WHERE " + string.Join(" AND ", conditions);
         var direction = newer ? "ASC" : "DESC";
         return Database.Command(c, (explain ? "EXPLAIN QUERY PLAN " : "") +
-            $"SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks{where} ORDER BY {field} {direction},Id {direction} LIMIT $limit", args.ToArray());
+            $"SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks{where} ORDER BY {field} {direction},Id {direction}" + (forReport ? "" : " LIMIT $limit"), args.ToArray());
     }
     public static TodoItem Read(SqliteDataReader r) => new(r.GetString(0), r.IsDBNull(1) ? null : r.GetString(1),
         r.GetString(2), r.GetString(3), (TodoStatus)r.GetInt32(4), r.GetInt64(5), r.GetInt64(6),

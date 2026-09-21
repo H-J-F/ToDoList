@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace ToDoList.Core;
 
 public enum TodoStatus { Open, Verification, Completed, Deleted }
-public enum TaskFilter { Completed, Open, Month, Week, Today, Deleted }
+public enum TaskFilter { Completed, Open, Month, Week, Today, Deleted, All, Calendar }
 public enum TaskSort { Created, Completed, Deleted }
 public enum PageDirection { Older, Newer }
 public enum ImportMode { Merge, Replace }
@@ -124,6 +124,7 @@ public sealed class AppSettings
 
 public interface ITaskRepository
 {
+    Task<ReportSnapshot> ReadReportAsync(ReportOptions options, CancellationToken ct = default);
     Task<IReadOnlyList<ProjectInfo>> GetProjectsAsync(CancellationToken ct = default);
     Task<ProjectInfo> AddProjectAsync(string name, CancellationToken ct = default);
     Task<TaskPage> QueryAsync(TaskQuery query, CancellationToken ct = default);

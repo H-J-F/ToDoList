@@ -338,5 +338,45 @@
     "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
     "source": null,
     "packageSha512": "5mj99LvCqrq3CNi06xYdyIAXOEh+5b33F2nErCzI5zWiDdLHXiPXEWFSUAF8zlIv0ZWqjZNCwHTQeAPYbF3pCg=="
+  },
+  {
+    "package": "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.2",
+    "scope": "application",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://dot.net/",
+    "packageSha512": "3iE7UF7MQkCv1cxzCahz+Y/guQbTqieyxyaWKhrRO91itI9cOKO76OHeQDahqG4MmW5umr3CcCvGmK92lWNlbg=="
+  },
+  {
+    "package": "Microsoft.Extensions.Logging.Abstractions/8.0.3",
+    "scope": "application",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://dot.net/",
+    "packageSha512": "dL0QGToTxggRLMYY4ZYX5AMwBb+byQBd/5dMiZE07Nv73o6I5Are3C7eQTh7K2+A4ct0PVISSr7TZANbiNb2yQ=="
+  },
+  {
+    "package": "PDFsharp-MigraDoc-WPF/6.2.4",
+    "scope": "application",
+    "authors": "PDFsharp Team",
+    "copyright": "© 2026 empira",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://docs.pdfsharp.net/",
+    "packageSha512": "0r3+I3H4BIv2Mt5+3ajQnilY5kqs6fByoVdNly1A2jGOJwjW5qaWE+ohgi9hbMY3hK/JwcxvuChhHz4fi5DO3Q=="
+  },
+  {
+    "package": "PDFsharp-WPF/6.2.4",
+    "scope": "application",
+    "authors": "PDFsharp Team",
+    "copyright": "© 2026 empira",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://docs.pdfsharp.net/",
+    "packageSha512": "wD2byoUNGc/IDmSSSPLGGCNMXf4TybnjKlcYa40nuWIYLVA4DSvnCvWr7HbsBEwFvAYRP6DceQ4MN35COD/pdw=="
   }
 ]

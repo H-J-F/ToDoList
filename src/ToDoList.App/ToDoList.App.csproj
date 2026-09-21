@@ -28,7 +28,17 @@
 
   <ItemGroup>
     <PackageReference Include="Emoji.Wpf" Version="0.3.4" />
+    <PackageReference Include="PDFsharp-MigraDoc-WPF" Version="6.2.4" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
+
+  <!-- The NuGet package also carries sample helpers and embedded Windows Phone
+       fonts. Reports use installed system fonts, so do not copy those helpers. -->
+  <Target Name="ExcludePdfSampleAssets" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <RuntimeCopyLocalItems Remove="@(RuntimeCopyLocalItems)" Condition="'%(Filename)' == 'PdfSharp.WPFonts' Or '%(Filename)' == 'PdfSharp.Snippets-wpf' Or '%(Filename)' == 'PdfSharp.Quality-wpf'" />
+      <ResolvedCompileFileDefinitions Remove="@(ResolvedCompileFileDefinitions)" Condition="'%(Filename)' == 'PdfSharp.WPFonts' Or '%(Filename)' == 'PdfSharp.Snippets-wpf' Or '%(Filename)' == 'PdfSharp.Quality-wpf'" />
+    </ItemGroup>
+  </Target>
 
 </Project>

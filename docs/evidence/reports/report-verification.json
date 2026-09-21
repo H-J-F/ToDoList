@@ -1,0 +1,20 @@
+{
+  "Passed": true,
+  "PdfTextMatchesDocxExceptImageEmoji": true,
+  "Files": [
+    {
+      "file": "report.pdf",
+      "pages": 3,
+      "longTextCharacters": 3000,
+      "images": 2,
+      "withinPageBounds": true
+    },
+    {
+      "file": "docx-rendered.pdf",
+      "pages": 3,
+      "longTextCharacters": 3000,
+      "images": 0,
+      "withinPageBounds": true
+    }
+  ]
+}

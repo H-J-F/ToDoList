@@ -24,6 +24,7 @@ sources = {
     "SQLitePCLRaw.txt": "https://raw.githubusercontent.com/ericsink/SQLitePCL.raw/v3.0.5/LICENSE.TXT",
     "SQLite-public-domain.md": "https://raw.githubusercontent.com/sqlite/sqlite/version-3.53.4/LICENSE.md",
     "WPF-runtime-NOTICES.txt": "https://raw.githubusercontent.com/dotnet/wpf/v10.0.10/THIRD-PARTY-NOTICES.TXT",
+    "PDFsharp-MigraDoc-MIT.txt": "https://raw.githubusercontent.com/empira/PDFsharp/v6.2.4/LICENSE",
 }
 records = []
 for name, url in sources.items():
@@ -33,6 +34,8 @@ for name, url in sources.items():
     records.append({"file": name, "source": url, "sha256": hashlib.sha256(data).hexdigest()})
 
 local = {
+    "Microsoft-Extensions-LICENSE.txt": "microsoft.extensions.logging.abstractions/8.0.3/LICENSE.TXT",
+    "Microsoft-Extensions-NOTICES.txt": "microsoft.extensions.logging.abstractions/8.0.3/THIRD-PARTY-NOTICES.TXT",
     "SQLite-package.txt": "sqlite/3.53.4/LICENSE.txt",
     "ILLink-build-NOTICES.txt": "microsoft.net.illink.tasks/10.0.10/THIRD-PARTY-NOTICES.TXT",
     "JeremyAnsel-HLSL-Targets.txt": "jeremyansel.hlsl.targets/1.0.13/LICENSE.txt",

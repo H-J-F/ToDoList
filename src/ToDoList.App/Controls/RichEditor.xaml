@@ -9,8 +9,9 @@
             <fluent:Button x:Name="EmojiButton" Style="{StaticResource ToolbarButton}" Focusable="True" Click="Emoji_Click" ToolTip="插入彩色表情" AutomationProperties.Name="插入彩色表情"><fluent:SymbolIcon Symbol="Emoji20" FontSize="20"/></fluent:Button>
             <fluent:Button Style="{StaticResource QuietButton}" MinHeight="32" Height="32" Padding="6,0" Focusable="True" Click="ClearFormat_Click" ToolTip="清除格式：恢复选中文字或后续输入的默认格式" AutomationProperties.Name="清除格式"><StackPanel Orientation="Horizontal"><fluent:SymbolIcon Symbol="TextClearFormatting20" FontSize="20"/><TextBlock Text="清除格式" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center"/></StackPanel></fluent:Button>
         </StackPanel>
-        <Grid Grid.Row="1"><TextBlock x:Name="Placeholder" Text="输入任务内容…  Ctrl+Enter 添加" Foreground="{DynamicResource MutedBrush}" Margin="4,5" IsHitTestVisible="False"/>
-        <RichTextBox x:Name="Editor" Grid.Row="1" MinHeight="44" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource InkBrush}" CaretBrush="{DynamicResource InkBrush}" FontFamily="{StaticResource BodyFontFamily}" FontSize="{DynamicResource BodyFontSize}" FontWeight="Normal" FontStyle="Normal" Padding="3" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" PreviewKeyDown="Editor_KeyDown" TextChanged="Editor_TextChanged"/>
+        <Grid Grid.Row="1">
+        <RichTextBox x:Name="Editor" MinHeight="40" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource InkBrush}" CaretBrush="{DynamicResource InkBrush}" FontFamily="{StaticResource BodyFontFamily}" FontSize="{DynamicResource BodyFontSize}" FontWeight="Normal" FontStyle="Normal" Padding="3" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" PreviewKeyDown="Editor_KeyDown" TextChanged="Editor_TextChanged"/>
+        <Canvas IsHitTestVisible="False" ClipToBounds="True"><TextBlock x:Name="Placeholder" Text="输入任务内容…  Enter 添加，Shift+Enter 换行" Foreground="{DynamicResource MutedBrush}" FontFamily="{Binding FontFamily, ElementName=Editor}" FontSize="{Binding FontSize, ElementName=Editor}" FontWeight="Normal" FontStyle="Normal"/></Canvas>
         </Grid>
     </Grid>
 </UserControl>

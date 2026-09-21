@@ -29,7 +29,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            if (e.Args.Any(a => a is "--ui-smoke" or "--ui-perf" or "--ui-demo"))
+            if (e.Args.Any(a => a is "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features"))
             {
                 var report = Path.Combine(data, "..", "startup-error.txt");
                 Directory.CreateDirectory(Path.GetDirectoryName(report)!); File.WriteAllText(report, ex.ToString());

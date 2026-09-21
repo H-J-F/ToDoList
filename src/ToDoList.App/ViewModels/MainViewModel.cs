@@ -32,8 +32,10 @@ public sealed class MainViewModel : ObservableObject
     public string BookTitle => CurrentBook?.Title ?? "我的第一本待办书";
     public string? CurrentProjectId { get; private set; }
     public TaskFilter Filter { get; private set; } = TaskFilter.Today;
+    public DateSelection SelectedDates { get; private set; } = new(DateScope.Day, DateTime.Today, DateTime.Today);
+    public bool IsCalendarFilter => Filter == TaskFilter.Calendar;
     public TaskSort Sort { get; private set; } = TaskSort.Completed;
-    public string FilterTitle => Filter switch { TaskFilter.Deleted => "已删除", TaskFilter.Completed => "已完成", TaskFilter.Open => "未完成", TaskFilter.Month => "本月", TaskFilter.Week => "本周", _ => "今天" };
+    public string FilterTitle => Filter switch { TaskFilter.All => "所有", TaskFilter.Calendar => SelectedDates.Label, TaskFilter.Deleted => "已删除", TaskFilter.Completed => "已完成", TaskFilter.Open => "未完成", TaskFilter.Month => "本月", TaskFilter.Week => "本周", _ => "今天" };
     public string DateSubtitle => DateTime.Now.ToString("yyyy 年 M 月 d 日  ·  dddd");
     public bool IsCompletedTab => Filter == TaskFilter.Completed;
     private bool _busy;
@@ -75,6 +77,23 @@ public sealed class MainViewModel : ObservableObject
     }
     public async Task SelectProjectAsync(string? id) { CurrentProjectId = id; await ReloadAsync(true); }
     public async Task SelectFilterAsync(TaskFilter filter) { Filter = filter; await ReloadAsync(true); }
+    public async Task SelectDatesAsync(DateSelection dates)
+    {
+        _ = dates.Bounds(); SelectedDates = dates; Filter = TaskFilter.Calendar; await ReloadAsync(true);
+    }
+    private (long? From, long? Until) QueryRange() => Filter == TaskFilter.Calendar ? SelectedDates.Bounds() : DateRanges.For(Filter, DateTime.Now);
+    public DateSelection ReportDates()
+    {
+        if (Filter == TaskFilter.Calendar) return SelectedDates;
+        var today = DateTime.Today;
+        return Filter switch
+        {
+            TaskFilter.Today => new(DateScope.Day, today, today),
+            TaskFilter.Month => new(DateScope.Month, today, today),
+            TaskFilter.Week => new(DateScope.Range, today.AddDays(-((7 + (int)today.DayOfWeek - 1) % 7)), today.AddDays(6 - ((7 + (int)today.DayOfWeek - 1) % 7))),
+            _ => DateSelection.Any
+        };
+    }
     public async Task SelectSortAsync(TaskSort sort)
     {
         Sort = sort;
@@ -88,8 +107,8 @@ public sealed class MainViewModel : ObservableObject
         { await RefreshWindowAsync(); return; }
         CancelQuery(); Tasks.Clear(); HasOlder = HasNewer = false;
         var epoch = _epoch;
-        Raise(nameof(Filter)); Raise(nameof(FilterTitle)); Raise(nameof(IsCompletedTab)); Raise(nameof(DateSubtitle));
-        var range = DateRanges.For(Filter, DateTime.Now);
+        Raise(nameof(Filter)); Raise(nameof(FilterTitle)); Raise(nameof(IsCompletedTab)); Raise(nameof(IsCalendarFilter)); Raise(nameof(DateSubtitle));
+        var range = QueryRange();
         CurrentQuery = new(CurrentProjectId, Filter, Sort, range.From, range.Until);
         await LoadPageAsync(PageDirection.Older); NotifyList();
         if (showLatest && epoch == _epoch) LatestRequested?.Invoke();
@@ -99,7 +118,7 @@ public sealed class MainViewModel : ObservableObject
         var cursor = CurrentQuery!.CursorFor(Tasks[0].Item); var count = Tasks.Count;
         CancelQuery(); var epoch = _epoch; var token = _queryCancellation.Token; var repository = Repository!;
         _paging = true; var completion = _pageCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        var range = DateRanges.For(Filter, DateTime.Now);
+        var range = QueryRange();
         CurrentQuery = new(CurrentProjectId, Filter, Sort, range.From, range.Until);
         var query = CurrentQuery with { Direction = PageDirection.Newer, Cursor = cursor, IncludeCursor = true };
         var rows = new List<TodoItem>(); bool more = false, budgetReached = false; long bytes = 0;

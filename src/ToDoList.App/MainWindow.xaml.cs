@@ -26,7 +26,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private bool _sync = true, _initialized, _navigating, _closingApproved, _restoring;
     private TaskCard? _editingCard;
     private RichEditor? _taskEditor;
-    internal RichEditor TaskEditor => _taskEditor ??= new RichEditor { MinHeight = 110, MaxHeight = 240 };
+    internal RichEditor TaskEditor => _taskEditor ??= new RichEditor { MinHeight = 92, MaxHeight = 240 };
     private (string Id, double Y)? _anchor;
     private readonly DispatcherTimer _feedbackTimer = new() { Interval = TimeSpan.FromMilliseconds(180) };
     private readonly DispatcherTimer _calendar = new() { Interval = TimeSpan.FromSeconds(20) };
@@ -54,6 +54,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         FontSetting.ItemsSource = new double[] { 12, 14, 16, 18 };
         DensitySetting.ItemsSource = new[] { "紧凑", "舒适" }; MotionSetting.ItemsSource = new[] { "标准", "减少动态效果" };
         SyncSettings();
+        PreviewMouseDown += Window_PreviewMouseDown;
+        PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape && _datePopup?.IsOpen == true) { _datePopup.IsOpen = false; e.Handled = true; } };
+        Deactivated += (_, _) => { if (_datePopup != null) _datePopup.IsOpen = false; };
         Model.LayoutChanging += CaptureAnchor; Model.LayoutChanged += RestoreAnchor;
         Model.LatestRequested += ScrollToLatest;
         Model.IsEditing = () => _editingCard != null;
@@ -85,7 +88,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             PageSubtitle.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
             PageHeading.FontSize = compact ? 22 : 26;
             BookmarkArea.Margin = new Thickness(0, compact ? 8 : 16, 0, 0);
-            DraftEditor.Height = compact ? 80 : 92;
+            DraftEditor.Height = compact ? 76 : 80;
             MainPage.Margin = new Thickness(24, compact ? 12 : 20, 24, compact ? 12 : 20);
         };
         Model.PropertyChanged += (_, e) =>
@@ -114,6 +117,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }));
         var args = Environment.GetCommandLineArgs();
         if (args.Contains("--ui-smoke")) await Services.UiSmoke.RunAsync(this);
+        else if (args.Contains("--ui-features")) await Services.UiFeatures.RunAsync(this);
         else if (args.Contains("--ui-typography")) await Services.UiTypography.RunAsync(this);
         else if (args.Contains("--ui-demo")) await Services.UiDemo.RunAsync(this);
         else if (args.Contains("--ui-perf")) await Services.UiPerformance.RunAsync(this);
@@ -360,7 +364,25 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         { var child = VisualTreeHelper.GetChild(root, i); if (child is T match) yield return match; foreach (var nested in Descendants<T>(child)) yield return nested; }
     }
     private bool _settingsClosing;
-    private void Settings_Click(object sender, RoutedEventArgs e) { if (_settingsClosing) return; SettingsPanel.Visibility = Visibility.Visible; Motion.Reveal(SettingsPanel, 32, 200); }
+    private void Settings_Click(object sender, RoutedEventArgs e)
+    {
+        if (_settingsClosing) return;
+        if (SettingsPanel.Visibility == Visibility.Visible) { CloseSettings_Click(sender, e); return; }
+        SettingsPanel.Visibility = Visibility.Visible; Motion.Reveal(SettingsPanel, 32, 200);
+    }
+    private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // Popup children live in a separate visual root and do not reach this handler.
+        bool Within(DependencyObject root)
+        {
+            for (var node = e.OriginalSource as DependencyObject; node != null; node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
+                if (ReferenceEquals(node, root)) return true;
+            return false;
+        }
+        if (_datePopup?.IsOpen == true && !Within(CalendarButton)) _datePopup.IsOpen = false;
+        if (SettingsPanel.Visibility == Visibility.Visible && !Within(SettingsPanel) && !Within(SettingsButton))
+            CloseSettings_Click(sender, e);
+    }
     private async void CloseSettings_Click(object sender, RoutedEventArgs e) { if (_settingsClosing) return; _settingsClosing = true; await Motion.HideAsync(SettingsPanel); _settingsClosing = false; }
     internal void SyncSettings()
     {

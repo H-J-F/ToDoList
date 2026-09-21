@@ -14,7 +14,19 @@ public partial class RichEditor : UserControl
     public event EventHandler? Cancel;
     public bool Dirty { get; private set; }
     private bool _setting;
-    public RichEditor() { InitializeComponent(); SetContent(RichContent.FromText("")); DataObject.AddPastingHandler(Editor, OnPaste); InitializeEditing(); }
+    public RichEditor() { InitializeComponent(); SetContent(RichContent.FromText("")); DataObject.AddPastingHandler(Editor, OnPaste); InitializeEditing(); Editor.LayoutUpdated += (_, _) => AlignPlaceholder(); }
+    public string SubmitLabel { set => Placeholder.Text = $"输入任务内容…  Enter {value}，Shift+Enter 换行"; }
+    private void AlignPlaceholder()
+    {
+        if (Placeholder.Visibility != Visibility.Visible || !Editor.IsLoaded || !Editor.Document.ContentStart.HasValidLayout) return;
+        var start = Editor.Document.ContentStart.GetInsertionPosition(LogicalDirection.Forward);
+        if (start == null) return;
+        var rect = start.GetCharacterRect(LogicalDirection.Forward);
+        if (rect.IsEmpty) return;
+        var point = Editor.TranslatePoint(rect.TopLeft, (UIElement)Placeholder.Parent);
+        // A zero-padding TextBlock shares the text metrics; anchor it to the actual insertion line.
+        Canvas.SetLeft(Placeholder, point.X); Canvas.SetTop(Placeholder, point.Y);
+    }
     public void FocusEditor() { Editor.Focus(); Editor.CaretPosition = Editor.Document.ContentEnd; }
     public RichContent GetContent()
     {
@@ -135,13 +147,19 @@ public partial class RichEditor : UserControl
     }
     private void Editor_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) { e.Handled = true; Submit?.Invoke(this, EventArgs.Empty); }
+        if (_composing || e.Key == Key.ImeProcessed) return;
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) EditingCommands.EnterLineBreak.Execute(null, Editor);
+            else if (!e.IsRepeat) Submit?.Invoke(this, EventArgs.Empty);
+        }
         else if (e.Key == Key.Escape) { e.Handled = true; Cancel?.Invoke(this, EventArgs.Empty); }
     }
     private void Editor_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (!_setting) { Dirty = true; ColorInsertedText(e); if (!_composing && e.UndoAction is not UndoAction.Undo and not UndoAction.Redo) RenderTypedEmoji(); }
-        if (Placeholder != null) Placeholder.Visibility = string.IsNullOrWhiteSpace(GetContent().PlainText) ? Visibility.Visible : Visibility.Collapsed;
+        if (Placeholder != null) Placeholder.Visibility = GetContent().PlainText.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
     private void OnPaste(object sender, DataObjectPastingEventArgs e)
     {
