@@ -1,0 +1,25 @@
+Tracing enabled @ Mon Sep 21 04:33:20 2026 GMT
+--- Invoked apphost [version: 10.0.10 @Commit: f7d90799ce4ef09a0bb257852a57248d2a8fb8dd] main = {
+H:\Projects\WPF_ToDoList\artifacts\local-2.1.0\ToDoList-2.1.0-win-x64-portable\ToDoList.exe
+--data-dir
+H:\Projects\WPF_ToDoList\artifacts\v21-portable-isolated\Data
+--ui-smoke
+}
+Redirecting errors to custom writer.
+The managed DLL bound to this executable is: 'ToDoList.dll'
+Detected Single-File app bundle
+Using internal fxr
+Invoking fx resolver [H:\Projects\WPF_ToDoList\artifacts\local-2.1.0\ToDoList-2.1.0-win-x64-portable\] hostfxr_main_bundle_startupinfo
+Host path: [H:\Projects\WPF_ToDoList\artifacts\local-2.1.0\ToDoList-2.1.0-win-x64-portable\ToDoList.exe]
+Dotnet path: [H:\Projects\WPF_ToDoList\artifacts\local-2.1.0\ToDoList-2.1.0-win-x64-portable\]
+App path: [H:\Projects\WPF_ToDoList\artifacts\local-2.1.0\ToDoList-2.1.0-win-x64-portable\ToDoList.dll]
+Bundle Header Offset: [66051881]
+--- Invoked hostfxr_main_bundle_startupinfo [version: 10.0.10 @Commit: f7d90799ce4ef09a0bb257852a57248d2a8fb8dd]
+Mapped application bundle
+Unmapped application bundle
+Single-File bundle details:
+DepsJson Offset:[3ef3a48] Size[a4e1]
+RuntimeConfigJson Offset:[9a97a3] Size[211]
+.net core 3 compatibility mode: [No]
+--- Executing in a native executable mode...
+Using dotnet root path [H:\Projects\WPF_ToDoList\artifacts\local-2.1.0\ToDoList-2.1.0-win-x64-portable\]

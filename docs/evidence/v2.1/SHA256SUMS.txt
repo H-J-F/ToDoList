@@ -1,0 +1,2 @@
+90fdfc0e473f02ddcc7e6f385c2d56bcd87cdbe0b8aa098a8ea10f73db1df02d  ToDoList-2.1.0-win-x64-lite.zip
+5ec905bc8496957e725729a66b2d8006c9f07bcfe1dc3a95af7294cc6eaac713  ToDoList-2.1.0-win-x64-portable.zip

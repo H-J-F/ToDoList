@@ -1,0 +1,21 @@
+{
+  "Passed": true,
+  "Packages": [
+    {
+      "Variant": "lite",
+      "FileBytes": 11412295,
+      "ZipBytes": 4669059,
+      "Sha256": "90fdfc0e473f02ddcc7e6f385c2d56bcd87cdbe0b8aa098a8ea10f73db1df02d",
+      "Commit": "9ecfcafe56be18bda2f92cb328c8daeefc20fed8",
+      "Entries": 43
+    },
+    {
+      "Variant": "portable",
+      "FileBytes": 66329569,
+      "ZipBytes": 60616184,
+      "Sha256": "5ec905bc8496957e725729a66b2d8006c9f07bcfe1dc3a95af7294cc6eaac713",
+      "Commit": "9ecfcafe56be18bda2f92cb328c8daeefc20fed8",
+      "Entries": 27
+    }
+  ]
+}

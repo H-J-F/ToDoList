@@ -23,11 +23,13 @@
 
 真实 WPF 10 万条首屏 **1,493.07ms**，页签切换 **P95 114.66ms**，最大 **6 个任务控件**、**2,000 条缓存**、**1,924,000 字节内容缓存**；工作集从 244,023,296 增至 267,620,352 字节，包含运行时、字体与绘图等，不能等同于任务内容缓存。
 
-候选包交付文件实测精简版约 **11.3MB**、便携版约 **66.2MB**，ZIP 分别约 **4.6MB**／**60.6MB**。最终交付大小及 ZIP 校验值以本地构建目录的 `sizes.json`、`SHA256SUMS.txt` 为准。包中 BUILD.json 标明共同源码提交及构建模式。
+最终包从同一干净提交 `9ecfcafe56be18bda2f92cb328c8daeefc20fed8` 构建（后续提交仅补充验证记录及校验工具）。精简版交付文件 **11,412,295 字节**，ZIP **4,669,059 字节**；便携版交付文件 **66,329,569 字节**，ZIP **60,616,184 字节**。最终交付大小及 ZIP 校验值亦见本地构建目录 `artifacts/local-2.1.0/sizes.json`、`SHA256SUMS.txt`。包中 BUILD.json 标明共同源码提交及构建模式。
 
-便携候选包已通过真实 WPF 回归及嵌入图标加载。精简版缺失运行时通过独立 `DOTNET_ROOT_X64` 测试（只放 hostfxr，不含共享框架），正确返回缺失框架提示与官方安装链接；没有卸载或修改本机运行时。此测试不等于全新 Windows 虚拟机验收。采用[官方运行时查找配置](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables)。
+最终精简版和便携版各自通过 109 项真实 WPF 断言及嵌入图标加载。便携版使用独立 `DOTNET_ROOT_X64`（不含共享框架）和全新 `DOTNET_BUNDLE_EXTRACT_BASE_DIR` 启动；主机日志确认 `Detected Single-File app bundle`、`Using internal fxr`，完成首次原生组件解压。精简版在同样缺少框架的根目录下正确返回缺失框架提示与官方安装链接；没有卸载或修改本机运行时。这些隔离测试不等于全新、断网 Windows 虚拟机验收。采用[官方运行时查找配置](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-environment-variables)。
 
-公开前检查本地全部 6 次基线历史与当前源码中的文件名及常见凭据模式，未发现 Data、备份、私钥或凭据命中；这是一项定向检查，不是完整安全审计。依赖版本通过 packages.lock.json 固定，打包使用锁定还原。
+ZIP CRC、两包 SHA-256、两版共同源码提交、精简版 50MB 上限、无用户数据／调试符号／系统字体文件，以及每份第三方许可原文 SHA-256 均通过 `tools/Verify-Packages.py` 验证；结果见 `docs/evidence/v2.1/packages.json`。
+
+公开前检查原有 6 次基线及本轮提交的完整历史、当前源码中的文件名和常见凭据模式，未发现 Data、备份、私钥或凭据命中；这是一项定向检查，不是完整安全审计。依赖版本通过 packages.lock.json / packages.portable.lock.json 分别固定，打包使用锁定还原。
 
 实际 WPF 性能数据、界面断言、截图和约 20 秒交互演示位于 `docs/evidence/v2.1`。演示包含实际 WPF 动画帧与 Popup 绘制，按采集时间编码，不是界面模型图。
 

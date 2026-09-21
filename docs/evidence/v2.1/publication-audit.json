@@ -1,0 +1,7 @@
+{
+  "Passed": true,
+  "HistoryBlobs": 209,
+  "WorkingTreeFiles": 116,
+  "Scope": "filename and common credential-pattern scan; not a security guarantee",
+  "Issues": []
+}
