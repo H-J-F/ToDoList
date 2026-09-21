@@ -1,0 +1,5 @@
+# Keep upstream license texts byte-for-byte; their hashes are recorded in SOURCES.json.
+docs/licenses/** -text -whitespace
+*.png binary
+*.ico binary
+*.mp4 binary
