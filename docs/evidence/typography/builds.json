@@ -1,0 +1,17 @@
+{
+  "Passed": true,
+  "Builds": [
+    {
+      "Variant": "lite",
+      "FileBytes": 11434174,
+      "Commit": "e142e2706a5f3c09437bbdaeb5ce622316c2dadc",
+      "Files": 44
+    },
+    {
+      "Variant": "portable",
+      "FileBytes": 66340601,
+      "Commit": "e142e2706a5f3c09437bbdaeb5ce622316c2dadc",
+      "Files": 28
+    }
+  ]
+}

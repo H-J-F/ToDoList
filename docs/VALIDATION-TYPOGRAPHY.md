@@ -22,6 +22,8 @@
 
 `tools/Publish.ps1 -Variant Both` 自动创建项目根目录 Build，输出 lite、portable 程序目录及 sizes.json。只允许指定 Build 内的输出位置；已有程序目录拒绝覆盖，以保护 Data。`tools/Verify-Build.py Build` 核对共同干净源码提交、必要文件、许可 SHA-256 与精简版体积，不把用户 Data 算入程序体积。
 
+本次两版从同一干净提交 `e142e2706a5f3c09437bbdaeb5ce622316c2dadc` 构建：精简版 11,434,174 字节、便携版 66,340,601 字节。两版最终 EXE 均在隔离 Data 下通过完整字号／编辑专项回归；最终程序目录验证通过，详见 `evidence/typography/builds.json`、`lite-typography.json` 和 `portable-typography.json`。迁移后的两份真实 Data 与原副本逐文件哈希一致，SQLite 完整性与外键检查通过；真实数据和迁移清单仅留本机，不收录进公开证据。旧构建目录删除被本机会话的自动审批拒绝，尚未完成清理；各旧目录与原 Data 仍保留。
+
 升级时先关闭程序，完整备份 Data（包含设置、备份与可能存在的 WAL 文件），逐文件校验副本，再移除旧程序文件。运行新版前把 Data 放回程序同级目录。不同旧安装的数据分别保留，不直接覆盖或混合数据库。Build 全部被 Git 忽略，真实任务数据不进入仓库。
 
 ```powershell
