@@ -37,7 +37,7 @@ public static class Dialogs
             var error = new TextBlock { TextWrapping = TextWrapping.Wrap }; error.SetResourceReference(TextBlock.ForegroundProperty, "RedBrush"); panel.Children.Add(error);
             name.TextChanged += (_, _) => { _bookName = name.Text; error.Text = ""; };
             title.TextChanged += (_, _) => { _bookTitle = title.Text; error.Text = ""; };
-            var dialog = Create(owner, "创建待办书", panel); dialog.PrimaryButtonText = "创建";
+            var dialog = Create(owner, "创建待办笔记", panel); dialog.PrimaryButtonText = "创建";
             dialog.Closing += (_, e) =>
             {
                 if (e.Result != ContentDialogResult.Primary) return;
@@ -45,7 +45,7 @@ public static class Dialogs
                 {
                     Core.BookRules.ValidateName(name.Text); Core.BookRules.ValidateTitle(title.Text);
                     if (((MainWindow)owner).Model.Books.Any(b => b.Name.Equals(name.Text, StringComparison.OrdinalIgnoreCase)))
-                        throw new ArgumentException("已有相同标识名的待办书。");
+                        throw new ArgumentException("已有相同标识名的待办笔记。");
                 }
                 catch (ArgumentException ex) { error.Text = ex.Message; e.Cancel = true; }
             };

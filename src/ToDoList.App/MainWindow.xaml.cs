@@ -26,6 +26,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private bool _sync = true, _initialized, _navigating, _closingApproved, _restoring;
     private TaskCard? _editingCard;
     private RichEditor? _taskEditor;
+    private string? _draftProjectId, _draftBook;
     internal RichEditor TaskEditor => _taskEditor ??= new RichEditor { MinHeight = 92, MaxHeight = 240 };
     private (string Id, double Y)? _anchor;
     private readonly DispatcherTimer _feedbackTimer = new() { Interval = TimeSpan.FromMilliseconds(180) };
@@ -37,9 +38,12 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private PageDirection? _scrollIntent;
     private bool _scrollbarGesture;
     private bool _savingRow, _closePending;
+    private WindowState _stateBeforeTray = WindowState.Normal;
     public MainWindow(BookLibrary library, AppSettings settings)
     {
         Model = new(library, settings); InitializeComponent(); DataContext = Model;
+        InitializeTaskManagement();
+        StateChanged += (_, _) => { if (WindowState != WindowState.Minimized) _stateBeforeTray = WindowState; };
         Width = Math.Clamp(settings.Width, MinWidth, Math.Max(MinWidth, SystemParameters.VirtualScreenWidth));
         Height = Math.Clamp(settings.Height, MinHeight, Math.Max(MinHeight, SystemParameters.VirtualScreenHeight));
         if (settings.Left.HasValue && settings.Top.HasValue && settings.Left < SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 100 && settings.Left + Width > SystemParameters.VirtualScreenLeft + 100 && settings.Top < SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 50 && settings.Top >= SystemParameters.VirtualScreenTop)
@@ -100,13 +104,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             if (Notifications.Content is { IsShown: false }) return;
             _feedbackTimer.Stop();
             if (Notifications.Content is { } current) current.Content = Model.Message;
-            else new Wpf.Ui.Controls.Snackbar(Notifications) { Content = Model.Message, MinWidth = 280, MaxWidth = 460, Timeout = TimeSpan.FromSeconds(2) }.Show();
+            else new AppSnackbar(Notifications) { Content = Model.Message, MinWidth = 280, MaxWidth = 460, Timeout = TimeSpan.FromSeconds(2), Style = (Style)FindResource("HorizontalSnackbar") }.Show();
         };
         Closed += (_, _) => { _feedbackTimer.Stop(); _calendar.Stop(); _settingsSave.Stop(); SystemEvents.UserPreferenceChanged -= OnPreferencesChanged; };
     }
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        await SafeAsync(async () => { Model.IsBusy = true; await Model.InitializeAsync(); SyncSelectors(); });
+        await SafeAsync(async () => { Model.IsBusy = true; await Model.InitializeAsync(); SyncSelectors(); SyncSettings(); });
         Model.IsBusy = false; _sync = false; _initialized = true; _calendar.Start();
         _ = Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
         {
@@ -116,41 +120,47 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             TaskEditor.Measure(new Size(Math.Max(100, TaskList.ActualWidth - 60), double.PositiveInfinity));
         }));
         var args = Environment.GetCommandLineArgs();
+        if (args.Contains("--ui-drag-boundaries")) { await Services.UiDragBoundaryChecks.RunAsync(this); return; }
+        if (args.Contains("--ui-interaction")) { await Services.UiInteractionChecks.RunAsync(this); return; }
+        if (args.Contains("--ui-taskfixes")) { await Services.UiTaskFixes.RunAsync(this); return; }
         if (args.Contains("--ui-smoke")) await Services.UiSmoke.RunAsync(this);
         else if (args.Contains("--ui-features")) await Services.UiFeatures.RunAsync(this);
         else if (args.Contains("--ui-typography")) await Services.UiTypography.RunAsync(this);
         else if (args.Contains("--ui-demo")) await Services.UiDemo.RunAsync(this);
         else if (args.Contains("--ui-perf")) await Services.UiPerformance.RunAsync(this);
+        else if (args.Contains("--ui-lifecycle")) await Services.UiLifecycle.RunAsync(this);
     }
-    private void SyncSelectors()
+    private void SyncSelectors(bool resetDraft = false)
     {
         var previous = _sync; _sync = true;
         BookSelector.SelectedItem = Model.Books.FirstOrDefault(b => b.Name == Model.CurrentBook?.Name);
         ProjectList.SelectedItem = Model.Projects.FirstOrDefault(p => p.Id == Model.CurrentProjectId);
-        DraftProject.SelectedItem = Model.DraftProjects.FirstOrDefault(p => p.Id == Model.CurrentProjectId) ?? Model.DraftProjects.FirstOrDefault();
+        var draftId = resetDraft || _draftBook != Model.CurrentBook?.Name ? Model.CurrentProjectId : _draftProjectId;
+        _draftBook = Model.CurrentBook?.Name;
+        DraftProject.SelectedItem = Model.DraftProjects.FirstOrDefault(p => p.Id == draftId) ?? Model.DraftProjects.FirstOrDefault();
         foreach (TabItem tab in Tabs.Items) tab.IsSelected = (string)tab.Tag == Model.Filter.ToString();
         SortSelector.SelectedIndex = Model.Sort == TaskSort.Created ? 0 : 1;
-        NewProjectName.Visibility = Visibility.Collapsed; _sync = previous;
-        Title = "ToDoList · " + Model.BookTitle;
+        NewProjectName.Visibility = (DraftProject.SelectedItem as ProjectInfo)?.Id == "__new" ? Visibility.Visible : Visibility.Collapsed; _sync = previous;
+        AppTitleBar.Title = Title = "ToDoList " + ApplicationLinks.BuildLabel + " · " + Model.BookTitle;
     }
     private async Task SafeAsync(Func<Task> action)
     {
         try { await action(); } catch (OperationCanceledException) { } catch (Exception ex) { ShowError(ex); }
     }
     private void ShowError(Exception ex) { Model.Message = "未能完成：" + ex.Message; _ = Dialogs.Info(this, "操作未完成", ex.Message); }
-    private async Task NavigateAsync(Func<Task> action, bool bookOperation = false)
+    private async Task NavigateAsync(Func<Task> action, bool bookOperation = false, bool preserveDraft = false)
     {
         if (_navigating) { SyncSelectors(); return; }
         _navigating = true;
         try
         {
-            if (!await TryLeaveEditsAsync()) return;
+            if (!(preserveDraft ? await TryLeaveRowEditAsync() : await TryLeaveEditsAsync())) return;
             if (bookOperation)
             {
                 Model.IsBusy = true;
                 while (_pendingMutations > 0) await Task.Delay(20);
             }
-            _sync = true; await action(); Motion.Reveal(TaskContent);
+            _sync = true; ClearDeletedSelection(); await action(); Motion.Reveal(TaskContent);
         }
         catch (Exception ex) { ShowError(ex); }
         finally { _sync = false; _navigating = false; Model.IsBusy = false; SyncSelectors(); }
@@ -158,19 +168,23 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private async void Book_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_sync || !_initialized || BookSelector.SelectedItem is not BookInfo book || book.Name == Model.CurrentBook?.Name) return;
-        await NavigateAsync(() => Model.OpenBookAsync(book), true);
+        await NavigateAsync(async () => { await Model.OpenBookAsync(book); SyncSelectors(true); }, true);
     }
     private async void Project_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_sync || !_initialized || ProjectList.SelectedItem is not ProjectInfo project || project.Id == Model.CurrentProjectId) return;
-        await NavigateAsync(() => Model.SelectProjectAsync(project.Id));
+        await NavigateAsync(async () =>
+        {
+            await Model.SelectProjectAsync(project.Id);
+            if (project.Id != null) DraftProject.SelectedItem = Model.DraftProjects.FirstOrDefault(p => p.Id == project.Id);
+        }, preserveDraft: true);
     }
     private async void Tab_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_sync || !_initialized || !ReferenceEquals(e.Source, Tabs) || Tabs.SelectedItem is not TabItem tab) return;
         var filter = Enum.Parse<TaskFilter>((string)tab.Tag);
         if (filter == Model.Filter) return;
-        await NavigateAsync(() => Model.SelectFilterAsync(filter));
+        await NavigateAsync(() => Model.SelectFilterAsync(filter), preserveDraft: true);
     }
     private async void Sort_Changed(object sender, SelectionChangedEventArgs e)
     {
@@ -180,6 +194,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
     private void DraftProject_Changed(object sender, SelectionChangedEventArgs e)
     {
+        if (DraftProject.SelectedItem is ProjectInfo selected) _draftProjectId = selected.Id;
         if (NewProjectName != null) NewProjectName.Visibility = DraftProject.SelectedItem is ProjectInfo { Id: "__new" } ? Visibility.Visible : Visibility.Collapsed;
     }
     private async void NewBook_Click(object sender, RoutedEventArgs e)
@@ -194,15 +209,44 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         await SafeAsync(async () => { await Model.Repository.AddProjectAsync(input); _sync = true; await Model.RefreshProjectsAsync(); SyncSelectors(); _sync = false; Model.Message = "新模块已加入目录。"; });
         _sync = false;
     }
+    private ProjectInfo? SelectedRealProject() => ProjectList.SelectedItem as ProjectInfo is { Id: not null } project ? project : null;
+    private async void RenameProject_Click(object sender, RoutedEventArgs e)
+    {
+        var project = SelectedRealProject(); if (project == null) return;
+        var input = await Dialogs.Input(this, "重命名模块", "新的模块名称", project.Name); if (input == null) return;
+        await SafeAsync(async () => { await Model.RenameProjectAsync(project, input); SyncSelectors(); });
+    }
+    private async void DeleteProject_Click(object sender, RoutedEventArgs e)
+    {
+        var project = SelectedRealProject(); if (project == null) return;
+        var choice = await Dialogs.Choose(this, "删除模块", $"确定删除模块“{project.Name}”吗？\n\n模块内任务不会删除，将改为未分配模块。", "取消", "删除");
+        if (choice != 1) return;
+        await NavigateAsync(() => Model.DeleteProjectAsync(project));
+    }
+    private async void MoveProjectUp_Click(object sender, RoutedEventArgs e) => await MoveProjectAsync(-1);
+    private async void MoveProjectDown_Click(object sender, RoutedEventArgs e) => await MoveProjectAsync(1);
+    private async Task MoveProjectAsync(int offset)
+    {
+        var project = SelectedRealProject(); if (project == null) return;
+        await SafeAsync(() => Model.ReorderProjectAsync(project, offset));
+    }
     private void BookMenu_Click(object sender, RoutedEventArgs e)
     {
-        var menu = new ContextMenu(); var import = new MenuItem { Header = "导入待办书…", Icon = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.ArrowDownload20) }; import.Click += Import_Click; menu.Items.Add(import);
-        var export = new MenuItem { Header = "导出当前待办书…", Icon = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.ArrowUpload20), IsEnabled = Model.HasBook }; export.Click += Export_Click; menu.Items.Add(export);
+        var menu = new ContextMenu(); var import = new MenuItem { Header = "导入待办笔记…", Icon = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.ArrowDownload20) }; import.Click += Import_Click; menu.Items.Add(import);
+        var export = new MenuItem { Header = "导出当前待办笔记…", Icon = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.ArrowUpload20), IsEnabled = Model.HasBook }; export.Click += Export_Click; menu.Items.Add(export);
+        var delete = new MenuItem { Header = "删除当前待办笔记…", Icon = new Wpf.Ui.Controls.SymbolIcon(Wpf.Ui.Controls.SymbolRegular.Delete20), IsEnabled = Model.HasBook }; delete.Click += DeleteBook_Click; menu.Items.Add(new Separator()); menu.Items.Add(delete);
         menu.PlacementTarget = (Button)sender; menu.IsOpen = true;
+    }
+    private async void DeleteBook_Click(object sender, RoutedEventArgs e)
+    {
+        var book = Model.CurrentBook; if (book == null) return;
+        var choice = await Dialogs.Choose(this, "删除待办笔记", $"确定删除“{book.Title}”吗？\n\n删除前会自动备份整个数据库到：\n{Model.Library.BackupDirectory}", "取消", "删除");
+        if (choice != 1) return;
+        await NavigateAsync(async () => { await Model.DeleteCurrentBookAsync(); }, true);
     }
     private async void Import_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Filter = "ToDoList 待办书 (*.db)|*.db", Title = "导入一本待办书" };
+        var dialog = new OpenFileDialog { Filter = "ToDoList 待办笔记 (*.db)|*.db", Title = "导入一本待办笔记" };
         if (dialog.ShowDialog(this) != true) return;
         await NavigateAsync(async () =>
         {
@@ -211,20 +255,20 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             var mode = ImportMode.Merge;
             if (existing != null)
             {
-                var choice = await Dialogs.Choose(this, "已有相同的待办书", $"标识名：{existing.Name}\n\n合并：保留二者任务，同一任务采用最后修改的版本。\n覆盖：使用导入书替换现有书。\n\n原书会先备份到：\n{Model.Library.BackupDirectory}", "取消", "合并", "覆盖");
+                var choice = await Dialogs.Choose(this, "已有相同的待办笔记", $"标识名：{existing.Name}\n\n合并：保留二者任务，同一任务采用最后修改的版本。\n覆盖：使用导入笔记替换现有笔记。\n\n原笔记会先备份到：\n{Model.Library.BackupDirectory}", "取消", "合并", "覆盖");
                 if (choice < 1) return; mode = choice == 1 ? ImportMode.Merge : ImportMode.Replace;
             }
             var imported = await Model.Library.ImportAsync(prepared, existing, mode);
             await Model.RefreshBooksAsync(); await Model.OpenBookAsync(imported);
-            Model.Message = existing == null ? "待办书已导入。" : "导入完成，原书已保存到 Data/Backup。";
+            Model.Message = existing == null ? "待办笔记已导入。" : "导入完成，原笔记已保存到 Data/Backup。";
         }, true);
     }
     private async void Export_Click(object sender, RoutedEventArgs e)
     {
         if (Model.CurrentBook == null) return;
-        var dialog = new SaveFileDialog { Filter = "ToDoList 待办书 (*.db)|*.db", FileName = Model.CurrentBook.Name + ".db", Title = "导出整本待办书" };
+        var dialog = new SaveFileDialog { Filter = "ToDoList 待办笔记 (*.db)|*.db", FileName = Model.CurrentBook.Name + ".db", Title = "导出整本待办笔记" };
         if (dialog.ShowDialog(this) != true) return;
-        await NavigateAsync(async () => { await Model.Library.ExportAsync(Model.CurrentBook, dialog.FileName); Model.Message = "待办书已导出到 " + dialog.FileName; }, true);
+        await NavigateAsync(async () => { await Model.Library.ExportAsync(Model.CurrentBook, dialog.FileName); Model.Message = "待办笔记已导出到 " + dialog.FileName; }, true);
     }
     private async void AddTask_Click(object sender, RoutedEventArgs e) => await SafeAsync(AddDraftAsync);
     private async void Draft_Submit(object? sender, EventArgs e) => await SafeAsync(AddDraftAsync);
@@ -238,6 +282,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         try
         {
             await Model.AddAsync(content, project?.Id == "__new" ? null : project?.Id, project?.Id == "__new" ? NewProjectName.Text : null);
+            if (project?.Id == "__new") _draftProjectId = Model.DraftProjects.FirstOrDefault(p => p.Name == NewProjectName.Text.Trim())?.Id;
             DraftEditor.SetContent(RichContent.FromText("")); NewProjectName.Clear(); SyncSelectors(); DraftEditor.FocusEditor(); Motion.Reveal(TaskContent, 4);
         }
         finally { _adding = false; DraftEditor.IsEnabled = true; _pendingMutations--; }
@@ -253,7 +298,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         if (sender is not TaskCard { Row: { } row } || Model.IsBusy) return;
         _pendingMutations++;
-        try { await SafeAsync(() => Model.DeleteRestoreAsync(row)); }
+        try { await SafeAsync(() => Model.DeleteRestoreAsync(row)); if (!row.IsDeleted) { row.SelectedForDeletion = false; row.SelectionMode = false; UpdateDeletedSelection(row); } }
         finally { _pendingMutations--; }
     }
     private async void Task_EditRequested(object? sender, EventArgs e)
@@ -271,7 +316,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         if (_savingRow || _editingCard?.Row is not { } row || _editingCard.ActiveEditor == null) return;
         var card = _editingCard; var content = card.ActiveEditor.GetContent();
         _savingRow = true; card.IsEnabled = false; _pendingMutations++;
-        try { await Model.SaveContentAsync(row, content); EndRowEdit(); }
+        try { await Model.SaveTaskAsync(row, content, card.EditedProjectId); EndRowEdit(); }
         finally { _pendingMutations--; _savingRow = false; card.IsEnabled = true; }
     }
     private void EndRowEdit()
@@ -287,7 +332,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private async Task<bool> TryLeaveRowEditAsync()
     {
         while (_savingRow) await Task.Delay(20);
-        if (_editingCard?.ActiveEditor is not { Dirty: true }) { EndRowEdit(); return true; }
+        if (_editingCard is not { HasPendingChanges: true }) { EndRowEdit(); return true; }
         int choice = await Dialogs.Choose(this, "还有未保存的修改", "离开前，要保存这条任务的修改吗？", "取消", "放弃修改", "保存");
         if (choice <= 0) return false;
         if (choice == 2) { try { await SaveRowEditAsync(); } catch (Exception ex) { ShowError(ex); return false; } }
@@ -389,6 +434,13 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         var prior = _sync; _sync = true; var s = Model.Settings;
         ModeSetting.SelectedItem = s.Mode; PaletteSetting.SelectedValue = s.AccentPreset; FontSetting.SelectedItem = s.FontSize;
         DensitySetting.SelectedItem = s.Density; MotionSetting.SelectedIndex = s.ReduceMotion ? 1 : 0; _sync = prior;
+        if (OpenColorSetting != null) { OpenColorSetting.Text = Model.OpenColor ?? "#42E9FF"; VerificationColorSetting.Text = Model.VerificationColor ?? "#FFE500"; CompletedColorSetting.Text = Model.CompletedColor ?? "#00FF73"; }
+    }
+    private async void StatusColor_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (!_initialized || Model.Repository == null || sender is not TextBox box) return;
+        var key = box == OpenColorSetting ? "Open" : box == VerificationColorSetting ? "Verification" : "Completed";
+        await SafeAsync(() => Model.SetStatusColorAsync(key, box.Text.Trim()));
     }
     private void Setting_Changed(object sender, SelectionChangedEventArgs e)
     {
@@ -403,33 +455,74 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         _sync = true;
         try { ThemeService.Apply(s); }
         finally { _sync = false; }
-        _settingsSave.Stop(); _settingsSave.Start();
+        try { Model.SaveSettings(); } catch (Exception ex) { ShowError(ex); }
     }
     private void ResetSettings_Click(object sender, RoutedEventArgs e)
     {
         var s = Model.Settings; s.Mode = "浅色"; s.AccentPreset = "浅蓝"; s.FontSize = 14; s.Density = "舒适"; s.ReduceMotion = !SystemParameters.ClientAreaAnimation;
-        SyncSettings(); ThemeService.Apply(s); _settingsSave.Start();
+        SyncSettings(); ThemeService.Apply(s); try { Model.SaveSettings(); } catch (Exception ex) { ShowError(ex); }
     }
     private void OpenData_Click(object sender, RoutedEventArgs e) => OpenDirectory(Model.Library.DataDirectory);
     private void OpenBackup_Click(object sender, RoutedEventArgs e) => OpenDirectory(Model.Library.BackupDirectory);
     private void OpenDirectory(string path) { try { Directory.CreateDirectory(path); Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); } catch (Exception ex) { ShowError(ex); } }
     private void OnPreferencesChanged(object sender, UserPreferenceChangedEventArgs e) => Dispatcher.BeginInvoke(() => ThemeService.Apply(Model.Settings));
+    internal void RestoreFromTray()
+    {
+        if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(RestoreFromTray); return; }
+        ShowInTaskbar = true; Show();
+        WindowState = _stateBeforeTray == WindowState.Maximized ? WindowState.Maximized : WindowState.Normal;
+        Activate();
+        var handle = new WindowInteropHelper(this).Handle;
+        if (!SetForegroundWindow(handle))
+        {
+            var info = new FlashInfo { Size = (uint)Marshal.SizeOf<FlashInfo>(), Hwnd = handle, Flags = 2 | 12, Count = 3 };
+            FlashWindowEx(ref info);
+        }
+    }
+    internal void RequestExit()
+    {
+        (Application.Current as App)?.BeginExit();
+        RestoreFromTray(); Close();
+    }
+    private void SaveWindowPlacement()
+    {
+        var bounds = RestoreBounds; var s = Model.Settings;
+        s.Width = bounds.Width; s.Height = bounds.Height; s.Left = bounds.Left; s.Top = bounds.Top;
+        s.Maximized = WindowState == WindowState.Maximized || _stateBeforeTray == WindowState.Maximized && !IsVisible;
+        Model.SaveSettings();
+    }
     private async void Window_Closing(object? sender, CancelEventArgs e)
     {
-        if (_closingApproved) return; e.Cancel = true;
+        if (_closingApproved) return;
+        var app = (App)Application.Current;
+        var automated = Environment.GetCommandLineArgs().Any(a => a is "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features");
+        if (!app.ExitRequested && !automated)
+        {
+            e.Cancel = true;
+            try
+            {
+                _stateBeforeTray = WindowState == WindowState.Maximized ? WindowState.Maximized : WindowState.Normal;
+                SaveWindowPlacement(); ShowInTaskbar = false; Hide();
+            }
+            catch (Exception ex) { ShowInTaskbar = true; Show(); ShowError(ex); }
+            return;
+        }
+        e.Cancel = true;
         if (_closePending) return;
-        if (_navigating || Model.IsBusy) { Model.Message = "正在保存待办书，请稍候再关闭。"; return; }
+        if (_navigating || Model.IsBusy) { Model.Message = "正在保存待办笔记，请稍候再关闭。"; return; }
         _closePending = true;
         try
         {
             if (!await TryLeaveEditsAsync()) return;
             while (_pendingMutations > 0) await Task.Delay(20);
-            var bounds = RestoreBounds; var s = Model.Settings;
-            s.Width = bounds.Width; s.Height = bounds.Height; s.Left = bounds.Left; s.Top = bounds.Top; s.Maximized = WindowState == WindowState.Maximized;
-            Model.SaveSettings(); _closingApproved = true;
+            SaveWindowPlacement(); _closingApproved = true;
             _ = Dispatcher.BeginInvoke(new Action(Close));
         }
         catch (Exception ex) { ShowError(ex); }
         finally { _closePending = false; }
     }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct FlashInfo { public uint Size; public IntPtr Hwnd; public uint Flags; public uint Count; public uint Timeout; }
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern bool FlashWindowEx(ref FlashInfo info);
 }

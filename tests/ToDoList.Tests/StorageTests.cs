@@ -34,6 +34,31 @@ public sealed class StorageTests : IDisposable
         Assert.Single(await repo.GetProjectsAsync());
         await Assert.ThrowsAsync<InvalidOperationException>(() => repo.AddProjectAsync("读书"));
     }
+    [Fact] public async Task ProjectsCanBeRenamedReorderedAndDeletedWithoutDeletingTasks()
+    {
+        var (_, repo) = await Create();
+        var first = await repo.AddProjectAsync("第一"); var second = await repo.AddProjectAsync("第二");
+        var task = await repo.AddTaskAsync(RichContent.FromText("保留任务"), first.Id);
+        await repo.ReorderProjectsAsync([second.Id!, first.Id!]);
+        Assert.Equal([second.Id, first.Id], (await repo.GetProjectsAsync()).Select(p => p.Id));
+        var renamed = await repo.RenameProjectAsync(first.Id!, "已重命名"); Assert.Equal("已重命名", renamed.Name);
+        await repo.DeleteProjectAsync(first.Id!);
+        Assert.DoesNotContain(await repo.GetProjectsAsync(), p => p.Id == first.Id);
+        Assert.Null(Assert.Single((await repo.QueryAsync(new(null, TaskFilter.Open, TaskSort.Created))).Items, p => p.Id == task.Id).ProjectId);
+    }
+    [Fact] public async Task BookDeletionCreatesBackupAndRemovesManagedDatabase()
+    {
+        var (book, _) = await Create();
+        var backup = await Library.DeleteAsync(book);
+        Assert.False(File.Exists(book.Path)); Assert.True(File.Exists(backup)); Assert.StartsWith(Library.BackupDirectory, backup, StringComparison.OrdinalIgnoreCase);
+    }
+    [Fact] public async Task StatusColorsAreStoredInBookAndUsedByReports()
+    {
+        var (_, repo) = await Create(); await repo.SetSettingAsync("StatusColor.Open", "#123456"); await repo.AddTaskAsync(RichContent.FromText("颜色"), null);
+        var options = new ReportOptions(null, TaskFilter.All, DateSelection.Any, ReportFormat.Markdown);
+        var report = TaskReport.Create(await repo.ReadReportAsync(options), options, DateTimeOffset.Now);
+        Assert.Equal("#123456", report.ResolveColor(ReportColor.Open)); Assert.Contains("#123456", report.ToMarkdown());
+    }
     [Fact] public async Task CompletionReversalAndVerificationPreserveHistory()
     {
         var (book, repo) = await Create(); var task = await repo.AddTaskAsync(RichContent.FromText("任务"), null);
@@ -165,6 +190,20 @@ public sealed class StorageTests : IDisposable
         using var p = await Library.PrepareImportAsync(export); using var cts = new CancellationTokenSource(); cts.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Library.ImportAsync(p, book, ImportMode.Replace, cts.Token));
         Assert.Single((await repo.QueryAsync(new(null, TaskFilter.Open, TaskSort.Created))).Items);
+    }
+    [Fact] public async Task ExistingTaskCanMoveModulesAtomically()
+    {
+        var (_, repo) = await Create();
+        var first = await repo.AddProjectAsync("模块一"); var second = await repo.AddProjectAsync("模块二");
+        var task = await repo.AddTaskAsync(RichContent.FromText("原内容"), first.Id);
+        var moved = await repo.UpdateTaskAsync(task.Id, RichContent.FromText("新内容"), second.Id, task.Revision);
+        Assert.Equal(second.Id, moved.ProjectId); Assert.Equal("新内容", moved.PlainText);
+        var unassigned = await repo.UpdateTaskAsync(task.Id, RichContent.FromText("新内容"), null, moved.Revision);
+        Assert.Null(unassigned.ProjectId);
+        await Assert.ThrowsAsync<ArgumentException>(() => repo.UpdateTaskAsync(task.Id, RichContent.FromText("无效"), "missing", unassigned.Revision));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => repo.UpdateTaskAsync(task.Id, RichContent.FromText("冲突"), first.Id, task.Revision));
+        var deleted = await repo.DeleteTaskAsync(task.Id, unassigned.Revision);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => repo.UpdateTaskAsync(task.Id, RichContent.FromText("删除后"), first.Id, deleted.Revision));
     }
     private static void Seed(string path, int count)
     {

@@ -31,7 +31,7 @@ foreach ($kind in $variants) {
     if ($LASTEXITCODE -ne 0) { throw "构建 $kind 失败。" }
     Copy-Item -LiteralPath (Join-Path $repoRoot 'LICENSE') -Destination $destination
     Copy-Item -LiteralPath (Join-Path $repoRoot 'README.md') -Destination (Join-Path $destination '使用说明.md')
-    foreach ($file in @('THIRD-PARTY.md', 'DEPENDENCIES.json', 'VALIDATION-2.1.md', 'VALIDATION-TYPOGRAPHY.md')) {
+    foreach ($file in @('THIRD-PARTY.md', 'DEPENDENCIES.json', 'VALIDATION-2.3.1.md', 'VALIDATION-TYPOGRAPHY.md')) {
         Copy-Item -LiteralPath (Join-Path $repoRoot "docs\$file") -Destination $destination
     }
     Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\licenses') -Destination $destination -Recurse

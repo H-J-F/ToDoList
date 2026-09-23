@@ -25,7 +25,7 @@ internal static partial class UiSmoke
             var createDialog = Dialogs.CreateBook(window); await Settle();
             var dialog = MainWindow.Descendants<Wpf.Ui.Controls.ContentDialog>(window).Single();
             var fields = MainWindow.Descendants<TextBox>(dialog).Where(t => t.MaxLength is 64 or 100).ToList();
-            fields.Single(t => t.MaxLength == 64).Text = "Book-1"; fields.Single(t => t.MaxLength == 100).Text = "测试待办书";
+            fields.Single(t => t.MaxLength == 64).Text = "Book-1"; fields.Single(t => t.MaxLength == 100).Text = "测试待办笔记";
             dialog.TemplateButtonCommand.Execute(Wpf.Ui.Controls.ContentDialogButton.Primary); await Settle();
             Check(!createDialog.IsCompleted, "Invalid book identifier keeps ContentDialog and inputs open", log);
             fields.Single(t => t.MaxLength == 64).Text = "Book2026";

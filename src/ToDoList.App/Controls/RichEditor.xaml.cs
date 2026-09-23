@@ -83,6 +83,7 @@ public partial class RichEditor : UserControl
             var doc = new FlowDocument { PagePadding = new Thickness(0) };
             doc.SetResourceReference(TextElement.FontSizeProperty, "BodyFontSize");
             doc.SetResourceReference(TextElement.FontFamilyProperty, "BodyFontFamily");
+            doc.SetResourceReference(TextElement.ForegroundProperty, "InkBrush");
             doc.FontWeight = FontWeights.Normal; doc.FontStyle = FontStyles.Normal;
             foreach (var p in content.Paragraphs) { var paragraph = new Paragraph { Margin = new Thickness(0, 0, 0, 3) }; foreach (var r in p.Runs) paragraph.Inlines.Add(CreateInline(r)); doc.Blocks.Add(paragraph); }
             Editor.Document = doc; Dirty = false;
@@ -109,8 +110,10 @@ public partial class RichEditor : UserControl
     }
     private static void SetDisplayTypography(TextElement element)
     {
-        element.SetResourceReference(TextElement.FontSizeProperty, "BodyFontSize");
-        element.SetResourceReference(TextElement.FontFamilyProperty, "BodyFontFamily");
+        // Inline resource expressions are cloned by WPF during text insertion and undo.
+        // Inherit typography from the document/TextBlock instead of cloning expressions.
+        element.ClearValue(TextElement.FontSizeProperty);
+        element.ClearValue(TextElement.FontFamilyProperty);
     }
     private static IEnumerable<Inline> TextInlines(IEnumerable<string> elements)
     {
@@ -163,17 +166,30 @@ public partial class RichEditor : UserControl
     }
     private void OnPaste(object sender, DataObjectPastingEventArgs e)
     {
-        if (e.DataObject.GetDataPresent(ClipboardFormat))
+        e.CancelCommand();
+        if (e.DataObject.GetDataPresent(DataFormats.UnicodeText) && e.DataObject.GetData(DataFormats.UnicodeText) is string text)
+            PastePlainText(text);
+    }
+    internal void PastePlainText(string text)
+    {
+        _pendingColor = null;
+        _setting = true;
+        Editor.BeginChange();
+        try
         {
-            try { var content = RichContent.Parse((string)e.DataObject.GetData(ClipboardFormat)); e.CancelCommand(); InsertContent(content); return; }
-            catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidDataException) { e.CancelCommand(); return; }
+            // Keep WPF's insertion pointers across paragraph boundaries; never load RTF.
+            Editor.Selection.Text = text.Replace("\r\n", "\n").Replace('\r', '\n');
+            Editor.Selection.ClearAllProperties();
+            Editor.Selection.ApplyPropertyValue(TextElement.ForegroundProperty, AutomaticColor());
+            Editor.Selection.ApplyPropertyValue(TextElement.FontWeightProperty, FontWeights.Normal);
+            Editor.Selection.ApplyPropertyValue(TextElement.FontStyleProperty, FontStyles.Normal);
+            Editor.Selection.ApplyPropertyValue(Inline.TextDecorationsProperty, new TextDecorationCollection());
+            Editor.CaretPosition = Editor.Selection.End;
+            NormalizeTypography();
         }
-        if (e.DataObject.GetDataPresent(DataFormats.Rtf))
-        {
-            e.FormatToApply = DataFormats.Rtf;
-            Dispatcher.BeginInvoke(new Action(() => { NormalizeTypography(); RenderTypedEmoji(); }));
-            return;
-        }
-        if (e.DataObject.GetDataPresent(DataFormats.UnicodeText)) e.FormatToApply = DataFormats.UnicodeText; else e.CancelCommand();
+        finally { Editor.EndChange(); _setting = false; }
+        Dirty = true;
+        RenderTypedEmoji();
+        Placeholder.Visibility = GetContent().PlainText.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 }

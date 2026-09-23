@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -22,6 +23,9 @@ public partial class TaskCard : UserControl
     public event EventHandler? CancelRequested;
     public TaskViewModel? Row => DataContext as TaskViewModel;
     public RichEditor? ActiveEditor { get; private set; }
+    public ComboBox? ActiveProjectSelector { get; private set; }
+    public string? EditedProjectId => (ActiveProjectSelector?.SelectedItem as ProjectInfo)?.Id;
+    public bool HasPendingChanges => ActiveEditor?.Dirty == true || (Row != null && EditedProjectId != Row.Item.ProjectId);
     private TaskViewModel? _subscribed;
     private readonly DispatcherTimer _hold = new() { Interval = TimeSpan.FromMilliseconds(600) };
     private bool _pressed, _long;
@@ -56,6 +60,11 @@ public partial class TaskCard : UserControl
             foreach (var r in paragraph.Runs)
             {
                 var inline = RichEditor.CreateInline(r);
+                // Display-only inlines are rebuilt on theme changes. Use concrete values
+                // here; editable inlines inherit from their FlowDocument instead.
+                inline.FontSize = (double)FindResource("BodyFontSize");
+                inline.FontFamily = (FontFamily)FindResource("BodyFontFamily");
+                if (r.Color == null && inline is not Hyperlink) inline.SetResourceReference(TextElement.ForegroundProperty, "InkBrush");
                 if (Row.IsCompleted || Row.IsDeleted)
                 {
                     var decorations = new TextDecorationCollection(inline.TextDecorations);
@@ -63,13 +72,14 @@ public partial class TaskCard : UserControl
                     if (Row.IsDeleted) strike.Pen = new Pen((Brush)FindResource("RedBrush"), 1.2);
                     decorations.Add(strike); inline.TextDecorations = decorations;
                 }
+                if (Row.IsDeleted) inline.SetResourceReference(TextElement.ForegroundProperty, "RedBrush");
                 if (inline is Hyperlink h) h.RequestNavigate += (_, e) => { if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); e.Handled = true; };
                 BodyText.Inlines.Add(inline);
             }
         }
         BodyText.Opacity = Row.IsCompleted ? .52 : 1;
         AnimateHover(IsMouseOver);
-        var stateBrush = (Brush)FindResource(Row.IsVerification ? "YellowBrush" : "GreenBrush");
+        var stateBrush = (Brush)FindResource(Row.IsVerification ? "YellowBrush" : Row.IsCompleted ? "GreenBrush" : "OpenBrush");
         if (ThemeService.ReduceMotion)
             InteractionMotion.FinishCheckAnimation(CheckButton);
         foreach (var key in new[] { "CheckBoxCheckBackgroundFillChecked", "CheckBoxCheckBackgroundFillCheckedPointerOver", "CheckBoxCheckBackgroundFillCheckedPressed", "CheckBoxCheckBackgroundStrokeChecked", "CheckBoxCheckBackgroundStrokeCheckedPointerOver", "CheckBoxCheckBackgroundStrokeCheckedPressed" }) CheckButton.Resources[key] = stateBrush;
@@ -82,7 +92,13 @@ public partial class TaskCard : UserControl
         ActiveEditor.SetContent(RichContent.Parse(Row.Item.ContentJson));
         ActiveEditor.Submit += EditorSubmit;
         ActiveEditor.Cancel += EditorCancel;
-        var panel = new StackPanel(); panel.Children.Add(ActiveEditor);
+        var panel = new StackPanel();
+        var owner = Window.GetWindow(this) as MainWindow;
+        var projects = owner?.Model.Projects.Select(p => p.Id == null ? new ProjectInfo(null, "未分配模块") : p).ToArray() ?? [new ProjectInfo(null, "未分配模块")];
+        ActiveProjectSelector = new ComboBox { ItemsSource = projects, DisplayMemberPath = "Name", SelectedValuePath = "Id", Margin = new(0, 0, 0, 8), HorizontalAlignment = HorizontalAlignment.Stretch };
+        ActiveProjectSelector.SelectedItem = projects.FirstOrDefault(p => p.Id == Row.Item.ProjectId) ?? projects[0];
+        AutomationProperties.SetAutomationId(ActiveProjectSelector, "EditTaskProject");
+        panel.Children.Add(new TextBlock { Text = "所属模块", FontSize = 11, Margin = new(0, 0, 0, 5) }); panel.Children.Add(ActiveProjectSelector); panel.Children.Add(ActiveEditor);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         var cancel = new Wpf.Ui.Controls.Button { Content = "取消", Margin = new(0, 4, 8, 0), Padding = new(10, 5, 10, 5) }; cancel.Click += (_, _) => CancelRequested?.Invoke(this, EventArgs.Empty);
         var save = new Wpf.Ui.Controls.Button { Content = "保存  Enter", Style = (Style)FindResource("PrimaryButton"), Margin = new(0, 4, 0, 0), Padding = new(10, 5, 10, 5) }; save.Click += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
@@ -120,7 +136,7 @@ public partial class TaskCard : UserControl
             ActiveEditor.CloseTool();
             if (EditorHost.Content is Panel panel) panel.Children.Remove(ActiveEditor);
         }
-        EditorHost.BeginAnimation(HeightProperty, null); EditorHost.BeginAnimation(OpacityProperty, null); EditorHost.Content = null; EditorHost.Visibility = Visibility.Collapsed; BodyText.Visibility = Visibility.Visible; ActiveEditor = null;
+        EditorHost.BeginAnimation(HeightProperty, null); EditorHost.BeginAnimation(OpacityProperty, null); EditorHost.Content = null; EditorHost.Visibility = Visibility.Collapsed; BodyText.Visibility = Visibility.Visible; ActiveEditor = null; ActiveProjectSelector = null;
     }
     private void Body_Down(object sender, MouseButtonEventArgs e) { if (e.ClickCount == 2 && Row is { IsBusy: false, IsDeleted: false }) { e.Handled = true; EditRequested?.Invoke(this, EventArgs.Empty); } }
     private void Check_Down(object sender, MouseButtonEventArgs e)
@@ -149,10 +165,19 @@ public partial class TaskCard : UserControl
     }
     private void Menu_Opened(object sender, RoutedEventArgs e)
     {
+        var owner = Window.GetWindow(this) as MainWindow;
+        PermanentDeleteMenu.Visibility = MultiSelectMenu.Visibility = Row?.IsDeleted == true && owner?.Model.Filter == TaskFilter.Deleted ? Visibility.Visible : Visibility.Collapsed;
+        PermanentDeleteMenu.IsEnabled = MultiSelectMenu.IsEnabled = owner?.Model.IsBusy == false;
         DeleteRestoreMenu.Header = Row?.IsDeleted == true ? "恢复任务" : "删除任务";
         DeleteRestoreMenu.Icon = new Wpf.Ui.Controls.SymbolIcon(Row?.IsDeleted == true ? Wpf.Ui.Controls.SymbolRegular.ArrowUndo20 : Wpf.Ui.Controls.SymbolRegular.Delete20);
         DeleteRestoreMenu.IsEnabled = Row is { IsBusy: false, IsEditing: false };
     }
+    private async void PermanentDelete_Click(object sender, RoutedEventArgs e)
+    { if (Row is { } row && Window.GetWindow(this) is MainWindow owner) await owner.DeletePermanentlyAsync(new Dictionary<string, long> { [row.Id] = row.Item.Revision }); }
+    private void MultiSelect_Click(object sender, RoutedEventArgs e)
+    { if (Row is { } row && Window.GetWindow(this) is MainWindow owner) owner.StartDeletedSelection(row); }
+    private void DeleteSelection_Click(object sender, RoutedEventArgs e)
+    { if (Row is { } row && Window.GetWindow(this) is MainWindow owner) owner.UpdateDeletedSelection(row); }
     private void DeleteRestore_Click(object sender, RoutedEventArgs e) => DeleteRestoreRequested?.Invoke(this, EventArgs.Empty);
     private void AnimateHover(bool hover)
     {

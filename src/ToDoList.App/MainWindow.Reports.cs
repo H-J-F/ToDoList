@@ -4,7 +4,6 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Microsoft.Win32;
-using ToDoList.App.Controls;
 using ToDoList.App.Services;
 using ToDoList.Core;
 
@@ -17,9 +16,9 @@ public partial class MainWindow
     private void Calendar_Click(object sender, RoutedEventArgs e)
     {
         if (_datePopup?.IsOpen == true) { _datePopup.IsOpen = false; return; }
-        var dates = new DateRangePicker(true, Model.IsCalendarFilter ? Model.SelectedDates : new(DateScope.Day, DateTime.Today, DateTime.Today));
-        var panel = new StackPanel { MinWidth = 280, Margin = new(16) };
-        panel.Children.Add(new TextBlock { Text = "按添加时间查看", Margin = new(0, 0, 0, 10) }); panel.Children.Add(dates);
+        var dates = new DateSelectionForm(true, Model.IsCalendarFilter ? Model.SelectedDates : new(DateScope.Day, DateTime.Today, DateTime.Today));
+        var panel = new StackPanel { MinWidth = 320, Margin = new(16) };
+        panel.Children.Add(new TextBlock { Text = "按添加时间查看", Margin = new(0, 0, 0, 10) }); panel.Children.Add(dates.View);
         var error = new TextBlock { TextWrapping = TextWrapping.Wrap, MaxWidth = 280, Margin = new(0, 6, 0, 6) }; error.SetResourceReference(TextBlock.ForegroundProperty, "RedBrush"); panel.Children.Add(error);
         var apply = new Wpf.Ui.Controls.Button { Content = "应用", HorizontalAlignment = HorizontalAlignment.Right, Appearance = Wpf.Ui.Controls.ControlAppearance.Primary }; panel.Children.Add(apply);
         var border = new Border { Child = panel, BorderThickness = new(1), CornerRadius = new(8) };
@@ -29,11 +28,11 @@ public partial class MainWindow
         var popup = _datePopup;
         apply.Click += async (_, _) =>
         {
-            try { var value = dates.Value; popup.IsOpen = false; await NavigateAsync(() => Model.SelectDatesAsync(value)); }
+            try { var value = dates.Value; popup.IsOpen = false; await NavigateAsync(() => Model.SelectDatesAsync(value), preserveDraft: true); }
             catch (ArgumentException ex) { error.Text = ex.Message; }
         };
         border.PreviewKeyDown += (_, args) => { if (args.Key == Key.Escape) { popup.IsOpen = false; CalendarButton.Focus(); args.Handled = true; } };
-        popup.Opened += (_, _) => dates.Focus();
+        popup.Opened += (_, _) => dates.View.Focus();
         popup.IsOpen = true;
     }
     private async void Report_Click(object sender, RoutedEventArgs e)
@@ -59,6 +58,9 @@ public partial class MainWindow
             var report = await Task.Run(() => TaskReport.Create(snapshot, options, DateTimeOffset.Now));
             await ReportWriter.WriteAsync(report, options.Format, target);
             Model.Message = "报告已导出到 " + target;
+            try { ExplorerService.Reveal(target); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+            { Model.Message = "报告已导出，但无法打开所在目录：" + ex.Message; }
         }
         catch (Exception ex) { ShowError(ex); }
         finally { Model.IsBusy = false; _exportingReport = false; }

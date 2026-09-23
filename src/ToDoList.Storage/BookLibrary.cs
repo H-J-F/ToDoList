@@ -49,7 +49,7 @@ public sealed class BookLibrary
         {
             EnsureWritable();
             if (Directory.EnumerateFiles(DataDirectory, "*.db").Any(p => System.IO.Path.GetFileNameWithoutExtension(p).Equals(name, StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidOperationException("已有相同标识名的待办书。");
+                throw new InvalidOperationException("已有相同标识名的待办笔记。");
             var temp = path + "." + Guid.NewGuid().ToString("N") + ".new";
             try { Database.Create(temp, name, title); File.Move(temp, path); }
             finally { Database.CleanupStaging(temp); }
@@ -59,12 +59,12 @@ public sealed class BookLibrary
     public static BookInfo ReadInfo(SqliteConnection c, string path)
     {
         if (Convert.ToInt32(Database.Scalar(c, "PRAGMA application_id")) != Database.ApplicationId)
-            throw new InvalidDataException("这不是 ToDoList 待办书。");
+            throw new InvalidDataException("这不是 ToDoList 待办笔记。");
         var version = Convert.ToInt32(Database.Scalar(c, "PRAGMA user_version"));
-        if (version != Database.Version) throw new InvalidDataException($"不支持待办书格式版本 {version}，请使用匹配的软件版本。");
+        if (version != Database.Version) throw new InvalidDataException($"不支持待办笔记格式版本 {version}，请使用匹配的软件版本。");
         using var cmd = Database.Command(c, "SELECT Name,Title FROM BookMetadata WHERE Id=1");
         using var r = cmd.ExecuteReader();
-        if (!r.Read()) throw new InvalidDataException("待办书缺少名称。");
+        if (!r.Read()) throw new InvalidDataException("待办笔记缺少名称。");
         var name = r.GetString(0); var title = r.GetString(1);
         BookRules.ValidateName(name); BookRules.ValidateTitle(title);
         return new(name, title, path);
@@ -72,7 +72,7 @@ public sealed class BookLibrary
     public Task ExportAsync(BookInfo book, string destination) => Database.RunAsync(book.Path, () =>
     {
         destination = System.IO.Path.GetFullPath(destination);
-        if (destination.Equals(book.Path, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("不能导出覆盖正在使用的待办书。");
+        if (destination.Equals(book.Path, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("不能导出覆盖正在使用的待办笔记。");
         var parent = System.IO.Path.GetDirectoryName(destination)!;
         // Do not overwrite any managed book through the export dialog.
         if (parent.Equals(DataDirectory, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("请导出到 Data 之外的目录。");
@@ -102,16 +102,17 @@ public sealed class BookLibrary
     {
         if (!Equals(Database.Scalar(c, "PRAGMA quick_check"), "ok")) throw new InvalidDataException("数据库完整性检查失败。");
         if (Convert.ToInt64(Database.Scalar(c, "SELECT COUNT(*) FROM sqlite_schema WHERE type IN ('view','trigger')")) != 0)
-            throw new InvalidDataException("待办书包含不支持的数据库对象。");
+            throw new InvalidDataException("待办笔记包含不支持的数据库对象。");
         var info = ReadInfo(c, path);
         using (var cmd = Database.Command(c, "PRAGMA foreign_key_check"))
         using (var r = cmd.ExecuteReader()) if (r.Read()) throw new InvalidDataException("任务关联不完整。");
-        using (var cmd = Database.Command(c, "SELECT Id,Name FROM Projects"))
+        using (var cmd = Database.Command(c, "SELECT Id,Name,SortOrder FROM Projects"))
         using (var r = cmd.ExecuteReader()) while (r.Read())
         {
             ct.ThrowIfCancellationRequested();
             if (!Guid.TryParse(r.GetString(0), out _)) throw new InvalidDataException("模块标识无效。");
             BookRules.ValidateTitle(r.GetString(1));
+            if (r.GetInt32(2) < 0) throw new InvalidDataException("模块顺序无效。");
         }
         using (var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks"))
         using (var r = cmd.ExecuteReader()) while (r.Read())
@@ -155,7 +156,7 @@ public sealed class BookLibrary
             {
                 if (existing == null)
                 {
-                    if (File.Exists(path)) throw new IOException("同名待办书已存在，请重新导入。");
+                    if (File.Exists(path)) throw new IOException("同名待办笔记已存在，请重新导入。");
                     Database.Snapshot(prepared.TemporaryPath, temp); File.Move(temp, path);
                 }
                 else
@@ -180,12 +181,13 @@ public sealed class BookLibrary
     {
         using var to = Database.Open(destination); using var from = Database.Open(source, true); using var tx = to.BeginTransaction();
         var map = new Dictionary<string, string>();
-        using (var cmd = Database.Command(from, "SELECT Id,Name FROM Projects"))
+        using (var cmd = Database.Command(from, "SELECT Id,Name,SortOrder FROM Projects ORDER BY SortOrder,Name,Id"))
         using (var r = cmd.ExecuteReader()) while (r.Read())
         {
             ct.ThrowIfCancellationRequested(); var id = r.GetString(0); var name = r.GetString(1);
             var local = Database.Scalar(to, "SELECT Id FROM Projects WHERE Id=$id OR Name=$name COLLATE NOCASE ORDER BY CASE WHEN Id=$id THEN 0 ELSE 1 END LIMIT 1", ("$id", id), ("$name", name)) as string;
-            if (local == null) { Database.Exec(to, "INSERT INTO Projects VALUES($id,$name)", ("$id", id), ("$name", name)); local = id; }
+            var order = Convert.ToInt32(Database.Scalar(to, "SELECT COALESCE(MAX(SortOrder),-1)+1 FROM Projects"));
+            if (local == null) { Database.Exec(to, "INSERT INTO Projects(Id,Name,SortOrder) VALUES($id,$name,$order)", ("$id", id), ("$name", name), ("$order", order)); local = id; }
             map[id] = local;
         }
         using (var cmd = Database.Command(from, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks"))
@@ -208,8 +210,22 @@ public sealed class BookLibrary
             ct.ThrowIfCancellationRequested(); Database.Exec(to, "INSERT OR IGNORE INTO TaskStateEvents VALUES($id,$task,$from,$to,$at)",
                 ("$id", r.GetString(0)), ("$task", r.GetString(1)), ("$from", r.GetInt32(2)), ("$to", r.GetInt32(3)), ("$at", r.GetInt64(4)));
         }
+        foreach (var key in new[] { "StatusColor.Open", "StatusColor.Verification", "StatusColor.Completed", "CompletedSort" })
+        {
+            var value = Database.Scalar(from, "SELECT Value FROM BookSettings WHERE Key=$key", ("$key", key)) as string;
+            if (value != null) Database.Exec(to, "INSERT INTO BookSettings(Key,Value) VALUES($key,$value) ON CONFLICT(Key) DO UPDATE SET Value=excluded.Value", ("$key", key), ("$value", value));
+        }
         tx.Commit(); Database.Exec(to, "PRAGMA optimize;");
     }
+    public Task<string> DeleteAsync(BookInfo book, CancellationToken ct = default) => Database.RunAsync(book.Path, () =>
+    {
+        EnsureWritable(); Directory.CreateDirectory(BackupDirectory);
+        var backup = System.IO.Path.Combine(BackupDirectory, $"{book.Name}-deleted-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db");
+        Database.Snapshot(book.Path, backup); ct.ThrowIfCancellationRequested();
+        using (var c = Database.Open(book.Path)) Database.Exec(c, "PRAGMA wal_checkpoint(TRUNCATE);");
+        foreach (var path in new[] { book.Path, book.Path + "-wal", book.Path + "-shm" }) if (File.Exists(path)) File.Delete(path);
+        return backup;
+    }, ct);
     public AppSettings LoadSettings()
     {
         var path = System.IO.Path.Combine(DataDirectory, "settings.json");

@@ -12,7 +12,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>ToDoList</AssemblyName>
-    <Version>2.1.0</Version>
+    <Version>2.3.1</Version>
+    <InformationalVersion>2.3.1</InformationalVersion>
     <Authors>H-J-F</Authors>
     <Copyright>Copyright (c) 2026 H-J-F</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -30,6 +31,9 @@
     <PackageReference Include="Emoji.Wpf" Version="0.3.4" />
     <PackageReference Include="PDFsharp-MigraDoc-WPF" Version="6.2.4" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
   </ItemGroup>
 
   <!-- The NuGet package also carries sample helpers and embedded Windows Phone

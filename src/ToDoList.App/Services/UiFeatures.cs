@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -54,7 +55,7 @@ internal static class UiFeatures
             completed = await repo.SetStatusAsync(completed.Id, TodoStatus.Completed, completed.Revision);
             await repo.DeleteTaskAsync(completed.Id, completed.Revision);
             await model.RefreshBooksAsync(); await model.RefreshProjectsAsync(); await model.SelectFilterAsync(TaskFilter.All); await Settle();
-            typeof(MainWindow).GetMethod("SyncSelectors", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(window, null);
+            typeof(MainWindow).GetMethod("SyncSelectors", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(window, [false]);
             Check(model.Tasks.Count == 3 && model.Tasks.Any(t => t.IsDeleted), "All includes deleted tasks");
             Check(((TabItem)((TabControl)window.FindName("Tabs")).Items[0]).Header.Equals("所有"), "All is first tab");
             foreach (var scope in new[] { DateScope.Year, DateScope.Month, DateScope.Day })
@@ -81,8 +82,9 @@ internal static class UiFeatures
             Click("CalendarButton"); Check(!((Popup)popupField.GetValue(window)!).IsOpen, "Calendar popup toggles closed");
             Click("CalendarButton"); await Settle();
             var datePopup = (Popup)popupField.GetValue(window)!;
-            var calendarPicker = MainWindow.Descendants<DateRangePicker>(datePopup.Child).Single();
-            calendarPicker.SetSelection(new(DateScope.Year, DateTime.Today.AddYears(-1), DateTime.Today));
+            var calendarScope = MainWindow.Descendants<ComboBox>(datePopup.Child).Single(c => AutomationProperties.GetAutomationId(c) == "DateScope");
+            calendarScope.SelectedIndex = 0;
+            MainWindow.Descendants<Wpf.Ui.Controls.CalendarDatePicker>(datePopup.Child).Single(p => AutomationProperties.GetAutomationId(p) == "DateSelection").Date = DateTime.Today.AddYears(-1);
             MainWindow.Descendants<Button>(datePopup.Child).Single(b => Equals(b.Content, "应用")).RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
             await Settle();
             Check(!datePopup.IsOpen && model.IsCalendarFilter && model.Tasks.Count == 0 && ((TabControl)window.FindName("Tabs")).SelectedIndex == -1, "Calendar apply navigates and clears ordinary tab selection");
@@ -123,8 +125,9 @@ internal static class UiFeatures
             inline.SetContent(RichContent.FromText("")); inline.FocusEditor(); await Settle();
             var inlineHint = (TextBlock)inline.FindName("Placeholder");
             Check(inlineHint.IsVisible && inlineHint.Text.Contains("保存") && !double.IsNaN(Canvas.GetLeft(inlineHint)), "Inline editor has aligned save hint"); Capture("inline-editor");
+            card.ActiveProjectSelector!.SelectedValue = project;
             inline.SetContent(RichContent.FromText("Enter 保存回归")); inline.FocusEditor(); Enter(inline); await Settle();
-            Check(!editRow.IsEditing && editRow.Item.PlainText == "Enter 保存回归", "Enter saves existing task");
+            Check(!editRow.IsEditing && editRow.Item.PlainText == "Enter 保存回归" && editRow.Item.ProjectId == project, "Enter saves existing task content and module");
             var dialogTask = ReportDialog.ShowAsync(window); await Settle(); Capture("report-dialog");
             var activeDialog = MainWindow.Descendants<Wpf.Ui.Controls.ContentDialog>(window).Single();
             activeDialog.TemplateButtonCommand.Execute(Wpf.Ui.Controls.ContentDialogButton.Primary);
@@ -132,11 +135,14 @@ internal static class UiFeatures
             Check(dialogOptions?.Format == ReportFormat.Markdown && dialogOptions.Status == TaskFilter.All && dialogOptions.Dates.Scope == DateScope.Any, "Report dialog defaults and confirmation");
             dialogTask = ReportDialog.ShowAsync(window); await Settle();
             activeDialog = MainWindow.Descendants<Wpf.Ui.Controls.ContentDialog>(window).Single();
-            var reportDates = MainWindow.Descendants<DateRangePicker>(activeDialog).Single();
-            reportDates.SetSelection(new(DateScope.Range, DateTime.Today, DateTime.Today.AddDays(-1)));
+            var reportScope = MainWindow.Descendants<ComboBox>(activeDialog).Single(c => AutomationProperties.GetAutomationId(c) == "DateScope");
+            reportScope.SelectedIndex = 4;
+            var reportFrom = MainWindow.Descendants<Wpf.Ui.Controls.CalendarDatePicker>(activeDialog).Single(p => AutomationProperties.GetAutomationId(p) == "DateFrom");
+            var reportUntil = MainWindow.Descendants<Wpf.Ui.Controls.CalendarDatePicker>(activeDialog).Single(p => AutomationProperties.GetAutomationId(p) == "DateUntil");
+            reportFrom.Date = DateTime.Today; reportUntil.Date = DateTime.Today.AddDays(-1);
             activeDialog.TemplateButtonCommand.Execute(Wpf.Ui.Controls.ContentDialogButton.Primary); await Settle();
             Check(!dialogTask.IsCompleted, "Report rejects reversed date range without closing");
-            reportDates.SetSelection(new(DateScope.Range, DateTime.Today.AddDays(-2), DateTime.Today));
+            reportFrom.Date = DateTime.Today.AddDays(-2); reportUntil.Date = DateTime.Today;
             var selectors = MainWindow.Descendants<ComboBox>(activeDialog).ToList();
             selectors.Single(c => c.DisplayMemberPath == "Name").SelectedValue = project;
             selectors.Single(c => c.Items.Contains("已完成")).SelectedIndex = 2;
@@ -157,7 +163,7 @@ internal static class UiFeatures
             using (var stream = zip.GetEntry("word/document.xml")!.Open())
             {
                 XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-                Check(XDocument.Load(stream).Descendants(w + "t").Select(t => t.Value).SequenceEqual(report.Lines.Select(l => l.Text)), "DOCX has every report line exactly");
+                Check(XDocument.Load(stream).Descendants(w + "p").Select(p => string.Concat(p.Descendants(w + "t").Select(t => t.Value))).SequenceEqual(report.Lines.Select(l => l.Text)), "DOCX has every report line exactly");
             }
             Check(File.ReadAllText(Path.Combine(output, "report.md")) == report.ToMarkdown(), "Markdown content matches report");
             var blocked = Path.Combine(output, "blocked.md"); Directory.CreateDirectory(blocked);

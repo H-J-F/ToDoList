@@ -59,11 +59,28 @@ public sealed class ReportTests : IDisposable
         var content = RichContent.FromText("中文 👩‍💻 <xml>& **正文**\n第二行\n\n末行");
         var task = new TodoItem("a", "p", content.ToJson(), content.PlainText, TodoStatus.Deleted, 1, 3, null, 1, 3, TodoStatus.Completed, 2);
         var report = TaskReport.Create(new("测试书", [new("p", "工作")], [task]), new("p", TaskFilter.All, DateSelection.Any, ReportFormat.Markdown), DateTimeOffset.Now);
-        Assert.Contains(report.Lines, l => l.Text.StartsWith("完成时间："));
+        Assert.Contains(report.Lines, l => l.Kind == ReportLineKind.Metadata && l.Text.Contains("完成时间："));
         Assert.Contains(report.Lines, l => l.Text.Contains("已删除 1"));
-        Assert.Equal(content.PlainText.Split('\n'), report.Lines.Where(l => l.Kind == ReportLineKind.Body).Select(l => l.Text));
+        Assert.Contains(report.Lines, l => l.Kind == ReportLineKind.DateHeading);
+        Assert.Equal("1. " + content.PlainText.Split('\n')[0], report.Lines.Single(l => l.Kind == ReportLineKind.TaskContent).Text);
+        Assert.Equal(content.PlainText.Split('\n').Skip(1).Select(x => "   " + x), report.Lines.Where(l => l.Kind == ReportLineKind.Body).Select(l => l.Text));
         Assert.Contains("\\*\\*正文\\*\\*", report.ToMarkdown());
+        Assert.Contains("color: #FF5141", report.ToMarkdown());
         var empty = TaskReport.Create(new("空书", [], []), new(null, TaskFilter.All, DateSelection.Any, ReportFormat.Markdown), DateTimeOffset.Now);
         Assert.Contains(empty.Lines, l => l.Text == "所选条件下没有任务。");
+    }
+    [Fact] public void ReportGroupsByLocalCreationDateAndKeepsGlobalNumbering()
+    {
+        static long LocalStamp(int day, int hour) => new DateTimeOffset(new DateTime(2026, 9, day, hour, 0, 0, DateTimeKind.Local)).ToUnixTimeMilliseconds();
+        static TodoItem Task(string id, string text, long created) =>
+            new(id, null, RichContent.FromText(text).ToJson(), text, TodoStatus.Open, created, created, null, 1);
+
+        var report = TaskReport.Create(
+            new("跨日报告", [], [Task("b", "第二天", LocalStamp(22, 9)), Task("a", "第一天", LocalStamp(21, 18))]),
+            new(null, TaskFilter.All, DateSelection.Any, ReportFormat.Markdown),
+            DateTimeOffset.Now);
+
+        Assert.Equal(["[2026-09-21]", "[2026-09-22]"], report.Lines.Where(l => l.Kind == ReportLineKind.DateHeading).Select(l => l.Text));
+        Assert.Equal(["1. 第一天", "2. 第二天"], report.Lines.Where(l => l.Kind == ReportLineKind.TaskContent).Select(l => l.Text));
     }
 }

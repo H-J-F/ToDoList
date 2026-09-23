@@ -5,7 +5,7 @@ namespace ToDoList.Storage;
 
 public static class Database
 {
-    public const int Version = 2;
+    public const int Version = 3;
     public const int ApplicationId = 0x544F444F;
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> Gates = new(StringComparer.OrdinalIgnoreCase);
     public static async Task<T> RunAsync<T>(string path, Func<T> action, CancellationToken ct = default)
@@ -67,17 +67,26 @@ public static class Database
     {
         using var c = Open(path);
         if (Convert.ToInt32(Scalar(c, "PRAGMA application_id")) != ApplicationId)
-            throw new InvalidDataException("这不是 ToDoList 待办书。");
+            throw new InvalidDataException("这不是 ToDoList 待办笔记。");
         var version = Convert.ToInt32(Scalar(c, "PRAGMA user_version"));
         if (version == Version) return;
-        if (version != 1) throw new InvalidDataException($"不支持待办书格式版本 {version}。");
+        if (version is not (1 or 2)) throw new InvalidDataException($"不支持待办笔记格式版本 {version}。");
         if (!Equals(Scalar(c, "PRAGMA quick_check"), "ok")) throw new InvalidDataException("数据库完整性检查失败。");
         if (Convert.ToInt64(Scalar(c, "SELECT COUNT(*) FROM sqlite_schema WHERE type IN ('view','trigger')")) != 0)
-            throw new InvalidDataException("待办书包含不支持的数据库对象。");
+            throw new InvalidDataException("待办笔记包含不支持的数据库对象。");
         if (backupDirectory != null)
         {
             Directory.CreateDirectory(backupDirectory);
             Snapshot(path, System.IO.Path.Combine(backupDirectory, $"{System.IO.Path.GetFileNameWithoutExtension(path)}-v1-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db"));
+        }
+        if (version == 2)
+        {
+            using var tx = c.BeginTransaction();
+            Exec(c, "ALTER TABLE Projects ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0;");
+            Exec(c, "UPDATE Projects SET SortOrder=(SELECT COUNT(*) FROM Projects later WHERE later.rowid < Projects.rowid);");
+            Exec(c, $"PRAGMA user_version={Version};");
+            tx.Commit();
+            return;
         }
         Exec(c, "PRAGMA foreign_keys=OFF;");
         try
@@ -93,6 +102,7 @@ public static class Database
             tables = tables.Replace("CREATE TABLE BookSettings(Key TEXT PRIMARY KEY, Value TEXT NOT NULL);", "");
             Exec(c, tables);
             Exec(c, "INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision) SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision FROM Tasks_v1; INSERT INTO TaskStateEvents SELECT * FROM Events_v1; DROP TABLE Events_v1; DROP TABLE Tasks_v1;");
+            Exec(c, "ALTER TABLE Projects ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0; UPDATE Projects SET SortOrder=(SELECT COUNT(*) FROM Projects later WHERE later.rowid < Projects.rowid);");
             using (var cmd = Command(c, "PRAGMA foreign_key_check"))
             using (var r = cmd.ExecuteReader()) if (r.Read()) throw new InvalidDataException("升级失败：任务关联不完整。");
             Exec(c, $"PRAGMA user_version={Version};");
@@ -103,7 +113,7 @@ public static class Database
     // Migration 1. Future migrations must run transactionally after checking application_id/user_version.
     public const string Schema = """
         CREATE TABLE BookMetadata(Id INTEGER PRIMARY KEY CHECK(Id=1), Name TEXT NOT NULL, Title TEXT NOT NULL);
-        CREATE TABLE Projects(Id TEXT PRIMARY KEY, Name TEXT NOT NULL COLLATE NOCASE UNIQUE);
+        CREATE TABLE Projects(Id TEXT PRIMARY KEY, Name TEXT NOT NULL COLLATE NOCASE UNIQUE, SortOrder INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE Tasks(
           Id TEXT PRIMARY KEY, ProjectId TEXT REFERENCES Projects(Id), ContentJson TEXT NOT NULL,
           PlainText TEXT NOT NULL, Status INTEGER NOT NULL CHECK(Status IN (0,1,2,3)),

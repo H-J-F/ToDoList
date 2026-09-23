@@ -30,4 +30,21 @@
     </Style>
     <Style x:Key="SettingCard" TargetType="fluent:CardControl" BasedOn="{StaticResource {x:Type fluent:CardControl}}"><Setter Property="MinHeight" Value="76"/><Setter Property="Margin" Value="0,0,0,8"/><Setter Property="Focusable" Value="False"/></Style>
     <Style x:Key="SettingSelector" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}"><Setter Property="Width" Value="164"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/></Style>
+    <Style x:Key="HorizontalSnackbar" TargetType="fluent:Snackbar">
+        <Setter Property="Foreground" Value="{DynamicResource SnackBarForeground}"/><Setter Property="ContentForeground" Value="{DynamicResource SnackBarForeground}"/>
+        <Setter Property="Background" Value="{DynamicResource SnackBarBackground}"/><Setter Property="BorderBrush" Value="{DynamicResource SnackBarBorderBrush}"/>
+        <Setter Property="MinHeight" Value="68"/><Setter Property="OverridesDefaultStyle" Value="True"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="fluent:Snackbar">
+            <Border x:Name="Card" Padding="12" MinHeight="{TemplateBinding MinHeight}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4">
+                <Border.Effect><DropShadowEffect BlurRadius="30" Direction="0" Opacity="0.4" ShadowDepth="0" Color="#202020"/></Border.Effect>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <ContentPresenter VerticalAlignment="Center" Content="{TemplateBinding Content}" TextElement.FontSize="14" TextElement.Foreground="{TemplateBinding ContentForeground}"/>
+                    <fluent:Button x:Name="CloseButton" Grid.Column="1" Margin="12,0,0,0" Padding="6" Appearance="{TemplateBinding Appearance}" Command="{Binding TemplateButtonCommand, RelativeSource={RelativeSource TemplatedParent}}" Foreground="{TemplateBinding Foreground}">
+                        <fluent:Button.Icon><fluent:SymbolIcon Symbol="Dismiss20"/></fluent:Button.Icon>
+                    </fluent:Button>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers><Trigger Property="IsCloseButtonEnabled" Value="False"><Setter TargetName="CloseButton" Property="Visibility" Value="Collapsed"/></Trigger></ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
 </ResourceDictionary>

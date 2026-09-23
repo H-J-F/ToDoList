@@ -52,20 +52,49 @@ public sealed record ReportOptions(string? ProjectId, TaskFilter Status, DateSel
     public string StatusLabel => Status switch { TaskFilter.Open => "未完成（含待验证）", TaskFilter.Completed => "已完成", TaskFilter.Deleted => "已删除", _ => "所有" };
 }
 
-public sealed record ReportSnapshot(string BookTitle, IReadOnlyList<ProjectInfo> Projects, IReadOnlyList<TodoItem> Tasks);
-public enum ReportLineKind { Title, Heading, Text, Body }
-public sealed record ReportLine(ReportLineKind Kind, string Text);
+public sealed record ReportSnapshot(string BookTitle, IReadOnlyList<ProjectInfo> Projects, IReadOnlyList<TodoItem> Tasks, IReadOnlyDictionary<string, string>? Colors = null);
+public enum ReportLineKind { Title, Heading, DateHeading, TaskContent, Metadata, Text, Body }
+public enum ReportColor { Default, Open, Verification, Completed, Deleted }
+public sealed record ReportRun(string Text, ReportColor Color = ReportColor.Default);
+public sealed record ReportLine(ReportLineKind Kind, IReadOnlyList<ReportRun> Runs)
+{
+    public ReportLine(ReportLineKind kind, string text) : this(kind, [new(text)]) { }
+    public string Text => string.Concat(Runs.Select(r => r.Text));
+}
 public sealed record TaskReport(IReadOnlyList<ReportLine> Lines)
 {
+    public IReadOnlyDictionary<ReportColor, string> Colors { get; init; } = DefaultColors;
+    public static IReadOnlyDictionary<ReportColor, string> DefaultColors { get; } = new Dictionary<ReportColor, string>
+    {
+        [ReportColor.Open] = "#42E9FF", [ReportColor.Verification] = "#FFE500", [ReportColor.Completed] = "#00FF73", [ReportColor.Deleted] = "#FF5141", [ReportColor.Default] = "#000000"
+    };
+    public string ResolveColor(ReportColor color) => Colors.GetValueOrDefault(color, DefaultColors[color]);
+    public static string Color(ReportColor color) => color switch
+    {
+        ReportColor.Open => "#42E9FF",
+        ReportColor.Verification => "#FFE500",
+        ReportColor.Completed => "#00FF73",
+        ReportColor.Deleted => "#FF5141",
+        _ => "#000000"
+    };
     public string ToMarkdown()
     {
         var output = new StringBuilder();
         foreach (var line in Lines)
         {
-            // Escape task text so literal Markdown cannot change the report's structure.
-            var text = Escape(line.Text);
-            output.AppendLine(line.Kind switch { ReportLineKind.Title => "# " + text, ReportLineKind.Heading => "## " + text, _ => text + "  " });
-            if (line.Kind is ReportLineKind.Title or ReportLineKind.Heading) output.AppendLine();
+            // Runs contain only model-generated styling. Every text value, including task
+            // content, is escaped before it can enter Markdown or an HTML span.
+            var text = string.Concat(line.Runs.Select(run => run.Color == ReportColor.Default
+                ? Escape(run.Text)
+                : $"<span style=\"color: {ResolveColor(run.Color)};\">{Escape(run.Text)}</span>"));
+            output.AppendLine(line.Kind switch
+            {
+                ReportLineKind.Title => "# " + text,
+                ReportLineKind.Heading => "## " + text,
+                ReportLineKind.DateHeading => "### " + text,
+                _ => text + "  "
+            });
+            if (line.Kind is ReportLineKind.Title or ReportLineKind.Heading or ReportLineKind.DateHeading) output.AppendLine();
         }
         return output.ToString();
     }
@@ -81,6 +110,14 @@ public sealed record TaskReport(IReadOnlyList<ReportLine> Lines)
         string Project(string? id) => id == null ? "未分配模块" : projects.GetValueOrDefault(id, "未知模块");
         string Stamp(long value) => DateTimeOffset.FromUnixTimeMilliseconds(value).LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss");
         var tasks = snapshot.Tasks.OrderBy(t => t.CreatedAt).ThenBy(t => t.Id, StringComparer.Ordinal).ToList();
+        static (string Label, ReportColor Color) Status(TodoStatus status) => status switch
+        {
+            TodoStatus.Open => ("未完成", ReportColor.Open),
+            TodoStatus.Verification => ("待验证", ReportColor.Verification),
+            TodoStatus.Completed => ("已完成", ReportColor.Completed),
+            _ => ("已删除", ReportColor.Deleted)
+        };
+        int Count(TodoStatus status) => tasks.Count(t => t.Status == status);
         var lines = new List<ReportLine>
         {
             new(ReportLineKind.Title, snapshot.BookTitle + " · 任务报告"),
@@ -89,19 +126,45 @@ public sealed record TaskReport(IReadOnlyList<ReportLine> Lines)
             new(ReportLineKind.Text, "添加时间：" + options.Dates.Label),
             new(ReportLineKind.Text, "导出时间：" + exportedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz")),
             new(ReportLineKind.Heading, "概要"),
-            new(ReportLineKind.Text, $"共 {tasks.Count} 条任务；未完成 {tasks.Count(t => t.Status == TodoStatus.Open)}；待验证 {tasks.Count(t => t.Status == TodoStatus.Verification)}；已完成 {tasks.Count(t => t.Status == TodoStatus.Completed)}；已删除 {tasks.Count(t => t.Status == TodoStatus.Deleted)}。")
+            new(ReportLineKind.Text, new ReportRun[]
+            {
+                new($"共 {tasks.Count} 条任务；未完成 "), new(Count(TodoStatus.Open).ToString(), ReportColor.Open),
+                new("；待验证 "), new(Count(TodoStatus.Verification).ToString(), ReportColor.Verification),
+                new("；已完成 "), new(Count(TodoStatus.Completed).ToString(), ReportColor.Completed),
+                new("；已删除 "), new(Count(TodoStatus.Deleted).ToString(), ReportColor.Deleted), new("。")
+            })
         };
         if (tasks.Count == 0) lines.Add(new(ReportLineKind.Text, "所选条件下没有任务。"));
+        DateTime? group = null;
         for (int i = 0; i < tasks.Count; i++)
         {
             var task = tasks[i];
-            var status = task.Status switch { TodoStatus.Open => "未完成", TodoStatus.Verification => "待验证", TodoStatus.Completed => "已完成", _ => "已删除" };
-            lines.Add(new(ReportLineKind.Heading, $"{i + 1}. [{status}] {Project(task.ProjectId)}"));
-            lines.Add(new(ReportLineKind.Text, "添加时间：" + Stamp(task.CreatedAt)));
-            if ((task.CompletedAt ?? task.PreviousCompletedAt) is { } completed) lines.Add(new(ReportLineKind.Text, "完成时间：" + Stamp(completed)));
-            if (task.DeletedAt is { } deleted) lines.Add(new(ReportLineKind.Text, "删除时间：" + Stamp(deleted)));
-            foreach (var line in task.PlainText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) lines.Add(new(ReportLineKind.Body, line));
+            var createdDay = DateTimeOffset.FromUnixTimeMilliseconds(task.CreatedAt).LocalDateTime.Date;
+            if (createdDay != group)
+            {
+                group = createdDay;
+                lines.Add(new(ReportLineKind.DateHeading, $"[{createdDay:yyyy-MM-dd}]"));
+            }
+            var body = task.PlainText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+            lines.Add(new(ReportLineKind.TaskContent, $"{i + 1}. {body[0]}"));
+            foreach (var continuation in body.Skip(1)) lines.Add(new(ReportLineKind.Body, "   " + continuation));
+            var status = Status(task.Status);
+            var metadata = new List<ReportRun>
+            {
+                new($"[{status.Label}]", status.Color), new("  " + Project(task.ProjectId) + "  添加时间：" + Stamp(task.CreatedAt))
+            };
+            if ((task.CompletedAt ?? task.PreviousCompletedAt) is { } completed) metadata.Add(new("  完成时间：" + Stamp(completed)));
+            if (task.DeletedAt is { } deleted) metadata.Add(new("  删除时间：" + Stamp(deleted)));
+            lines.Add(new(ReportLineKind.Metadata, metadata));
+            lines.Add(new(ReportLineKind.Text, ""));
         }
-        return new(lines);
+        var colors = new Dictionary<ReportColor, string>(DefaultColors);
+        if (snapshot.Colors != null)
+        {
+            if (snapshot.Colors.TryGetValue("StatusColor.Open", out var open)) colors[ReportColor.Open] = open;
+            if (snapshot.Colors.TryGetValue("StatusColor.Verification", out var verification)) colors[ReportColor.Verification] = verification;
+            if (snapshot.Colors.TryGetValue("StatusColor.Completed", out var completed)) colors[ReportColor.Completed] = completed;
+        }
+        return new(lines) { Colors = colors };
     }
 }

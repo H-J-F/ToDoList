@@ -10,7 +10,7 @@ checksums = dict(line.split(None, 1)[::-1] for line in (root / "SHA256SUMS.txt")
 reports = []
 commits = set()
 for kind in ("lite", "portable"):
-    archive = root / f"ToDoList-2.1.0-win-x64-{kind}.zip"
+    archive = root / f"ToDoList-2.3.1-win-x64-{kind}.zip"
     digest = hashlib.file_digest(archive.open("rb"), "sha256").hexdigest()
     assert checksums[archive.name] == digest, "ZIP hash mismatch"
     with zipfile.ZipFile(archive) as zip:
@@ -21,7 +21,7 @@ for kind in ("lite", "portable"):
         assert all(not name.lower().endswith((".db", ".pdb", ".ttf", ".otf")) for name in names)
         assert {"LICENSE", "THIRD-PARTY.md", "DEPENDENCIES.json", "ToDoList.exe", "BUILD.json"}.issubset(names)
         manifest = json.loads(zip.read("BUILD.json"))
-        assert manifest["Version"] == "2.1.0" and manifest["Variant"] == kind and not manifest["WorkingTreeDirty"]
+        assert manifest["Version"] == "2.3.1" and manifest["Variant"] == kind and not manifest["WorkingTreeDirty"]
         commits.add(manifest["Commit"])
         for license in json.loads(zip.read("licenses/SOURCES.json")):
             assert hashlib.sha256(zip.read("licenses/" + license["file"])).hexdigest() == license["sha256"], license["file"]

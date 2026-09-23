@@ -102,7 +102,7 @@ public sealed class DeletionTests : IDisposable
         var path = CreateV1(); var book = Assert.Single(await Library.ListAsync());
         var task = Assert.Single((await new TaskRepository(path).QueryAsync(new(null, TaskFilter.Completed, TaskSort.Completed))).Items);
         Assert.Equal(2000L, task.CompletedAt); Assert.Equal(2L, task.Revision);
-        using var c = Database.Open(path); Assert.Equal(2L, Database.Scalar(c, "PRAGMA user_version")); BookLibrary.Validate(c, path);
+        using var c = Database.Open(path); Assert.Equal((long)Database.Version, Database.Scalar(c, "PRAGMA user_version")); BookLibrary.Validate(c, path);
         using var backup = Database.Open(Assert.Single(Directory.GetFiles(Library.BackupDirectory, "*.db")));
         Assert.Equal(1L, Database.Scalar(backup, "PRAGMA user_version"));
         Assert.Equal(1L, Database.Scalar(c, "SELECT COUNT(*) FROM TaskStateEvents"));
@@ -112,7 +112,19 @@ public sealed class DeletionTests : IDisposable
     {
         var path = CreateV1(); using var p = await Library.PrepareImportAsync(path);
         using var original = Database.Open(path); using var stage = Database.Open(p.TemporaryPath);
-        Assert.Equal(1L, Database.Scalar(original, "PRAGMA user_version")); Assert.Equal(2L, Database.Scalar(stage, "PRAGMA user_version"));
+        Assert.Equal(1L, Database.Scalar(original, "PRAGMA user_version")); Assert.Equal((long)Database.Version, Database.Scalar(stage, "PRAGMA user_version"));
+    }
+    [Fact] public void V2UpgradeAddsStableProjectOrder()
+    {
+        Directory.CreateDirectory(root); var path = Path.Combine(root, "v2.db"); Database.Create(path, "Legacy2", "旧版");
+        using (var c = Database.Open(path))
+        {
+            Database.Exec(c, "INSERT INTO Projects(Id,Name,SortOrder) VALUES($a,'后',0),($b,'前',1)", ("$a", Guid.NewGuid().ToString("N")), ("$b", Guid.NewGuid().ToString("N")));
+            Database.Exec(c, "ALTER TABLE Projects RENAME TO Projects_v3; CREATE TABLE Projects(Id TEXT PRIMARY KEY,Name TEXT NOT NULL COLLATE NOCASE UNIQUE); INSERT INTO Projects(Id,Name) SELECT Id,Name FROM Projects_v3; DROP TABLE Projects_v3; PRAGMA user_version=2;");
+        }
+        Database.Upgrade(path, Library.BackupDirectory);
+        using var upgraded = Database.Open(path); Assert.Equal((long)Database.Version, Database.Scalar(upgraded, "PRAGMA user_version"));
+        Assert.Equal(2L, Database.Scalar(upgraded, "SELECT COUNT(DISTINCT SortOrder) FROM Projects"));
     }
 
     [Fact] public void FailedMigrationRollsBack()

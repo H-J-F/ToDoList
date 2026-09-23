@@ -10,7 +10,7 @@ public enum PageDirection { Older, Newer }
 public enum ImportMode { Merge, Replace }
 
 public sealed record BookInfo(string Name, string Title, string Path);
-public sealed record ProjectInfo(string? Id, string Name);
+public sealed record ProjectInfo(string? Id, string Name, int SortOrder = 0);
 public sealed record TodoItem(string Id, string? ProjectId, string ContentJson, string PlainText,
     TodoStatus Status, long CreatedAt, long UpdatedAt, long? CompletedAt, long Revision, long? DeletedAt = null, TodoStatus? PreviousStatus = null, long? PreviousCompletedAt = null);
 public sealed record PageCursor(long Time, string Id);
@@ -124,12 +124,19 @@ public sealed class AppSettings
 
 public interface ITaskRepository
 {
+    Task PermanentlyDeleteAsync(IReadOnlyDictionary<string, long> revisions, CancellationToken ct = default);
     Task<ReportSnapshot> ReadReportAsync(ReportOptions options, CancellationToken ct = default);
     Task<IReadOnlyList<ProjectInfo>> GetProjectsAsync(CancellationToken ct = default);
     Task<ProjectInfo> AddProjectAsync(string name, CancellationToken ct = default);
+    Task<ProjectInfo> RenameProjectAsync(string id, string name, CancellationToken ct = default);
+    Task DeleteProjectAsync(string id, CancellationToken ct = default);
+    Task ReorderProjectsAsync(IReadOnlyList<string> orderedIds, CancellationToken ct = default);
+    Task<string?> GetSettingAsync(string key, CancellationToken ct = default);
+    Task SetSettingAsync(string key, string value, CancellationToken ct = default);
     Task<TaskPage> QueryAsync(TaskQuery query, CancellationToken ct = default);
     Task<TodoItem> AddTaskAsync(RichContent content, string? projectId, string? newProject = null, CancellationToken ct = default);
     Task<TodoItem> UpdateContentAsync(string id, RichContent content, long revision, CancellationToken ct = default);
+    Task<TodoItem> UpdateTaskAsync(string id, RichContent content, string? projectId, long revision, CancellationToken ct = default);
     Task<TodoItem> DeleteTaskAsync(string id, long revision, CancellationToken ct = default);
     Task<TodoItem> RestoreTaskAsync(string id, long revision, CancellationToken ct = default);
     Task<TodoItem> SetStatusAsync(string id, TodoStatus status, long revision, CancellationToken ct = default);

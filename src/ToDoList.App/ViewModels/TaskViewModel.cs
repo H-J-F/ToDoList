@@ -7,6 +7,9 @@ public sealed class TaskViewModel(TodoItem item) : ObservableObject
     private TodoItem _item = item;
     public TodoItem Item { get => _item; set { _item = value; Raise(); Raise(nameof(IsCompleted)); Raise(nameof(IsVerification)); Raise(nameof(IsDeleted)); Raise(nameof(CheckState)); Raise(nameof(StateHint)); Raise(nameof(CompletionLabel)); Raise(nameof(CreationLabel)); Raise(nameof(TimeDetails)); } }
     public string Id => Item.Id;
+    private bool _selectionMode, _selectedForDeletion;
+    public bool SelectionMode { get => _selectionMode; set => Set(ref _selectionMode, value); }
+    public bool SelectedForDeletion { get => _selectedForDeletion; set => Set(ref _selectedForDeletion, value); }
     public bool IsCompleted => Item.Status == TodoStatus.Completed;
     public bool IsVerification => Item.Status == TodoStatus.Verification;
     public bool IsDeleted => Item.Status == TodoStatus.Deleted;
@@ -28,9 +31,12 @@ public sealed class TaskViewModel(TodoItem item) : ObservableObject
     public bool IsEditing { get => _editing; set => Set(ref _editing, value); }
     private bool _header;
     public bool HasDateHeader { get => _header; set => Set(ref _header, value); }
+    private bool _hideSeparator;
+    public bool HideSeparator { get => _hideSeparator; set => Set(ref _hideSeparator, value); }
     private string _date = "";
     public string DateLabel { get => _date; set => Set(ref _date, value); }
-    public string ProjectLabel { get; set; } = "";
+    private string _projectLabel = "";
+    public string ProjectLabel { get => _projectLabel; set => Set(ref _projectLabel, value); }
     public long SortStamp { get; set; }
     public long EstimatedBytes => 256L + (Item.ContentJson.Length + Item.PlainText.Length) * 2L;
 }

@@ -29,12 +29,15 @@ public sealed class MainViewModel : ObservableObject
     private BookInfo? _book;
     public BookInfo? CurrentBook { get => _book; private set { Set(ref _book, value); Raise(nameof(HasBook)); Raise(nameof(BookTitle)); } }
     public bool HasBook => CurrentBook != null;
-    public string BookTitle => CurrentBook?.Title ?? "我的第一本待办书";
+    public string BookTitle => CurrentBook?.Title ?? "我的第一本待办笔记";
     public string? CurrentProjectId { get; private set; }
     public TaskFilter Filter { get; private set; } = TaskFilter.Today;
     public DateSelection SelectedDates { get; private set; } = new(DateScope.Day, DateTime.Today, DateTime.Today);
     public bool IsCalendarFilter => Filter == TaskFilter.Calendar;
     public TaskSort Sort { get; private set; } = TaskSort.Completed;
+    public string? OpenColor { get; private set; }
+    public string? VerificationColor { get; private set; }
+    public string? CompletedColor { get; private set; }
     public string FilterTitle => Filter switch { TaskFilter.All => "所有", TaskFilter.Calendar => SelectedDates.Label, TaskFilter.Deleted => "已删除", TaskFilter.Completed => "已完成", TaskFilter.Open => "未完成", TaskFilter.Month => "本月", TaskFilter.Week => "本周", _ => "今天" };
     public string DateSubtitle => DateTime.Now.ToString("yyyy 年 M 月 d 日  ·  dddd");
     public bool IsCompletedTab => Filter == TaskFilter.Completed;
@@ -45,7 +48,7 @@ public sealed class MainViewModel : ObservableObject
     private string _message = "把想做的事写下来，让每一天轻一点。";
     public string Message { get => _message; set => Set(ref _message, value); }
     public bool IsEmpty => HasBook && Tasks.Count == 0 && !IsLoading;
-    public string LoadedLabel => HasBook ? $"已载入 {Tasks.Count} 条" + (HasOlder || HasNewer ? " · 滚动翻阅" : "") : "一本书，装下你的小目标";
+    public string LoadedLabel => HasBook ? $"已载入 {Tasks.Count} 条" + (HasOlder || HasNewer ? " · 滚动翻阅" : "") : "一本笔记，装下你的小目标";
 
     public MainViewModel(BookLibrary library, AppSettings settings) { Library = library; Settings = settings; }
     public async Task InitializeAsync()
@@ -53,7 +56,7 @@ public sealed class MainViewModel : ObservableObject
         await RefreshBooksAsync();
         var book = Books.FirstOrDefault(b => b.Name.Equals(Settings.LastBook, StringComparison.OrdinalIgnoreCase)) ?? Books.FirstOrDefault();
         if (book != null) await OpenBookAsync(book);
-        if (Library.ScanWarning != null) Message = "部分待办书未能打开：" + Library.ScanWarning;
+        if (Library.ScanWarning != null) Message = "部分待办笔记未能打开：" + Library.ScanWarning;
     }
     public async Task RefreshBooksAsync()
     {
@@ -63,8 +66,17 @@ public sealed class MainViewModel : ObservableObject
     {
         CancelQuery(); CurrentBook = book; Repository = new(book.Path); CurrentProjectId = null; Filter = TaskFilter.Today;
         Sort = await Repository.GetSettingAsync("CompletedSort") == "Created" ? TaskSort.Created : TaskSort.Completed;
+        OpenColor = await Repository.GetSettingAsync("StatusColor.Open"); VerificationColor = await Repository.GetSettingAsync("StatusColor.Verification"); CompletedColor = await Repository.GetSettingAsync("StatusColor.Completed");
+        Services.ThemeService.ApplyStatusColors(OpenColor, VerificationColor, CompletedColor);
         Settings.LastBook = book.Name; Library.SaveSettings(Settings);
         await RefreshProjectsAsync(); await ReloadAsync(true); Raise(nameof(Sort));
+    }
+    public async Task SetStatusColorAsync(string key, string value)
+    {
+        if (Repository == null || !System.Text.RegularExpressions.Regex.IsMatch(value, "^#[0-9a-fA-F]{6}$")) throw new ArgumentException("颜色必须为 #RRGGBB 格式。");
+        value = value.ToUpperInvariant(); await Repository.SetSettingAsync("StatusColor." + key, value);
+        if (key == "Open") OpenColor = value; else if (key == "Verification") VerificationColor = value; else CompletedColor = value;
+        Services.ThemeService.ApplyStatusColors(OpenColor, VerificationColor, CompletedColor); Services.ThemeService.NotifyChanged(); Message = "状态颜色已保存。";
     }
     public async Task RefreshProjectsAsync()
     {
@@ -74,6 +86,69 @@ public sealed class MainViewModel : ObservableObject
         var all = new ProjectInfo(null, "全部"); Projects.Add(all); DraftProjects.Add(all);
         foreach (var p in projects) { Projects.Add(p); DraftProjects.Add(p); }
         DraftProjects.Add(new("__new", "新增模块"));
+    }
+    public async Task RenameProjectAsync(ProjectInfo project, string name)
+    {
+        if (Repository == null || project.Id == null) return;
+        await Repository.RenameProjectAsync(project.Id, name); await RefreshProjectsAsync();
+        foreach (var row in Tasks) row.ProjectLabel = Projects.FirstOrDefault(p => p.Id == row.Item.ProjectId)?.Name ?? "";
+        Message = "模块已重命名。";
+    }
+    public async Task DeleteProjectAsync(ProjectInfo project)
+    {
+        if (Repository == null || project.Id == null) return;
+        await Repository.DeleteProjectAsync(project.Id);
+        if (CurrentProjectId == project.Id) CurrentProjectId = null;
+        await RefreshProjectsAsync(); await ReloadAsync(true); Message = "模块已删除，原任务已移到未分配模块。";
+    }
+    public async Task ReorderProjectAsync(ProjectInfo project, int offset)
+    {
+        if (Repository == null || project.Id == null) return;
+        var rows = Projects.Where(p => p.Id != null).ToList(); var index = rows.FindIndex(p => p.Id == project.Id); var target = Math.Clamp(index + offset, 0, rows.Count - 1);
+        if (index < 0 || index == target) return;
+        rows.RemoveAt(index); rows.Insert(target, project);
+        await SetProjectOrderAsync(rows.Select(p => p.Id!).ToArray());
+    }
+    public bool IsReorderingProjects { get; private set; }
+    public async Task SetProjectOrderAsync(IReadOnlyList<string> ids)
+    {
+        if (Repository == null || IsReorderingProjects) return;
+        var previous = Projects.Where(p => p.Id != null).Select(p => p.Id!).ToArray();
+        if (previous.SequenceEqual(ids)) return;
+        if (ids.Count != previous.Length || !ids.ToHashSet().SetEquals(previous)) throw new ArgumentException("模块顺序包含无效模块。");
+        var repository = Repository;
+        IsReorderingProjects = true;
+        try
+        {
+            ApplyProjectOrder(ids);
+            await repository.ReorderProjectsAsync(ids);
+        }
+        catch
+        {
+            if (Repository == repository && Projects.Where(p => p.Id != null).Select(p => p.Id!).ToHashSet().SetEquals(previous))
+                ApplyProjectOrder(previous);
+            throw;
+        }
+        finally { IsReorderingProjects = false; }
+    }
+    private void ApplyProjectOrder(IReadOnlyList<string> ids)
+    {
+        // Move preserves selection and object identity. No Reset, task query,
+        // global busy state, selector synchronization or notification is needed.
+        foreach (var collection in new[] { Projects, DraftProjects })
+            for (var i = 0; i < ids.Count; i++)
+            {
+                var index = collection.IndexOf(collection.First(p => p.Id == ids[i]));
+                if (index != i + 1) collection.Move(index, i + 1);
+            }
+    }
+    public async Task<string?> DeleteCurrentBookAsync()
+    {
+        if (CurrentBook == null) return null;
+        var deleting = CurrentBook; CancelQuery(); Repository = null; CurrentBook = null; CurrentProjectId = null; Tasks.Clear(); Projects.Clear(); DraftProjects.Clear();
+        var backup = await Library.DeleteAsync(deleting); await RefreshBooksAsync(); var next = Books.FirstOrDefault();
+        if (next != null) await OpenBookAsync(next); else { Settings.LastBook = null; Library.SaveSettings(Settings); NotifyList(); }
+        Message = "待办笔记已删除，备份保存在 Data/Backup。"; return backup;
     }
     public async Task SelectProjectAsync(string? id) { CurrentProjectId = id; await ReloadAsync(true); }
     public async Task SelectFilterAsync(TaskFilter filter) { Filter = filter; await ReloadAsync(true); }
@@ -193,11 +268,13 @@ public sealed class MainViewModel : ObservableObject
     private void UpdateHeaders()
     {
         DateTime? previous = null;
-        foreach (var row in Tasks)
+        for (var index = 0; index < Tasks.Count; index++)
         {
+            var row = Tasks[index];
             var day = DateTimeOffset.FromUnixTimeMilliseconds(row.SortStamp).LocalDateTime.Date;
             row.HasDateHeader = day != previous;
             row.DateLabel = day == DateTime.Today ? "今天  /  " + day.ToString("M月d日") : day == DateTime.Today.AddDays(-1) ? "昨天  /  " + day.ToString("M月d日") : day.ToString("yyyy年M月d日  dddd");
+            row.HideSeparator = index == Tasks.Count - 1 || DateTimeOffset.FromUnixTimeMilliseconds(Tasks[index + 1].SortStamp).LocalDateTime.Date != day;
             previous = day;
         }
     }
@@ -265,11 +342,21 @@ public sealed class MainViewModel : ObservableObject
         catch { if (!committed) row.Item = old; throw; }
         finally { row.IsBusy = false; }
     }
-    public async Task SaveContentAsync(TaskViewModel row, RichContent content)
+    public async Task SaveContentAsync(TaskViewModel row, RichContent content) => await SaveTaskAsync(row, content, row.Item.ProjectId);
+    public async Task SaveTaskAsync(TaskViewModel row, RichContent content, string? projectId)
     {
         if (Repository == null) return;
-        row.Item = await Repository.UpdateContentAsync(row.Id, content, row.Item.Revision);
-        row.IsEditing = false; Message = "修改已保存。";
+        var epoch = _epoch;
+        var saved = await Repository.UpdateTaskAsync(row.Id, content, projectId, row.Item.Revision);
+        row.Item = saved;
+        row.ProjectLabel = Projects.FirstOrDefault(p => p.Id == saved.ProjectId)?.Name is { } name && name != "全部" ? name : "";
+        row.IsEditing = false;
+        if (epoch == _epoch && CurrentQuery?.Matches(saved) == false)
+        {
+            if (AnimateRemoval != null) await AnimateRemoval(row);
+            if (epoch == _epoch) { Tasks.Remove(row); UpdateHeaders(); NotifyList(); }
+        }
+        Message = "修改已保存。";
     }
     public void SaveSettings() => Library.SaveSettings(Settings);
 }
