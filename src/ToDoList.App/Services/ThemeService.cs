@@ -21,15 +21,6 @@ public static class ThemeService
     public static event Action? Changed;
     public static void NotifyChanged() => Changed?.Invoke();
     public static bool ReduceMotion { get; private set; }
-    public static void ApplyStatusColors(string? open, string? verification, string? completed)
-    {
-        void Apply(string key, string? value) { if (value != null && System.Text.RegularExpressions.Regex.IsMatch(value, "^#[0-9a-fA-F]{6}$")) Application.Current.Resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(value)); }
-        Apply("OpenBrush", open); Apply("YellowBrush", verification); Apply("GreenBrush", completed);
-    }
-    public static void ReapplyStatusColors()
-    {
-        if (Application.Current.MainWindow is MainWindow window) ApplyStatusColors(window.Model.OpenColor, window.Model.VerificationColor, window.Model.CompletedColor);
-    }
     public static void Apply(AppSettings settings)
     {
         if (settings.SettingsVersion < 2 || settings.AccentPreset == null)
@@ -60,6 +51,8 @@ public static class ThemeService
         var wash = $"#{Mix(accentColor.R):X2}{Mix(accentColor.G):X2}{Mix(accentColor.B):X2}";
         Brush("AccentBrush", wash); Brush("AccentInkBrush", accent);
         Brush("OpenBrush", dark ? "#42E9FF" : "#16889A"); Brush("GreenBrush", dark ? "#70CF9C" : "#238653"); Brush("YellowBrush", dark ? "#F0C45C" : "#A97812"); Brush("RedBrush", dark ? "#FF8585" : "#CE3B45");
+        // Task state colors belong to the theme, independently of report preferences.
+        Brush("TaskOpenBrush", "#00CAE5"); Brush("TaskVerificationBrush", "#E6A409"); Brush("TaskCompletedBrush", "#07E355");
         Brush("TabViewItemHeaderBackgroundSelected", wash);
         Brush("ListBoxItemSelectedBackgroundThemeBrush", wash);
         Brush("ListBoxItemSelectedForegroundThemeBrush", dark ? "#F3F3F3" : "#202B3A");
@@ -70,7 +63,7 @@ public static class ThemeService
         Application.Current.Resources["TaskPadding"] = new Thickness(12, settings.Density == "紧凑" ? 9 : 15, 12, settings.Density == "紧凑" ? 9 : 15);
         ReduceMotion = settings.ReduceMotion;
         Application.Current.Resources["CheckBoxAnimationDuration"] = new Duration(TimeSpan.FromMilliseconds(ReduceMotion ? 0 : 180));
-        ReapplyStatusColors(); Changed?.Invoke();
+        Changed?.Invoke();
     }
 
     private static void RefreshControlAccentBrushes()

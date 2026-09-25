@@ -8,3 +8,5 @@ Build/
 **/Backup/
 TestResults/
 *.user
+**/__pycache__/
+*.pyc

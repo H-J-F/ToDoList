@@ -7,7 +7,7 @@
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <NuGetLockFilePath Condition="'$(PublishSingleFile)' == 'true'">packages.portable.lock.json</NuGetLockFilePath>
-    <Version>2.3.1</Version>
+    <Version>2.3.4</Version>
     <Authors>H-J-F</Authors>
     <Copyright>Copyright (c) 2026 H-J-F</Copyright>
     <RepositoryUrl>https://github.com/H-J-F/ToDoList</RepositoryUrl>

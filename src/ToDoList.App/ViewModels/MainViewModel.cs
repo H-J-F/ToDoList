@@ -35,9 +35,9 @@ public sealed class MainViewModel : ObservableObject
     public DateSelection SelectedDates { get; private set; } = new(DateScope.Day, DateTime.Today, DateTime.Today);
     public bool IsCalendarFilter => Filter == TaskFilter.Calendar;
     public TaskSort Sort { get; private set; } = TaskSort.Completed;
-    public string? OpenColor { get; private set; }
-    public string? VerificationColor { get; private set; }
-    public string? CompletedColor { get; private set; }
+    public string? ReportOpenColor { get; private set; }
+    public string? ReportVerificationColor { get; private set; }
+    public string? ReportCompletedColor { get; private set; }
     public string FilterTitle => Filter switch { TaskFilter.All => "所有", TaskFilter.Calendar => SelectedDates.Label, TaskFilter.Deleted => "已删除", TaskFilter.Completed => "已完成", TaskFilter.Open => "未完成", TaskFilter.Month => "本月", TaskFilter.Week => "本周", _ => "今天" };
     public string DateSubtitle => DateTime.Now.ToString("yyyy 年 M 月 d 日  ·  dddd");
     public bool IsCompletedTab => Filter == TaskFilter.Completed;
@@ -66,8 +66,7 @@ public sealed class MainViewModel : ObservableObject
     {
         CancelQuery(); CurrentBook = book; Repository = new(book.Path); CurrentProjectId = null; Filter = TaskFilter.Today;
         Sort = await Repository.GetSettingAsync("CompletedSort") == "Created" ? TaskSort.Created : TaskSort.Completed;
-        OpenColor = await Repository.GetSettingAsync("StatusColor.Open"); VerificationColor = await Repository.GetSettingAsync("StatusColor.Verification"); CompletedColor = await Repository.GetSettingAsync("StatusColor.Completed");
-        Services.ThemeService.ApplyStatusColors(OpenColor, VerificationColor, CompletedColor);
+        ReportOpenColor = await Repository.GetSettingAsync("StatusColor.Open"); ReportVerificationColor = await Repository.GetSettingAsync("StatusColor.Verification"); ReportCompletedColor = await Repository.GetSettingAsync("StatusColor.Completed");
         Settings.LastBook = book.Name; Library.SaveSettings(Settings);
         await RefreshProjectsAsync(); await ReloadAsync(true); Raise(nameof(Sort));
     }
@@ -75,8 +74,8 @@ public sealed class MainViewModel : ObservableObject
     {
         if (Repository == null || !System.Text.RegularExpressions.Regex.IsMatch(value, "^#[0-9a-fA-F]{6}$")) throw new ArgumentException("颜色必须为 #RRGGBB 格式。");
         value = value.ToUpperInvariant(); await Repository.SetSettingAsync("StatusColor." + key, value);
-        if (key == "Open") OpenColor = value; else if (key == "Verification") VerificationColor = value; else CompletedColor = value;
-        Services.ThemeService.ApplyStatusColors(OpenColor, VerificationColor, CompletedColor); Services.ThemeService.NotifyChanged(); Message = "状态颜色已保存。";
+        if (key == "Open") ReportOpenColor = value; else if (key == "Verification") ReportVerificationColor = value; else ReportCompletedColor = value;
+        Message = "导出文档标记颜色已保存。";
     }
     public async Task RefreshProjectsAsync()
     {

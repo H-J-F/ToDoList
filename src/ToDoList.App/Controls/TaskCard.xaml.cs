@@ -27,24 +27,34 @@ public partial class TaskCard : UserControl
     public string? EditedProjectId => (ActiveProjectSelector?.SelectedItem as ProjectInfo)?.Id;
     public bool HasPendingChanges => ActiveEditor?.Dirty == true || (Row != null && EditedProjectId != Row.Item.ProjectId);
     private TaskViewModel? _subscribed;
+    private TaskViewModel? _boundRow;
     private readonly DispatcherTimer _hold = new() { Interval = TimeSpan.FromMilliseconds(600) };
     private bool _pressed, _long;
     private TaskCompletionSource? _animation;
     private int _animationVersion;
     private int _editVersion;
+    internal bool IsExpandingEdit { get; private set; }
     public TaskCard()
     {
         InitializeComponent();
+        RequestBringIntoView += (_, e) => { if (IsExpandingEdit) e.Handled = true; };
         MouseEnter += (_, _) => AnimateHover(true); MouseLeave += (_, _) => AnimateHover(false);
         _hold.Tick += (_, _) => { _hold.Stop(); if (!_pressed) return; _long = true; StateRequested?.Invoke(this, new(true)); };
         DataContextChanged += (_, _) => BindRow(); Loaded += (_, _) => { BindRow(); ThemeService.Changed -= RenderText; ThemeService.Changed += RenderText; };
-        Unloaded += (_, _) => { ThemeService.Changed -= RenderText; StopPress(); StopAnimation(); if (_subscribed != null) _subscribed.PropertyChanged -= OnRowChanged; _subscribed = null; };
+        Unloaded += (_, _) => { ThemeService.Changed -= RenderText; StopPress(); StopAnimation(); _editVersion++; IsExpandingEdit = false; ResetEditLayout(); if (_subscribed != null) _subscribed.PropertyChanged -= OnRowChanged; _subscribed = null; };
     }
     private void BindRow()
     {
+        // A tray handle recreation unloads/reloads the same row. Retain its unsaved
+        // editor; only a different data item may release the shared editor.
+        if (_boundRow != Row)
+        {
+            StopPress(); StopAnimation(); EndEdit(); _boundRow = Row;
+            RowBorder.Background = new SolidColorBrush(Colors.Transparent);
+        }
         if (_subscribed == Row) return;
         if (_subscribed != null) _subscribed.PropertyChanged -= OnRowChanged;
-        _subscribed = Row; StopPress(); StopAnimation(); EndEdit(); RowBorder.Background = new SolidColorBrush(Colors.Transparent);
+        _subscribed = Row;
         if (_subscribed != null) _subscribed.PropertyChanged += OnRowChanged;
         RenderText();
     }
@@ -79,14 +89,17 @@ public partial class TaskCard : UserControl
         }
         BodyText.Opacity = Row.IsCompleted ? .52 : 1;
         AnimateHover(IsMouseOver);
-        var stateBrush = (Brush)FindResource(Row.IsVerification ? "YellowBrush" : Row.IsCompleted ? "GreenBrush" : "OpenBrush");
+        var stateBrush = (Brush)FindResource(Row.IsVerification ? "TaskVerificationBrush" : Row.IsCompleted ? "TaskCompletedBrush" : "TaskOpenBrush");
+        CheckButton.BorderBrush = stateBrush;
+        CheckButton.Resources["CheckBoxCheckBorderBrush"] = stateBrush;
         if (ThemeService.ReduceMotion)
             InteractionMotion.FinishCheckAnimation(CheckButton);
-        foreach (var key in new[] { "CheckBoxCheckBackgroundFillChecked", "CheckBoxCheckBackgroundFillCheckedPointerOver", "CheckBoxCheckBackgroundFillCheckedPressed", "CheckBoxCheckBackgroundStrokeChecked", "CheckBoxCheckBackgroundStrokeCheckedPointerOver", "CheckBoxCheckBackgroundStrokeCheckedPressed" }) CheckButton.Resources[key] = stateBrush;
+        foreach (var key in new[] { "CheckBoxCheckBackgroundFillChecked", "CheckBoxCheckBackgroundFillCheckedPointerOver", "CheckBoxCheckBackgroundFillCheckedPressed", "CheckBoxCheckBackgroundStrokeChecked", "CheckBoxCheckBackgroundStrokeCheckedPointerOver", "CheckBoxCheckBackgroundStrokeCheckedPressed", "CheckBoxCheckBackgroundStrokeUnchecked", "CheckBoxCheckBackgroundStrokeUncheckedPointerOver", "CheckBoxCheckBackgroundStrokeUncheckedPressed" }) CheckButton.Resources[key] = stateBrush;
     }
     public void BeginEdit()
     {
         if (Row == null || Row.IsDeleted || ActiveEditor != null) return;
+        IsExpandingEdit = true;
         ActiveEditor = (Window.GetWindow(this) as MainWindow)?.TaskEditor ?? new RichEditor { MinHeight = 92, MaxHeight = 240 };
         ActiveEditor.SubmitLabel = "保存";
         ActiveEditor.SetContent(RichContent.Parse(Row.Item.ContentJson));
@@ -103,40 +116,76 @@ public partial class TaskCard : UserControl
         var cancel = new Wpf.Ui.Controls.Button { Content = "取消", Margin = new(0, 4, 8, 0), Padding = new(10, 5, 10, 5) }; cancel.Click += (_, _) => CancelRequested?.Invoke(this, EventArgs.Empty);
         var save = new Wpf.Ui.Controls.Button { Content = "保存  Enter", Style = (Style)FindResource("PrimaryButton"), Margin = new(0, 4, 0, 0), Padding = new(10, 5, 10, 5) }; save.Click += (_, _) => SaveRequested?.Invoke(this, EventArgs.Empty);
         actions.Children.Add(cancel); actions.Children.Add(save); panel.Children.Add(actions);
+        var initialHeight = BodyText.ActualHeight;
+        EditorHost.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+        EditorHost.VerticalContentAlignment = VerticalAlignment.Top;
+        EditorHost.ClipToBounds = true;
+        panel.VerticalAlignment = VerticalAlignment.Top;
+        EditorHost.Height = initialHeight;
+        EditorHost.Opacity = 0;
         EditorHost.Content = panel; EditorHost.Visibility = Visibility.Visible; BodyText.Visibility = Visibility.Collapsed;
         Row.IsEditing = true;
-        // Measure the editor once at its final size. Only the clipping host shrinks,
-        // so the RichTextBox does not reformat its document on each animation frame.
-        panel.VerticalAlignment = VerticalAlignment.Top;
-        EditorHost.ClipToBounds = true;
-        panel.Measure(new Size(Math.Max(100, BodyText.ActualWidth), double.PositiveInfinity));
         var version = ++_editVersion;
+        // Wait for inherited styles/templates and the real column width. A detached
+        // RichTextBox can report a different height before its first arrange.
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
         {
-            if (_editVersion == version) ActiveEditor?.FocusEditor();
-        }));
-        if (!ThemeService.ReduceMotion)
-        {
-            panel.Height = panel.DesiredSize.Height;
-            var expand = new DoubleAnimation(0, panel.Height, TimeSpan.FromMilliseconds(180))
-            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop };
-            expand.Completed += (_, _) => { if (_editVersion == version) panel.Height = double.NaN; };
+            if (_editVersion != version || ActiveEditor == null || !IsLoaded) return;
+            var width = EditorHost.ActualWidth;
+            if (width <= 0) { FinishEditExpansion(version); return; }
+            panel.Width = width;
+            panel.Measure(new Size(width, double.PositiveInfinity));
+            panel.Arrange(new Rect(0, 0, width, panel.DesiredSize.Height));
+            panel.UpdateLayout();
+            panel.Measure(new Size(width, double.PositiveInfinity));
+            var target = panel.DesiredSize.Height;
+            panel.Height = target;
+            if (ThemeService.ReduceMotion) { FinishEditExpansion(version); return; }
+            var expand = new DoubleAnimation(initialHeight, target, TimeSpan.FromMilliseconds(180))
+            { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+            expand.Completed += (_, _) => FinishEditExpansion(version);
             EditorHost.BeginAnimation(HeightProperty, expand);
-        }
-        EditorHost.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(ThemeService.ReduceMotion ? 90 : 180)));
+            EditorHost.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180)));
+        }));
+    }
+    private void FinishEditExpansion(int version)
+    {
+        if (_editVersion != version) return;
+        ResetEditLayout();
+        // Natural sizing must be arranged before focus/caret visibility requests.
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        {
+            if (_editVersion != version || !IsLoaded || ActiveEditor == null) return;
+            ActiveEditor.FocusEditor();
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
+            {
+                if (_editVersion != version || !IsLoaded || ActiveEditor == null) return;
+                IsExpandingEdit = false;
+                if (Window.GetWindow(this) is MainWindow owner) owner.RevealTaskEditor(this, EditorHost);
+            }));
+        }));
+    }
+    private void ResetEditLayout()
+    {
+        EditorHost.BeginAnimation(HeightProperty, null);
+        EditorHost.BeginAnimation(OpacityProperty, null);
+        if (EditorHost.Content is Panel panel) panel.Height = panel.Width = double.NaN;
+        EditorHost.Height = double.NaN; EditorHost.Opacity = 1;
     }
     private void EditorSubmit(object? sender, EventArgs e) => SaveRequested?.Invoke(this, EventArgs.Empty);
     private void EditorCancel(object? sender, EventArgs e) => CancelRequested?.Invoke(this, EventArgs.Empty);
     public void EndEdit()
     {
         _editVersion++;
+        IsExpandingEdit = false;
+        ResetEditLayout();
         if (ActiveEditor != null)
         {
             ActiveEditor.Submit -= EditorSubmit; ActiveEditor.Cancel -= EditorCancel;
             ActiveEditor.CloseTool();
             if (EditorHost.Content is Panel panel) panel.Children.Remove(ActiveEditor);
         }
-        EditorHost.BeginAnimation(HeightProperty, null); EditorHost.BeginAnimation(OpacityProperty, null); EditorHost.Content = null; EditorHost.Visibility = Visibility.Collapsed; BodyText.Visibility = Visibility.Visible; ActiveEditor = null; ActiveProjectSelector = null;
+        EditorHost.Content = null; EditorHost.Visibility = Visibility.Collapsed; BodyText.Visibility = Visibility.Visible; ActiveEditor = null; ActiveProjectSelector = null;
     }
     private void Body_Down(object sender, MouseButtonEventArgs e) { if (e.ClickCount == 2 && Row is { IsBusy: false, IsDeleted: false }) { e.Handled = true; EditRequested?.Invoke(this, EventArgs.Empty); } }
     private void Check_Down(object sender, MouseButtonEventArgs e)

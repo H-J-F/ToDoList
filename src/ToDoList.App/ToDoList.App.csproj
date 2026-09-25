@@ -12,8 +12,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>ToDoList</AssemblyName>
-    <Version>2.3.1</Version>
-    <InformationalVersion>2.3.1</InformationalVersion>
     <Authors>H-J-F</Authors>
     <Copyright>Copyright (c) 2026 H-J-F</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

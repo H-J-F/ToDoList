@@ -1,0 +1,18 @@
+{
+  "description": "ToDoList document closure and local Build publication",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -X utf8 -c \"import pathlib,runpy; p=next(d/'.codex/hooks/stop.py' for d in (pathlib.Path.cwd(), *pathlib.Path.cwd().parents) if (d/'.codex/hooks/stop.py').is_file()); runpy.run_path(str(p), run_name='__main__')\"",
+            "commandWindows": "python -X utf8 -c \"import pathlib,runpy; p=next(d/'.codex/hooks/stop.py' for d in (pathlib.Path.cwd(), *pathlib.Path.cwd().parents) if (d/'.codex/hooks/stop.py').is_file()); runpy.run_path(str(p), run_name='__main__')\"",
+            "timeout": 1800,
+            "statusMessage": "Checking documents, testing and publishing to Build"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -37,6 +37,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     private int _pendingMutations;
     private PageDirection? _scrollIntent;
     private bool _scrollbarGesture;
+    private bool _editRevealPending;
     private bool _savingRow, _closePending;
     private WindowState _stateBeforeTray = WindowState.Normal;
     public MainWindow(BookLibrary library, AppSettings settings)
@@ -65,16 +66,17 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         Model.LatestRequested += ScrollToLatest;
         Model.IsEditing = () => _editingCard != null;
         Model.AnimateRemoval = row => FindCard(row)?.AnimateOutAsync(Model.Settings.ReduceMotion) ?? Task.CompletedTask;
-        TaskList.PreviewMouseWheel += (_, e) => _scrollIntent = e.Delta > 0 ? PageDirection.Older : PageDirection.Newer;
+        TaskList.PreviewMouseWheel += (_, e) => { _editRevealPending = false; _scrollIntent = e.Delta > 0 ? PageDirection.Older : PageDirection.Newer; };
         TaskList.PreviewKeyDown += (_, e) =>
         {
+            if (_editingCard?.IsKeyboardFocusWithin == true) return;
             if (e.Key is Key.Up or Key.PageUp or Key.Home) _scrollIntent = PageDirection.Older;
             else if (e.Key is Key.Down or Key.PageDown or Key.End) _scrollIntent = PageDirection.Newer;
         };
         TaskList.PreviewMouseDown += (_, e) =>
         {
             for (var d = e.OriginalSource as DependencyObject; d is Visual; d = VisualTreeHelper.GetParent(d))
-                if (d is ScrollBar) { _scrollbarGesture = true; break; }
+                if (d is ScrollBar) { _editRevealPending = false; _scrollbarGesture = true; break; }
         };
         TaskList.PreviewMouseUp += (_, _) => _scrollbarGesture = false;
         _settingsSave.Tick += (_, _) => { _settingsSave.Stop(); try { Model.SaveSettings(); } catch (Exception ex) { ShowError(ex); } };
@@ -110,6 +112,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        if (_initialized) return; // Recreating the tray window handle can raise Loaded again.
         await SafeAsync(async () => { Model.IsBusy = true; await Model.InitializeAsync(); SyncSelectors(); SyncSettings(); });
         Model.IsBusy = false; _sync = false; _initialized = true; _calendar.Start();
         _ = Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
@@ -120,6 +123,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             TaskEditor.Measure(new Size(Math.Max(100, TaskList.ActualWidth - 60), double.PositiveInfinity));
         }));
         var args = Environment.GetCommandLineArgs();
+        if (args.Contains("--ui-revision")) { await Services.UiRevisionChecks.RunAsync(this); return; }
         if (args.Contains("--ui-drag-boundaries")) { await Services.UiDragBoundaryChecks.RunAsync(this); return; }
         if (args.Contains("--ui-interaction")) { await Services.UiInteractionChecks.RunAsync(this); return; }
         if (args.Contains("--ui-taskfixes")) { await Services.UiTaskFixes.RunAsync(this); return; }
@@ -147,7 +151,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         try { await action(); } catch (OperationCanceledException) { } catch (Exception ex) { ShowError(ex); }
     }
-    private void ShowError(Exception ex) { Model.Message = "未能完成：" + ex.Message; _ = Dialogs.Info(this, "操作未完成", ex.Message); }
+    private void ShowError(Exception ex) { if (!IsVisible) RestoreFromTray(); Model.Message = "未能完成：" + ex.Message; _ = Dialogs.Info(this, "操作未完成", ex.Message); }
     private async Task NavigateAsync(Func<Task> action, bool bookOperation = false, bool preserveDraft = false)
     {
         if (_navigating) { SyncSelectors(); return; }
@@ -306,8 +310,24 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         if (sender is not TaskCard card || card.Row is not { IsBusy: false, IsDeleted: false } || card == _editingCard) return;
         if (!await TryLeaveRowEditAsync()) return;
         _editingCard = card;
+        _editRevealPending = true;
+        _scrollIntent = null;
+        _scrollbarGesture = false;
+        // Replace ScrollToEnd's infinity target with a finite offset before the
+        // virtualizing panel's extent changes on every animation frame.
+        if (Descendants<ScrollViewer>(TaskList).FirstOrDefault() is { } scroll)
+            scroll.ScrollToVerticalOffset(scroll.VerticalOffset);
         if (TaskList.ItemContainerGenerator.ContainerFromItem(card.Row) is DependencyObject container) VirtualizingPanel.SetIsContainerVirtualizable(container, false);
         card.BeginEdit();
+    }
+    internal void RevealTaskEditor(TaskCard card, FrameworkElement editorHost)
+    {
+        if (!_editRevealPending || !ReferenceEquals(_editingCard, card) || Descendants<ScrollViewer>(TaskList).FirstOrDefault() is not { } scroll) return;
+        _editRevealPending = false;
+        var top = editorHost.TransformToAncestor(scroll).Transform(new Point()).Y;
+        var bottom = top + editorHost.ActualHeight;
+        var delta = editorHost.ActualHeight > scroll.ViewportHeight ? top : top < 0 ? top : Math.Max(0, bottom - scroll.ViewportHeight);
+        if (Math.Abs(delta) > 1) scroll.ScrollToVerticalOffset(scroll.VerticalOffset + delta);
     }
     private async void Task_SaveRequested(object? sender, EventArgs e) => await SafeAsync(SaveRowEditAsync);
     private void Task_CancelRequested(object? sender, EventArgs e) => EndRowEdit();
@@ -321,6 +341,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
     private void EndRowEdit()
     {
+        _editRevealPending = false;
         if (_editingCard == null) return;
         if (_editingCard.Row is { } row)
         {
@@ -333,6 +354,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         while (_savingRow) await Task.Delay(20);
         if (_editingCard is not { HasPendingChanges: true }) { EndRowEdit(); return true; }
+        if (!IsVisible) RestoreFromTray();
         int choice = await Dialogs.Choose(this, "还有未保存的修改", "离开前，要保存这条任务的修改吗？", "取消", "放弃修改", "保存");
         if (choice <= 0) return false;
         if (choice == 2) { try { await SaveRowEditAsync(); } catch (Exception ex) { ShowError(ex); return false; } }
@@ -343,6 +365,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         if (!await TryLeaveRowEditAsync()) return false;
         if (!string.IsNullOrWhiteSpace(DraftEditor.GetContent().PlainText))
         {
+            if (!IsVisible) RestoreFromTray();
             var choice = await Dialogs.Choose(this, "还有一件事没记下来", "输入栏中有未提交的任务，要先保存吗？", "取消", "放弃草稿", "保存");
             if (choice <= 0) return false;
             if (choice == 2) { try { await AddDraftAsync(); } catch (Exception ex) { ShowError(ex); return false; } }
@@ -352,7 +375,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
     private async void TaskList_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        if (_restoring || !_initialized || e.OriginalSource is not ScrollViewer scroll || e.VerticalChange == 0 ||
+        if (_restoring || _editingCard?.IsExpandingEdit == true || !_initialized || e.OriginalSource is not ScrollViewer scroll || e.VerticalChange == 0 ||
             !ReferenceEquals(scroll, Descendants<ScrollViewer>(TaskList).FirstOrDefault()) || (!_scrollbarGesture && _scrollIntent == null)) return;
         if (scroll.VerticalOffset < 150 && e.VerticalChange < 0 && (_scrollbarGesture || _scrollIntent == PageDirection.Older))
         { _scrollIntent = null; await SafeAsync(() => Model.LoadPageAsync(PageDirection.Older)); }
@@ -434,13 +457,48 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         var prior = _sync; _sync = true; var s = Model.Settings;
         ModeSetting.SelectedItem = s.Mode; PaletteSetting.SelectedValue = s.AccentPreset; FontSetting.SelectedItem = s.FontSize;
         DensitySetting.SelectedItem = s.Density; MotionSetting.SelectedIndex = s.ReduceMotion ? 1 : 0; _sync = prior;
-        if (OpenColorSetting != null) { OpenColorSetting.Text = Model.OpenColor ?? "#42E9FF"; VerificationColorSetting.Text = Model.VerificationColor ?? "#FFE500"; CompletedColorSetting.Text = Model.CompletedColor ?? "#00FF73"; }
+        if (OpenColorSetting != null) { OpenColorSetting.Text = Model.ReportOpenColor ?? TaskReport.Color(ReportColor.Open); VerificationColorSetting.Text = Model.ReportVerificationColor ?? TaskReport.Color(ReportColor.Verification); CompletedColorSetting.Text = Model.ReportCompletedColor ?? TaskReport.Color(ReportColor.Completed); }
     }
-    private async void StatusColor_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    private void StatusColor_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (!_initialized || Model.Repository == null || sender is not TextBox box) return;
-        var key = box == OpenColorSetting ? "Open" : box == VerificationColorSetting ? "Verification" : "Completed";
-        await SafeAsync(() => Model.SetStatusColorAsync(key, box.Text.Trim()));
+        if (sender is not TextBox box || !System.Text.RegularExpressions.Regex.IsMatch(box.Text.Trim(), "^#[0-9a-fA-F]{6}$")) return;
+        var swatch = box == OpenColorSetting ? OpenColorPreview : box == VerificationColorSetting ? VerificationColorPreview : CompletedColorPreview;
+        if (swatch != null) swatch.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(box.Text.Trim()));
+    }
+    private readonly HashSet<TextBox> _colorMenus = [];
+    private readonly Dictionary<TextBox, int> _colorValidationVersions = [];
+    private void StatusColor_MenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is TextBox box) _colorMenus.Add(box);
+    }
+    private void StatusColor_MenuClosing(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is not TextBox box) return;
+        _colorMenus.Remove(box);
+        QueueStatusColorValidation(box);
+    }
+    private void StatusColor_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is TextBox box) QueueStatusColorValidation(box);
+    }
+    private void QueueStatusColorValidation(TextBox box)
+    {
+        if (!_initialized || Model.Repository == null) return;
+        var repository = Model.Repository;
+        var value = box.Text.Trim();
+        var version = _colorValidationVersions.GetValueOrDefault(box) + 1;
+        _colorValidationVersions[box] = version;
+        // Opening/closing a native TextBox menu temporarily moves keyboard focus.
+        // Let that transition finish before deciding whether editing actually ended.
+        Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(async () =>
+        {
+            if (_colorValidationVersions[box] != version || _colorMenus.Contains(box) || box.IsKeyboardFocusWithin ||
+                !ReferenceEquals(repository, Model.Repository) || value != box.Text.Trim()) return;
+            var key = box == OpenColorSetting ? "Open" : box == VerificationColorSetting ? "Verification" : "Completed";
+            var saved = box == OpenColorSetting ? Model.ReportOpenColor : box == VerificationColorSetting ? Model.ReportVerificationColor : Model.ReportCompletedColor;
+            if (string.Equals(value, saved, StringComparison.OrdinalIgnoreCase)) return;
+            await SafeAsync(() => Model.SetStatusColorAsync(key, value));
+        }));
     }
     private void Setting_Changed(object sender, SelectionChangedEventArgs e)
     {
@@ -481,8 +539,9 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
     internal void RequestExit()
     {
+        if (_closePending || _closingApproved) return;
         (Application.Current as App)?.BeginExit();
-        RestoreFromTray(); Close();
+        Close();
     }
     private void SaveWindowPlacement()
     {
@@ -509,17 +568,20 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         }
         e.Cancel = true;
         if (_closePending) return;
-        if (_navigating || Model.IsBusy) { Model.Message = "正在保存待办笔记，请稍候再关闭。"; return; }
         _closePending = true;
         try
         {
+            // Let WPF finish cancelling this Close before a pending-edit dialog
+            // restores the hidden window (Show is forbidden inside Closing).
+            await Dispatcher.Yield(DispatcherPriority.Normal);
+            while (_navigating || Model.IsBusy || _pendingMutations > 0) await Task.Delay(20);
             if (!await TryLeaveEditsAsync()) return;
             while (_pendingMutations > 0) await Task.Delay(20);
             SaveWindowPlacement(); _closingApproved = true;
             _ = Dispatcher.BeginInvoke(new Action(Close));
         }
         catch (Exception ex) { ShowError(ex); }
-        finally { _closePending = false; }
+        finally { _closePending = false; if (!_closingApproved) app.CancelExit(); }
     }
     [StructLayout(LayoutKind.Sequential)]
     private struct FlashInfo { public uint Size; public IntPtr Hwnd; public uint Flags; public uint Count; public uint Timeout; }

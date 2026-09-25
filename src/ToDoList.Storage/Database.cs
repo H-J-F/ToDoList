@@ -5,7 +5,7 @@ namespace ToDoList.Storage;
 
 public static class Database
 {
-    public const int Version = 3;
+    public const int Version = 4;
     public const int ApplicationId = 0x544F444F;
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> Gates = new(StringComparer.OrdinalIgnoreCase);
     public static async Task<T> RunAsync<T>(string path, Func<T> action, CancellationToken ct = default)
@@ -70,20 +70,24 @@ public static class Database
             throw new InvalidDataException("这不是 ToDoList 待办笔记。");
         var version = Convert.ToInt32(Scalar(c, "PRAGMA user_version"));
         if (version == Version) return;
-        if (version is not (1 or 2)) throw new InvalidDataException($"不支持待办笔记格式版本 {version}。");
+        if (version is not (1 or 2 or 3)) throw new InvalidDataException($"不支持待办笔记格式版本 {version}。");
         if (!Equals(Scalar(c, "PRAGMA quick_check"), "ok")) throw new InvalidDataException("数据库完整性检查失败。");
         if (Convert.ToInt64(Scalar(c, "SELECT COUNT(*) FROM sqlite_schema WHERE type IN ('view','trigger')")) != 0)
             throw new InvalidDataException("待办笔记包含不支持的数据库对象。");
         if (backupDirectory != null)
         {
             Directory.CreateDirectory(backupDirectory);
-            Snapshot(path, System.IO.Path.Combine(backupDirectory, $"{System.IO.Path.GetFileNameWithoutExtension(path)}-v1-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db"));
+            Snapshot(path, System.IO.Path.Combine(backupDirectory, $"{System.IO.Path.GetFileNameWithoutExtension(path)}-v{version}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db"));
         }
-        if (version == 2)
+        if (version is 2 or 3)
         {
             using var tx = c.BeginTransaction();
-            Exec(c, "ALTER TABLE Projects ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0;");
-            Exec(c, "UPDATE Projects SET SortOrder=(SELECT COUNT(*) FROM Projects later WHERE later.rowid < Projects.rowid);");
+            if (version == 2)
+            {
+                Exec(c, "ALTER TABLE Projects ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0;");
+                Exec(c, "UPDATE Projects SET SortOrder=(SELECT COUNT(*) FROM Projects later WHERE later.rowid < Projects.rowid);");
+            }
+            Exec(c, "ALTER TABLE Tasks ADD COLUMN EditedAt INTEGER;");
             Exec(c, $"PRAGMA user_version={Version};");
             tx.Commit();
             return;
@@ -119,7 +123,7 @@ public static class Database
           PlainText TEXT NOT NULL, Status INTEGER NOT NULL CHECK(Status IN (0,1,2,3)),
           CreatedAt INTEGER NOT NULL, UpdatedAt INTEGER NOT NULL, CompletedAt INTEGER,
           Revision INTEGER NOT NULL DEFAULT 1 CHECK(Revision>0),
-          DeletedAt INTEGER, PreviousStatus INTEGER, PreviousCompletedAt INTEGER,
+          DeletedAt INTEGER, PreviousStatus INTEGER, PreviousCompletedAt INTEGER, EditedAt INTEGER,
           CHECK((Status=3 AND DeletedAt IS NOT NULL AND PreviousStatus IS NOT NULL AND PreviousStatus IN(0,1,2)
             AND ((PreviousStatus=2 AND PreviousCompletedAt IS NOT NULL) OR (PreviousStatus<>2 AND PreviousCompletedAt IS NULL)))
             OR (Status<>3 AND DeletedAt IS NULL AND PreviousStatus IS NULL AND PreviousCompletedAt IS NULL)),

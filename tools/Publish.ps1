@@ -1,6 +1,7 @@
-param(
+﻿param(
     [ValidateSet('Both', 'Lite', 'Portable')][string]$Variant = 'Both',
-    [string]$OutputRoot = (Join-Path $PSScriptRoot '..\Build')
+    [string]$OutputRoot = (Join-Path $PSScriptRoot '..\Build'),
+    [string]$BuildArtifactsPath = ''
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -10,7 +11,7 @@ if ($publishRoot -ne $allowedRoot -and !$publishRoot.StartsWith($allowedRoot + [
     throw '构建输出必须位于项目根目录的 Build 下。'
 }
 $project = Join-Path $repoRoot 'src\ToDoList.App\ToDoList.App.csproj'
-[xml]$projectXml = Get-Content -LiteralPath $project
+[xml]$projectXml = Get-Content -LiteralPath (Join-Path $repoRoot 'Directory.Build.props')
 $version = [string]($projectXml.Project.PropertyGroup.Version | Where-Object { $_ })
 $sourceCommit = git -C $repoRoot rev-parse HEAD
 $dirty = [bool](git -C $repoRoot status --porcelain)
@@ -27,11 +28,12 @@ foreach ($kind in $variants) {
         '-p:RestoreLockedMode=true', '-p:DebugType=None', '-p:DebugSymbols=false', '-p:PublishTrimmed=false', '-p:SatelliteResourceLanguages=zh-Hans',
         "-p:PublishSingleFile=$portable", '-o', $destination)
     if ($portable) { $publishArgs += @('-p:EnableCompressionInSingleFile=true', '-p:IncludeNativeLibrariesForSelfExtract=true') }
+    if ($BuildArtifactsPath) { $publishArgs += @('--artifacts-path', $BuildArtifactsPath) }
     & dotnet @publishArgs
     if ($LASTEXITCODE -ne 0) { throw "构建 $kind 失败。" }
     Copy-Item -LiteralPath (Join-Path $repoRoot 'LICENSE') -Destination $destination
     Copy-Item -LiteralPath (Join-Path $repoRoot 'README.md') -Destination (Join-Path $destination '使用说明.md')
-    foreach ($file in @('THIRD-PARTY.md', 'DEPENDENCIES.json', 'VALIDATION-2.3.1.md', 'VALIDATION-TYPOGRAPHY.md')) {
+    foreach ($file in @('THIRD-PARTY.md', 'DEPENDENCIES.json', 'VALIDATION-2.3.1.md', 'VALIDATION-TASK-REVISION.md', 'VALIDATION-TYPOGRAPHY.md')) {
         Copy-Item -LiteralPath (Join-Path $repoRoot "docs\$file") -Destination $destination
     }
     Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\licenses') -Destination $destination -Recurse

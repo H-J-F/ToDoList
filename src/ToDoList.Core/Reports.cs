@@ -66,14 +66,14 @@ public sealed record TaskReport(IReadOnlyList<ReportLine> Lines)
     public IReadOnlyDictionary<ReportColor, string> Colors { get; init; } = DefaultColors;
     public static IReadOnlyDictionary<ReportColor, string> DefaultColors { get; } = new Dictionary<ReportColor, string>
     {
-        [ReportColor.Open] = "#42E9FF", [ReportColor.Verification] = "#FFE500", [ReportColor.Completed] = "#00FF73", [ReportColor.Deleted] = "#FF5141", [ReportColor.Default] = "#000000"
+        [ReportColor.Open] = "#00CAE5", [ReportColor.Verification] = "#E6A409", [ReportColor.Completed] = "#07E355", [ReportColor.Deleted] = "#FF5141", [ReportColor.Default] = "#000000"
     };
     public string ResolveColor(ReportColor color) => Colors.GetValueOrDefault(color, DefaultColors[color]);
     public static string Color(ReportColor color) => color switch
     {
-        ReportColor.Open => "#42E9FF",
-        ReportColor.Verification => "#FFE500",
-        ReportColor.Completed => "#00FF73",
+        ReportColor.Open => "#00CAE5",
+        ReportColor.Verification => "#E6A409",
+        ReportColor.Completed => "#07E355",
         ReportColor.Deleted => "#FF5141",
         _ => "#000000"
     };
@@ -154,6 +154,7 @@ public sealed record TaskReport(IReadOnlyList<ReportLine> Lines)
                 new($"[{status.Label}]", status.Color), new("  " + Project(task.ProjectId) + "  添加时间：" + Stamp(task.CreatedAt))
             };
             if ((task.CompletedAt ?? task.PreviousCompletedAt) is { } completed) metadata.Add(new("  完成时间：" + Stamp(completed)));
+            if (task.EditedAt is { } edited) metadata.Add(new("  上次修改时间：" + Stamp(edited)));
             if (task.DeletedAt is { } deleted) metadata.Add(new("  删除时间：" + Stamp(deleted)));
             lines.Add(new(ReportLineKind.Metadata, metadata));
             lines.Add(new(ReportLineKind.Text, ""));

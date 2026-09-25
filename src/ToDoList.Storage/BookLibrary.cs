@@ -114,7 +114,7 @@ public sealed class BookLibrary
             BookRules.ValidateTitle(r.GetString(1));
             if (r.GetInt32(2) < 0) throw new InvalidDataException("模块顺序无效。");
         }
-        using (var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks"))
+        using (var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt,EditedAt FROM Tasks"))
         using (var r = cmd.ExecuteReader()) while (r.Read())
         {
             ct.ThrowIfCancellationRequested(); var item = TaskRepository.Read(r);
@@ -135,6 +135,11 @@ public sealed class BookLibrary
             if (content.PlainText != item.PlainText || string.IsNullOrWhiteSpace(item.PlainText)) throw new InvalidDataException("任务内容不一致。");
             _ = DateTimeOffset.FromUnixTimeMilliseconds(item.CreatedAt); _ = DateTimeOffset.FromUnixTimeMilliseconds(item.UpdatedAt);
             if (item.CompletedAt.HasValue) _ = DateTimeOffset.FromUnixTimeMilliseconds(item.CompletedAt.Value);
+            if (item.EditedAt is long edited)
+            {
+                _ = DateTimeOffset.FromUnixTimeMilliseconds(edited);
+                if (edited < item.CreatedAt || edited > item.UpdatedAt) throw new InvalidDataException("任务修改时间无效。");
+            }
         }
         using (var cmd = Database.Command(c, "SELECT Id,FromStatus,ToStatus,OccurredAt FROM TaskStateEvents"))
         using (var r = cmd.ExecuteReader()) while (r.Read())
@@ -190,17 +195,17 @@ public sealed class BookLibrary
             if (local == null) { Database.Exec(to, "INSERT INTO Projects(Id,Name,SortOrder) VALUES($id,$name,$order)", ("$id", id), ("$name", name), ("$order", order)); local = id; }
             map[id] = local;
         }
-        using (var cmd = Database.Command(from, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks"))
+        using (var cmd = Database.Command(from, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt,EditedAt FROM Tasks"))
         using (var r = cmd.ExecuteReader()) while (r.Read())
         {
             ct.ThrowIfCancellationRequested(); var item = TaskRepository.Read(r);
             if (item.ProjectId != null) item = item with { ProjectId = map[item.ProjectId] };
             Database.Exec(to, """
-                INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt)
-                VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision,$deleted,$previous,$previousCompleted)
+                INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt,EditedAt)
+                VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision,$deleted,$previous,$previousCompleted,$edited)
                 ON CONFLICT(Id) DO UPDATE SET ProjectId=excluded.ProjectId, ContentJson=excluded.ContentJson,
                 PlainText=excluded.PlainText, Status=excluded.Status, CreatedAt=excluded.CreatedAt,
-                UpdatedAt=excluded.UpdatedAt, CompletedAt=excluded.CompletedAt, DeletedAt=excluded.DeletedAt, PreviousStatus=excluded.PreviousStatus, PreviousCompletedAt=excluded.PreviousCompletedAt, Revision=MAX(Tasks.Revision,excluded.Revision)+1
+                UpdatedAt=excluded.UpdatedAt, EditedAt=excluded.EditedAt, CompletedAt=excluded.CompletedAt, DeletedAt=excluded.DeletedAt, PreviousStatus=excluded.PreviousStatus, PreviousCompletedAt=excluded.PreviousCompletedAt, Revision=MAX(Tasks.Revision,excluded.Revision)+1
                 WHERE excluded.UpdatedAt>Tasks.UpdatedAt
                 """, TaskRepository.Args(item));
         }

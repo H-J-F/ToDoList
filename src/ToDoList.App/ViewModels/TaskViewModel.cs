@@ -5,7 +5,7 @@ namespace ToDoList.App.ViewModels;
 public sealed class TaskViewModel(TodoItem item) : ObservableObject
 {
     private TodoItem _item = item;
-    public TodoItem Item { get => _item; set { _item = value; Raise(); Raise(nameof(IsCompleted)); Raise(nameof(IsVerification)); Raise(nameof(IsDeleted)); Raise(nameof(CheckState)); Raise(nameof(StateHint)); Raise(nameof(CompletionLabel)); Raise(nameof(CreationLabel)); Raise(nameof(TimeDetails)); } }
+    public TodoItem Item { get => _item; set { _item = value; Raise(); Raise(nameof(IsCompleted)); Raise(nameof(IsVerification)); Raise(nameof(IsDeleted)); Raise(nameof(CheckState)); Raise(nameof(StateHint)); Raise(nameof(CompletionLabel)); Raise(nameof(CreationLabel)); Raise(nameof(TimeDetails)); Raise(nameof(EditLabel)); Raise(nameof(HasEditTime)); } }
     public string Id => Item.Id;
     private bool _selectionMode, _selectedForDeletion;
     public bool SelectionMode { get => _selectionMode; set => Set(ref _selectionMode, value); }
@@ -15,7 +15,10 @@ public sealed class TaskViewModel(TodoItem item) : ObservableObject
     public bool IsDeleted => Item.Status == TodoStatus.Deleted;
     public bool? CheckState => IsVerification ? null : IsCompleted;
     public string CreationLabel => "添加于 " + FormatTime(Item.CreatedAt);
+    public bool HasEditTime => Item.EditedAt.HasValue;
+    public string EditLabel => Item.EditedAt is long edited ? "上次修改于 " + FormatTime(edited) : "";
     public string TimeDetails => "添加：" + DateTimeOffset.FromUnixTimeMilliseconds(Item.CreatedAt).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+        + (Item.EditedAt is long edited ? "\n上次修改：" + DateTimeOffset.FromUnixTimeMilliseconds(edited).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "")
         + (Item.CompletedAt is long completed ? "\n完成：" + DateTimeOffset.FromUnixTimeMilliseconds(completed).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "")
         + (Item.DeletedAt is long deleted ? "\n删除：" + DateTimeOffset.FromUnixTimeMilliseconds(deleted).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "");
     private static string FormatTime(long time)

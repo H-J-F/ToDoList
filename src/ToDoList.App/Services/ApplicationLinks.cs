@@ -3,6 +3,7 @@ namespace ToDoList.App.Services;
 public static class ApplicationLinks
 {
     public const string RepositoryUrl = "https://github.com/H-J-F/ToDoList";
-    public const string Version = "2.3.1";
-    public const string BuildLabel = Version;
+    public static string Version => typeof(ApplicationLinks).Assembly.GetName().Version!.ToString(3);
+    public static string BuildLabel => Version;
+    public static string DisplayName => $"ToDoList  {Version}";
 }

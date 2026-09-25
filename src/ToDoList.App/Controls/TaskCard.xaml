@@ -1,7 +1,6 @@
 <UserControl x:Class="ToDoList.App.Controls.TaskCard" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:fluent="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" ClipToBounds="True" Focusable="True" KeyboardNavigation.TabNavigation="Local" AutomationProperties.Name="{Binding Item.PlainText}">
     <UserControl.ContextMenu><ContextMenu Opened="Menu_Opened"><MenuItem x:Name="DeleteRestoreMenu" Click="DeleteRestore_Click"/><MenuItem x:Name="PermanentDeleteMenu" Header="彻底删除…" Click="PermanentDelete_Click"/><MenuItem x:Name="MultiSelectMenu" Header="开启多选" Click="MultiSelect_Click"/></ContextMenu></UserControl.ContextMenu>
     <StackPanel>
-        <CheckBox Content="选择此任务" IsChecked="{Binding SelectedForDeletion, Mode=TwoWay}" Visibility="{Binding SelectionMode, Converter={StaticResource BoolVisibility}}" Margin="12,5" Click="DeleteSelection_Click"/>
         <Grid Visibility="{Binding HasDateHeader, Converter={StaticResource BoolVisibility}}" Margin="12,18,12,9">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
             <TextBlock Text="{Binding DateLabel}" Foreground="{DynamicResource MutedBrush}" FontSize="12" FontWeight="SemiBold"/>
@@ -18,7 +17,16 @@
                             <DataTrigger Binding="{Binding IsDeleted}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                         </Style.Triggers></Style></CheckBox.Style>
                     </CheckBox>
-                    <fluent:SymbolIcon Symbol="Delete20" FontSize="22" Foreground="{DynamicResource RedBrush}" ToolTip="已删除 · 右键恢复" Visibility="{Binding IsDeleted, Converter={StaticResource BoolVisibility}}"/>
+                    <CheckBox x:Name="DeleteSelectionButton" MinWidth="24" MinHeight="24" Padding="0" IsChecked="{Binding SelectedForDeletion, Mode=TwoWay}" Visibility="{Binding SelectionMode, Converter={StaticResource BoolVisibility}}" AutomationProperties.Name="选择彻底删除" ToolTip="选择彻底删除" Click="DeleteSelection_Click"/>
+                    <fluent:SymbolIcon x:Name="DeletedIcon" Symbol="Delete20" FontSize="22" Foreground="{DynamicResource RedBrush}" ToolTip="已删除 · 右键恢复">
+                        <fluent:SymbolIcon.Style><Style TargetType="fluent:SymbolIcon" BasedOn="{StaticResource {x:Type fluent:SymbolIcon}}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDeleted}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                <DataTrigger Binding="{Binding SelectionMode}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                            </Style.Triggers>
+                        </Style></fluent:SymbolIcon.Style>
+                    </fluent:SymbolIcon>
                 </Grid>
                 <StackPanel Grid.Column="1">
                     <TextBlock x:Name="BodyText" Foreground="{DynamicResource InkBrush}" TextWrapping="Wrap" FontSize="{DynamicResource BodyFontSize}" MinHeight="24" MouseLeftButtonDown="Body_Down" ToolTip="双击编辑内容"/>
@@ -27,6 +35,7 @@
                         <TextBlock Text="{Binding ProjectLabel}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,0,10,0"/>
                         <TextBlock Text="待验证" Foreground="{DynamicResource YellowBrush}" FontSize="11" Margin="0,0,10,0" Visibility="{Binding IsVerification, Converter={StaticResource BoolVisibility}}"/>
                         <TextBlock Text="{Binding CreationLabel}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,0,10,0"/>
+                        <TextBlock Text="{Binding EditLabel}" Foreground="{DynamicResource MutedBrush}" FontSize="11" Margin="0,0,10,0" Visibility="{Binding HasEditTime, Converter={StaticResource BoolVisibility}}"/>
                         <TextBlock Text="{Binding CompletionLabel}" Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                     </WrapPanel>
                 </StackPanel>

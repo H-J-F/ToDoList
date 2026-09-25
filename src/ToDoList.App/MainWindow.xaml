@@ -1,4 +1,4 @@
-<fluent:FluentWindow x:Class="ToDoList.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:fluent="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:ui="clr-namespace:ToDoList.App.Controls" Title="ToDoList" Width="1100" Height="760" MinWidth="800" MinHeight="560" ExtendsContentIntoTitleBar="True" WindowBackdropType="None" Background="{DynamicResource CanvasBrush}" Foreground="{DynamicResource InkBrush}" FontFamily="Microsoft YaHei UI, Segoe UI Emoji" FontSize="{DynamicResource BodyFontSize}" UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" Loaded="Window_Loaded" Closing="Window_Closing">
+<fluent:FluentWindow x:Class="ToDoList.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:fluent="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:ui="clr-namespace:ToDoList.App.Controls" xmlns:services="clr-namespace:ToDoList.App.Services" Title="ToDoList" Width="1100" Height="760" MinWidth="800" MinHeight="560" ExtendsContentIntoTitleBar="True" WindowBackdropType="None" Background="{DynamicResource CanvasBrush}" Foreground="{DynamicResource InkBrush}" FontFamily="Microsoft YaHei UI, Segoe UI Emoji" FontSize="{DynamicResource BodyFontSize}" UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" Loaded="Window_Loaded" Closing="Window_Closing">
     <Grid>
         <Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="*"/></Grid.RowDefinitions>
         <fluent:TitleBar x:Name="AppTitleBar" Grid.Row="0" Title="{Binding BookTitle, StringFormat=ToDoList · {0}}" Height="32" ><fluent:TitleBar.Icon><fluent:SymbolIcon Symbol="TaskListSquareLtr24" Foreground="{DynamicResource AccentInkBrush}" FontSize="20"/></fluent:TitleBar.Icon></fluent:TitleBar>
@@ -103,14 +103,40 @@
                             <fluent:CardControl Header="动画效果" Style="{StaticResource SettingCard}" Icon="{fluent:SymbolIcon Sparkle20, FontSize=24}">
                                 <ComboBox x:Name="MotionSetting" Style="{StaticResource SettingSelector}" SelectionChanged="Setting_Changed" AutomationProperties.Name="动画效果"/>
                             </fluent:CardControl>
-                            <TextBlock Text="状态颜色 · #RRGGBB" FontWeight="SemiBold" Margin="4,12,0,8"/>
-                            <Grid Margin="4,0,4,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><StackPanel Margin="0,0,6,0"><TextBlock Text="未完成" FontSize="12"/><TextBox x:Name="OpenColorSetting" LostKeyboardFocus="StatusColor_LostFocus"/></StackPanel><StackPanel Grid.Column="1" Margin="3,0"><TextBlock Text="待验证" FontSize="12"/><TextBox x:Name="VerificationColorSetting" LostKeyboardFocus="StatusColor_LostFocus"/></StackPanel><StackPanel Grid.Column="2" Margin="6,0,0,0"><TextBlock Text="已完成" FontSize="12"/><TextBox x:Name="CompletedColorSetting" LostKeyboardFocus="StatusColor_LostFocus"/></StackPanel></Grid>
+                            <TextBlock Text="导出文档标记颜色 · #RRGGBB" FontWeight="SemiBold" Margin="4,12,0,8"/>
+                            <Grid Margin="4,0,4,8">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                    <TextBlock Text="未完成" FontSize="12"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <Border x:Name="OpenColorPreview" Width="18" Height="18" Margin="0,0,6,0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"/>
+                                        <TextBox Grid.Column="1" x:Name="OpenColorSetting" TextChanged="StatusColor_TextChanged" LostKeyboardFocus="StatusColor_LostFocus" ContextMenuOpening="StatusColor_MenuOpening" ContextMenuClosing="StatusColor_MenuClosing"/>
+                                    </Grid>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="3,0">
+                                    <TextBlock Text="待验证" FontSize="12"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <Border x:Name="VerificationColorPreview" Width="18" Height="18" Margin="0,0,6,0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"/>
+                                        <TextBox Grid.Column="1" x:Name="VerificationColorSetting" TextChanged="StatusColor_TextChanged" LostKeyboardFocus="StatusColor_LostFocus" ContextMenuOpening="StatusColor_MenuOpening" ContextMenuClosing="StatusColor_MenuClosing"/>
+                                    </Grid>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="6,0,0,0">
+                                    <TextBlock Text="已完成" FontSize="12"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <Border x:Name="CompletedColorPreview" Width="18" Height="18" Margin="0,0,6,0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1"/>
+                                        <TextBox Grid.Column="1" x:Name="CompletedColorSetting" TextChanged="StatusColor_TextChanged" LostKeyboardFocus="StatusColor_LostFocus" ContextMenuOpening="StatusColor_MenuOpening" ContextMenuClosing="StatusColor_MenuClosing"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
                             <fluent:Button Content="恢复外观默认值" Icon="{fluent:SymbolIcon ArrowReset20, FontSize=20}" Click="ResetSettings_Click" HorizontalAlignment="Stretch" Margin="0,4,0,24"/>
                             <TextBlock Text="数据与关于" FontWeight="SemiBold" Margin="4,0,0,12"/>
                             <fluent:Button Content="打开 Data 目录" Icon="{fluent:SymbolIcon FolderOpen20, FontSize=20}" Click="OpenData_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="0,0,0,8"/>
                             <fluent:Button Content="打开备份目录" Icon="{fluent:SymbolIcon History20, FontSize=20}" Click="OpenBackup_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="0,0,0,16"/>
                             <fluent:CardAction x:Name="AboutCard" Click="OpenRepository_Click" IsChevronVisible="False" HorizontalContentAlignment="Stretch" ToolTip="打开 GitHub 仓库" AutomationProperties.Name="打开 ToDoList GitHub 仓库">
-                                <fluent:CardAction.Content><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Image x:Name="AboutIcon" Width="40" Height="40" Margin="0,0,12,0"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="ToDoList  2.3.1" FontWeight="SemiBold"/><TextBlock Text="H-J-F · MIT · GitHub" FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0"/></StackPanel><fluent:SymbolIcon Grid.Column="2" Symbol="Open20" FontSize="20" Margin="12,0,0,0"/></Grid></fluent:CardAction.Content>
+                                <fluent:CardAction.Content><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Image x:Name="AboutIcon" Width="40" Height="40" Margin="0,0,12,0"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{x:Static services:ApplicationLinks.DisplayName}" FontWeight="SemiBold"/><TextBlock Text="H-J-F · MIT · GitHub" FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0"/></StackPanel><fluent:SymbolIcon Grid.Column="2" Symbol="Open20" FontSize="20" Margin="12,0,0,0"/></Grid></fluent:CardAction.Content>
                             </fluent:CardAction>
                         </StackPanel>
                     </fluent:DynamicScrollViewer>

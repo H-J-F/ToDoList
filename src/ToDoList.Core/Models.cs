@@ -12,7 +12,7 @@ public enum ImportMode { Merge, Replace }
 public sealed record BookInfo(string Name, string Title, string Path);
 public sealed record ProjectInfo(string? Id, string Name, int SortOrder = 0);
 public sealed record TodoItem(string Id, string? ProjectId, string ContentJson, string PlainText,
-    TodoStatus Status, long CreatedAt, long UpdatedAt, long? CompletedAt, long Revision, long? DeletedAt = null, TodoStatus? PreviousStatus = null, long? PreviousCompletedAt = null);
+    TodoStatus Status, long CreatedAt, long UpdatedAt, long? CompletedAt, long Revision, long? DeletedAt = null, TodoStatus? PreviousStatus = null, long? PreviousCompletedAt = null, long? EditedAt = null);
 public sealed record PageCursor(long Time, string Id);
 public sealed record TaskQuery(string? ProjectId, TaskFilter Filter, TaskSort Sort,
     long? From = null, long? Until = null, PageCursor? Cursor = null,

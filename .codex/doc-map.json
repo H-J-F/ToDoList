@@ -1,0 +1,12 @@
+[
+  {
+    "doc": "docs/项目架构.md",
+    "code_paths": ["src/", "tests/"],
+    "entries": ["src/ToDoList.App/App.xaml.cs", "src/ToDoList.App/ViewModels/MainViewModel.cs", "src/ToDoList.Core/Models.cs", "src/ToDoList.Storage/Database.cs", "src/ToDoList.Storage/TaskRepository.cs"]
+  },
+  {
+    "doc": "docs/构建发布.md",
+    "code_paths": ["tools/", ".codex/", "Build.bat", "Directory.Build.props", "global.json", "AGENTS.md", ".gitignore", "src/ToDoList.App/Services/ApplicationLinks.cs", "src/ToDoList.App/ToDoList.App.csproj"],
+    "entries": ["Build.bat", "tools/Build.py", "tools/Publish.ps1", "tools/Verify-Build.py", ".codex/项目管家/keeper.py", ".codex/hooks/stop.py"]
+  }
+]

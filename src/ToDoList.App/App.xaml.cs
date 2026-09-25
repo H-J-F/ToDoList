@@ -17,7 +17,7 @@ public partial class App : Application
         base.OnStartup(e);
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("zh-CN");
         FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(XmlLanguage.GetLanguage("zh-CN")));
-        var isolatedCheck = e.Args.Any(a => a is "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-features" or "--ui-typography") && e.Args.Length >= 2 && e.Args[0] == "--data-dir";
+        var isolatedCheck = e.Args.Any(a => a is "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-features" or "--ui-typography") && e.Args.Length >= 2 && e.Args[0] == "--data-dir";
         _instance = new SingleInstanceCoordinator(isolatedCheck ? ".TaskFixes." + Environment.ProcessId : "");
         if (!_instance.TryAcquire())
         {
@@ -61,7 +61,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            if (e.Args.Any(a => a is "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features" or "--ui-lifecycle"))
+            if (e.Args.Any(a => a is "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features" or "--ui-lifecycle"))
             {
                 var report = Path.Combine(data, "..", "startup-error.txt");
                 Directory.CreateDirectory(Path.GetDirectoryName(report)!); File.WriteAllText(report, ex.ToString());
@@ -71,6 +71,7 @@ public partial class App : Application
         }
     }
     internal void BeginExit() => ExitRequested = true;
+    internal void CancelExit() => ExitRequested = false;
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e) { ExitRequested = true; base.OnSessionEnding(e); }
     protected override void OnExit(ExitEventArgs e) { ExitRequested = true; _tray?.Dispose(); _instance?.Dispose(); base.OnExit(e); }
 }

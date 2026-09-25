@@ -51,7 +51,8 @@ public sealed class TaskRepository(string path) : ITaskRepository
         using var tx = c.BeginTransaction();
         if (Convert.ToInt64(Database.Scalar(c, "SELECT COUNT(*) FROM Projects WHERE Id=$id", ("$id", id))) == 0)
             throw new ArgumentException("所选模块已不存在。");
-        Database.Exec(c, "UPDATE Tasks SET ProjectId=NULL WHERE ProjectId=$id", ("$id", id));
+        Database.Exec(c, "UPDATE Tasks SET ProjectId=NULL,EditedAt=MAX($now,UpdatedAt+1),UpdatedAt=MAX($now,UpdatedAt+1),Revision=Revision+1 WHERE ProjectId=$id",
+            ("$now", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), ("$id", id));
         Database.Exec(c, "DELETE FROM Projects WHERE Id=$id", ("$id", id));
         NormalizeProjectOrder(c); tx.Commit();
         return true;
@@ -139,14 +140,14 @@ public sealed class TaskRepository(string path) : ITaskRepository
         var where = conditions.Count == 0 ? "" : " WHERE " + string.Join(" AND ", conditions);
         var direction = newer ? "ASC" : "DESC";
         return Database.Command(c, (explain ? "EXPLAIN QUERY PLAN " : "") +
-            $"SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks{where} ORDER BY {field} {direction},Id {direction}" + (forReport ? "" : " LIMIT $limit"), args.ToArray());
+            $"SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt,EditedAt FROM Tasks{where} ORDER BY {field} {direction},Id {direction}" + (forReport ? "" : " LIMIT $limit"), args.ToArray());
     }
     public static TodoItem Read(SqliteDataReader r) => new(r.GetString(0), r.IsDBNull(1) ? null : r.GetString(1),
         r.GetString(2), r.GetString(3), (TodoStatus)r.GetInt32(4), r.GetInt64(5), r.GetInt64(6),
-        r.IsDBNull(7) ? null : r.GetInt64(7), r.GetInt64(8), r.IsDBNull(9) ? null : r.GetInt64(9), r.IsDBNull(10) ? null : (TodoStatus)r.GetInt32(10), r.IsDBNull(11) ? null : r.GetInt64(11));
+        r.IsDBNull(7) ? null : r.GetInt64(7), r.GetInt64(8), r.IsDBNull(9) ? null : r.GetInt64(9), r.IsDBNull(10) ? null : (TodoStatus)r.GetInt32(10), r.IsDBNull(11) ? null : r.GetInt64(11), r.IsDBNull(12) ? null : r.GetInt64(12));
     private static TodoItem Get(SqliteConnection c, string id)
     {
-        using var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt FROM Tasks WHERE Id=$id", ("$id", id));
+        using var cmd = Database.Command(c, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt,EditedAt FROM Tasks WHERE Id=$id", ("$id", id));
         using var r = cmd.ExecuteReader(); return r.Read() ? Read(r) : throw new InvalidOperationException("任务已不存在，请刷新列表。");
     }
     private static void ValidateContent(RichContent content)
@@ -164,17 +165,18 @@ public sealed class TaskRepository(string path) : ITaskRepository
         Insert(c, item); tx.Commit(); return item;
     }, ct);
     public static void Insert(SqliteConnection c, TodoItem item) => Database.Exec(c,
-        "INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt) VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision,$deleted,$previous,$previousCompleted)", Args(item));
+        "INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt,EditedAt) VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision,$deleted,$previous,$previousCompleted,$edited)", Args(item));
     public static (string, object?)[] Args(TodoItem t) => [("$id", t.Id), ("$project", t.ProjectId), ("$json", t.ContentJson),
         ("$text", t.PlainText), ("$status", (int)t.Status), ("$created", t.CreatedAt), ("$updated", t.UpdatedAt),
-        ("$completed", t.CompletedAt), ("$revision", t.Revision), ("$deleted", t.DeletedAt), ("$previous", t.PreviousStatus.HasValue ? (int)t.PreviousStatus.Value : null), ("$previousCompleted", t.PreviousCompletedAt)];
+        ("$completed", t.CompletedAt), ("$revision", t.Revision), ("$deleted", t.DeletedAt), ("$previous", t.PreviousStatus.HasValue ? (int)t.PreviousStatus.Value : null), ("$previousCompleted", t.PreviousCompletedAt), ("$edited", t.EditedAt)];
     public Task<TodoItem> UpdateContentAsync(string id, RichContent content, long revision, CancellationToken ct = default) => Run(c =>
     {
         ValidateContent(content); using var tx = c.BeginTransaction(); var old = Get(c, id);
         if (old.Status == TodoStatus.Deleted) throw new InvalidOperationException("请先恢复任务再编辑。");
         if (old.Revision != revision) throw new InvalidOperationException("任务已更新，请取消编辑后重新打开。");
+        if (RichContent.Parse(old.ContentJson).ToJson() == content.ToJson()) { tx.Commit(); return old; }
         var now = Math.Max(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), old.UpdatedAt + 1);
-        Database.Exec(c, "UPDATE Tasks SET ContentJson=$json,PlainText=$text,UpdatedAt=$now,Revision=Revision+1 WHERE Id=$id",
+        Database.Exec(c, "UPDATE Tasks SET ContentJson=$json,PlainText=$text,EditedAt=$now,UpdatedAt=$now,Revision=Revision+1 WHERE Id=$id",
             ("$json", content.ToJson()), ("$text", content.PlainText), ("$now", now), ("$id", id));
         var item = Get(c, id); tx.Commit(); return item;
     }, ct);
@@ -185,8 +187,9 @@ public sealed class TaskRepository(string path) : ITaskRepository
         if (old.Revision != revision) throw new InvalidOperationException("任务已更新，请取消编辑后重新打开。");
         if (projectId != null && Convert.ToInt64(Database.Scalar(c, "SELECT COUNT(*) FROM Projects WHERE Id=$id", ("$id", projectId))) == 0)
             throw new ArgumentException("所选模块已不存在。");
+        if (old.ProjectId == projectId && RichContent.Parse(old.ContentJson).ToJson() == content.ToJson()) { tx.Commit(); return old; }
         var now = Math.Max(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), old.UpdatedAt + 1);
-        Database.Exec(c, "UPDATE Tasks SET ProjectId=$project,ContentJson=$json,PlainText=$text,UpdatedAt=$now,Revision=Revision+1 WHERE Id=$id",
+        Database.Exec(c, "UPDATE Tasks SET ProjectId=$project,ContentJson=$json,PlainText=$text,EditedAt=$now,UpdatedAt=$now,Revision=Revision+1 WHERE Id=$id",
             ("$project", projectId), ("$json", content.ToJson()), ("$text", content.PlainText), ("$now", now), ("$id", id));
         var item = Get(c, id); tx.Commit(); return item;
     }, ct);
