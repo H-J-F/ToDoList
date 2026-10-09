@@ -48,7 +48,7 @@ internal static class UiDemo
         };
         try
         {
-            window.Width = 1100; window.Height = 760; model.Settings.ReduceMotion = false; model.Settings.Mode = "浅色"; model.Settings.AccentPreset = "浅蓝"; ThemeService.Apply(model.Settings);
+            window.Width = 1100; window.Height = 760; model.Settings.ReduceMotion = false; model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode("浅色"); ThemeService.Apply(model.Settings);
             if (!model.HasBook)
             {
                 var book = await model.Library.CreateAsync("Demo2026", "产品设计工作台");
@@ -70,8 +70,8 @@ internal static class UiDemo
             var settingsButton = MainWindow.Descendants<Button>(window).First(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "Settings");
             settingsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(800);
             var panel = (Border)window.FindName("SettingsPanel");
-            var palette = (ComboBox)window.FindName("PaletteSetting");
-            foreach (var accent in new[] { "青绿", "橙色", "紫色", "浅蓝" })
+            var palette = (ComboBox)window.FindName("ThemeSetting");
+            foreach (var accent in new[] { "mint-cream", "coral-peach", "lilac-mist", "classic-light" })
             {
                 palette.IsDropDownOpen = true; await Task.Delay(300);
                 palette.SelectedValue = accent; palette.IsDropDownOpen = false; await Task.Delay(550);
@@ -90,7 +90,7 @@ internal static class UiDemo
             editor.SetContent(new(1, [new([new("把今天的小目标写下来 ", Color: "#64B5F6"), new("👩🏽‍💻 ✨ ❤️")])]));
             ((Button)editor.FindName("ColorButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(1400); editor.CloseTool();
             ((Button)editor.FindName("EmojiButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(1600); editor.CloseTool();
-            var mode = (ComboBox)window.FindName("ModeSetting"); mode.SelectedItem = "深色"; await Task.Delay(800);
+            var mode = (ComboBox)window.FindName("ThemeSetting"); mode.SelectedValue = "classic-dark"; await Task.Delay(800);
             ((Button)editor.FindName("EmojiButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Task.Delay(1400); editor.CloseTool();
             editor.SetContent(RichContent.FromText(""));
             await Task.Delay(500);

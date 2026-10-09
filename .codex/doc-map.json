@@ -1,12 +1,62 @@
 [
   {
     "doc": "docs/项目架构.md",
-    "code_paths": ["src/", "tests/"],
-    "entries": ["src/ToDoList.App/App.xaml.cs", "src/ToDoList.App/ViewModels/MainViewModel.cs", "src/ToDoList.Core/Models.cs", "src/ToDoList.Storage/Database.cs", "src/ToDoList.Storage/TaskRepository.cs"]
+    "code_paths": [
+      "src/",
+      "tests/"
+    ],
+    "entries": [
+      "src/ToDoList.App/App.xaml.cs",
+      "src/ToDoList.App/ViewModels/MainViewModel.cs",
+      "src/ToDoList.Core/Models.cs",
+      "src/ToDoList.Storage/Database.cs",
+      "src/ToDoList.Storage/TaskRepository.cs"
+    ]
   },
   {
     "doc": "docs/构建发布.md",
-    "code_paths": ["tools/", ".codex/", "Build.bat", "Directory.Build.props", "global.json", "AGENTS.md", ".gitignore", "src/ToDoList.App/Services/ApplicationLinks.cs", "src/ToDoList.App/ToDoList.App.csproj"],
-    "entries": ["Build.bat", "tools/Build.py", "tools/Publish.ps1", "tools/Verify-Build.py", ".codex/项目管家/keeper.py", ".codex/hooks/stop.py"]
+    "code_paths": [
+      "tools/",
+      ".codex/",
+      "Build.bat",
+      "Directory.Build.props",
+      "global.json",
+      "AGENTS.md",
+      ".gitignore",
+      "src/ToDoList.App/Services/ApplicationLinks.cs",
+      "src/ToDoList.App/ToDoList.App.csproj"
+    ],
+    "entries": [
+      "Build.bat",
+      "tools/Build.py",
+      "tools/Publish.ps1",
+      "tools/Verify-Build.py",
+      ".codex/项目管家/keeper.py",
+      ".codex/hooks/stop.py"
+    ]
+  },
+  {
+    "doc": "docs/主题与预览.md",
+    "code_paths": [
+      "src/ToDoList.Core/ThemeCatalog.cs",
+      "src/ToDoList.Core/Models.cs",
+      "src/ToDoList.App/Services/ThemeService.cs",
+      "src/ToDoList.App/Services/ThemeBrushAliases.cs",
+      "src/ToDoList.App/Services/UiThemePreview.cs",
+      "src/ToDoList.App/Services/UiThemeDropdownChecks.cs",
+      "src/ToDoList.App/Services/UiSettingsNavigationChecks.cs",
+      "src/ToDoList.App/Services/Motion.cs",
+      "src/ToDoList.App/Services/InteractionMotion.cs",
+      "src/ToDoList.App/Themes/",
+      "src/ToDoList.App/MainWindow.xaml",
+      "tests/ToDoList.Tests/ThemeTests.cs"
+    ],
+    "entries": [
+      "src/ToDoList.Core/ThemeCatalog.cs",
+      "src/ToDoList.App/Services/ThemeService.cs",
+      "src/ToDoList.App/Services/UiThemePreview.cs",
+      "src/ToDoList.App/Services/UiThemeDropdownChecks.cs",
+      "tests/ToDoList.Tests/ThemeTests.cs"
+    ]
   }
 ]

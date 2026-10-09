@@ -146,7 +146,7 @@ internal static class UiDragBoundaryChecks
             foreach (var mode in new[] { "浅色", "深色" })
             foreach (var width in new[] { 320d, 420d, 520d })
             {
-                owner.Model.Settings.Mode = mode; ThemeService.Apply(owner.Model.Settings);
+                owner.Model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode(mode); ThemeService.Apply(owner.Model.Settings);
                 form.View.Width = width; host.Width = width + 30; host.UpdateLayout();
                 var picker = MainWindow.Descendants<Wpf.Ui.Controls.CalendarDatePicker>(form.View).First(p => p.IsVisible);
                 foreach (var date in new[] { DateTime.Today, DateTime.Today.AddDays(DateTime.Today.Day == 1 ? 1 : -1) })

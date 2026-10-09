@@ -5,86 +5,109 @@ using ToDoList.Core;
 using Wpf.Ui.Appearance;
 
 namespace ToDoList.App.Services;
+
 public static class ThemeService
 {
-    public sealed record AccentOption(string Name, Color Color)
+    public sealed class ThemeOption(ThemeDefinition definition)
     {
-        public SolidColorBrush Brush { get; } = new(Color);
+        public string Id => definition.Id;
+        public string Name => definition.Name;
+        public string Description => $"{Name} · {definition.Appearance}";
+        public IReadOnlyList<SolidColorBrush> Swatches { get; } = new[] { definition.Colors.Sidebar, definition.Colors.Paper, definition.Colors.Accent }
+            .Select(Brush).ToArray();
     }
-    public static IReadOnlyList<AccentOption> Accents { get; } =
-    [
-        new("浅蓝", Color.FromRgb(0x33, 0x7E, 0xBB)),
-        new("青绿", Color.FromRgb(0x13, 0x8A, 0x83)),
-        new("橙色", Color.FromRgb(0xF4, 0xB5, 0x6A)),
-        new("紫色", Color.FromRgb(0x80, 0x61, 0xCC))
-    ];
+    public static IReadOnlyList<ThemeOption> Themes { get; } = ThemeCatalog.All.Select(t => new ThemeOption(t)).ToArray();
+    public static ThemeDefinition Current { get; private set; } = ThemeCatalog.Resolve(ThemeCatalog.DefaultId);
     public static event Action? Changed;
+    internal static event Action? MotionChanged;
+    private static string? _appliedTheme;
+    private static double? _appliedFontSize;
+    private static string? _appliedDensity;
+    private static bool? _appliedMotion;
     public static void NotifyChanged() => Changed?.Invoke();
     public static bool ReduceMotion { get; private set; }
+    private static Color Color(string hex) => (Color)ColorConverter.ConvertFromString(hex);
+    private static SolidColorBrush Brush(string hex) { var brush = new SolidColorBrush(Color(hex)); brush.Freeze(); return brush; }
+
     public static void Apply(AppSettings settings)
     {
-        if (settings.SettingsVersion < 2 || settings.AccentPreset == null)
-        {
-            settings.AccentPreset = settings.Palette switch { "薄荷" => "青绿", "蜜桃" => "橙色", "薰衣草" => "紫色", _ => "浅蓝" };
-            settings.SettingsVersion = 2;
-        }
-        var dark = settings.Mode == "深色" || settings.Mode == "跟随系统" && Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1) is int value && value == 0;
-        var theme = dark ? ApplicationTheme.Dark : ApplicationTheme.Light;
-        ApplicationThemeManager.Apply(theme, Wpf.Ui.Controls.WindowBackdropType.None, false);
-        var option = Accents.FirstOrDefault(a => a.Name == settings.AccentPreset) ?? Accents[0];
-        settings.AccentPreset = option.Name;
-        var accentColor = option.Color;
-        var accent = accentColor.ToString();
-        ApplicationAccentColorManager.Apply(accentColor, theme, false);
-        if (option.Name == "橙色")
-        {
-            var orange = dark ? Color.FromRgb(0xFF, 0xC9, 0x8A) : accentColor;
-            ApplicationAccentColorManager.Apply(accentColor, orange, orange, orange);
-        }
-        RefreshControlAccentBrushes();
-        void Brush(string key, string hex) { var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); brush.Freeze(); Application.Current.Resources[key] = brush; }
-        Brush("CanvasBrush", dark ? "#202020" : "#F3F5F8"); Brush("SidebarBrush", dark ? "#202020" : "#F3F5F8");
-        Brush("PaperBrush", dark ? "#282828" : "#FFFFFF"); Brush("InputBrush", dark ? "#303030" : "#F8FAFC");
-        Brush("InkBrush", dark ? "#F3F3F3" : "#202B3A"); Brush("MutedBrush", dark ? "#B5B9C0" : "#657387");
-        Brush("LineBrush", dark ? "#404247" : "#E6EAF0"); Brush("HoverBrush", dark ? "#363A40" : "#EDF3F9");
-        byte Mix(byte c) => (byte)(dark ? c * .25 + 32 * .75 : c * .13 + 255 * .87);
-        var wash = $"#{Mix(accentColor.R):X2}{Mix(accentColor.G):X2}{Mix(accentColor.B):X2}";
-        Brush("AccentBrush", wash); Brush("AccentInkBrush", accent);
-        Brush("OpenBrush", dark ? "#42E9FF" : "#16889A"); Brush("GreenBrush", dark ? "#70CF9C" : "#238653"); Brush("YellowBrush", dark ? "#F0C45C" : "#A97812"); Brush("RedBrush", dark ? "#FF8585" : "#CE3B45");
-        // Task state colors belong to the theme, independently of report preferences.
-        Brush("TaskOpenBrush", "#00CAE5"); Brush("TaskVerificationBrush", "#E6A409"); Brush("TaskCompletedBrush", "#07E355");
-        Brush("TabViewItemHeaderBackgroundSelected", wash);
-        Brush("ListBoxItemSelectedBackgroundThemeBrush", wash);
-        Brush("ListBoxItemSelectedForegroundThemeBrush", dark ? "#F3F3F3" : "#202B3A");
-        Brush("TabViewItemForegroundSelected", dark ? ApplicationAccentColorManager.SecondaryAccent.ToString() : accent);
-        settings.FontSize = new double[] { 12, 14, 16, 18 }.Contains(settings.FontSize) ? settings.FontSize : 14;
-        Application.Current.Resources["BodyFontSize"] = settings.FontSize;
-        Application.Current.Resources["ControlContentThemeFontSize"] = settings.FontSize;
-        Application.Current.Resources["TaskPadding"] = new Thickness(12, settings.Density == "紧凑" ? 9 : 15, 12, settings.Density == "紧凑" ? 9 : 15);
-        ReduceMotion = settings.ReduceMotion;
-        Application.Current.Resources["CheckBoxAnimationDuration"] = new Duration(TimeSpan.FromMilliseconds(ReduceMotion ? 0 : 180));
-        Changed?.Invoke();
-    }
-
-    private static void RefreshControlAccentBrushes()
-    {
-        // WPF UI 4.3.0's theme-owned brushes can retain their first resolved Color.
-        // Replace the control-facing resources too, so existing templates and open
-        // popups update without rebuilding controls or losing keyboard focus.
+        ThemeCatalog.Normalize(settings);
+        var systemDark = settings.ThemeId == "system" && Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "AppsUseLightTheme", 1) is int value && value == 0;
+        var next = ThemeCatalog.Resolve(settings.ThemeId, systemDark);
         var resources = Application.Current.Resources;
-        void Refresh(string colorKey, params string[] brushKeys)
+        var paletteChanged = _appliedTheme != next.Id;
+        if (paletteChanged)
         {
-            var brush = new SolidColorBrush((Color)resources[colorKey]); brush.Freeze();
-            foreach (var key in brushKeys) resources[key] = brush;
+            var c = next.Colors;
+            ApplicationThemeManager.Apply(c.Dark ? ApplicationTheme.Dark : ApplicationTheme.Light, Wpf.Ui.Controls.WindowBackdropType.None, false);
+            ApplicationAccentColorManager.Apply(Color(c.Accent), Color(c.Accent), Color(c.Accent), Color(c.Accent));
+            void Set(string hex, params string[] keys) { var brush = Brush(hex); foreach (var key in keys) resources[key] = brush; }
+            void Colors(string hex, params string[] keys)
+            {
+                foreach (var key in keys)
+                {
+                    resources[key] = Color(hex);
+                    resources[key + "Brush"] = Brush(hex);
+                    if (ThemeBrushAliases.ByColor.TryGetValue(key, out var aliases)) Set(hex, aliases);
+                }
+            }
+            // Replace static brush aliases too: existing templates and open popups must
+            // update without rebuilding controls or losing the editor's selection.
+            Colors(c.Canvas, "ApplicationBackgroundColor", "SolidBackgroundFillColorBase", "SolidBackgroundFillColorBaseAlt");
+            Colors(c.Paper, "LayerFillColorDefault", "LayerFillColorAlt", "CardBackgroundFillColorDefault", "ControlSolidFillColorDefault", "ControlFillColorInputActive", "AcrylicBackgroundFillColorDefault");
+            Colors(c.Input, "ControlFillColorDefault", "CardBackgroundFillColorSecondary", "SolidBackgroundFillColorSecondary", "ControlAltFillColorSecondary");
+            Colors(c.Hover, "ControlFillColorSecondary", "SubtleFillColorSecondary", "ControlAltFillColorTertiary");
+            Colors(c.Pressed, "ControlFillColorTertiary", "SubtleFillColorTertiary", "ControlAltFillColorQuarternary");
+            Colors(c.Input, "ControlFillColorDisabled", "AccentFillColorDisabled");
+            Colors(c.Selection, "SolidBackgroundFillColorTertiary");
+            Colors(c.Ink, "TextFillColorPrimary", "TextFillColorInverse");
+            Colors(c.Muted, "TextFillColorSecondary", "TextFillColorTertiary", "TextPlaceholderColor", "ControlStrongFillColorDefault");
+            Colors(ThemeCatalog.Mix(c.Muted, c.Paper, .35), "TextFillColorDisabled", "AccentTextFillColorDisabled", "TextOnAccentFillColorDisabled");
+            Colors(c.Border, "ControlStrokeColorDefault", "ControlStrokeColorSecondary", "ControlStrokeColorTertiary", "ControlStrongStrokeColorDefault", "SurfaceStrokeColorDefault", "SurfaceStrokeColorFlyout");
+            Colors(c.Line, "CardStrokeColorDefault", "CardStrokeColorDefaultSolid", "DividerStrokeColorDefault", "ControlStrongStrokeColorDisabled");
+            Colors(c.Accent, "KeyboardFocusBorderColor", "FocusStrokeColorOuter", "SystemAccentColorPrimary", "SystemAccentColorSecondary", "SystemAccentColorTertiary", "AccentFillColorDefault");
+            Colors(c.AccentHover, "AccentFillColorSecondary"); Colors(c.AccentPressed, "AccentFillColorTertiary");
+            Colors(c.Paper, "FocusStrokeColorInner");
+            Colors(c.OnAccent, "TextOnAccentFillColorPrimary", "TextOnAccentFillColorSecondary", "TextOnAccentFillColorSelectedText");
+            Colors(c.Completed, "SystemFillColorSuccess"); Colors(c.Verification, "SystemFillColorCaution"); Colors(c.Danger, "SystemFillColorCritical");
+
+            Set(c.Canvas, "CanvasBrush"); Set(c.Sidebar, "SidebarBrush"); Set(c.Paper, "PaperBrush"); Set(c.Input, "InputBrush");
+            Set(c.Ink, "InkBrush", "ListBoxItemSelectedForegroundThemeBrush");
+            Set(c.Muted, "MutedBrush", "CompletedInkBrush"); Set(c.Line, "LineBrush"); Set(c.Border, "ControlBorderBrush");
+            Set(c.Hover, "HoverBrush"); Set(c.Selection, "AccentBrush", "ListBoxItemSelectedBackgroundThemeBrush", "ComboBoxItemBackgroundSelected", "TabViewItemHeaderBackgroundSelected");
+            Set(c.Accent, "AccentInkBrush", "TabViewItemForegroundSelected");
+            Set(c.Open, "OpenBrush", "TaskOpenBrush"); Set(c.Completed, "GreenBrush", "TaskCompletedBrush");
+            Set(c.Verification, "YellowBrush", "TaskVerificationBrush"); Set(c.Danger, "RedBrush");
+            Set(c.Accent, "AccentControlElevationBorderBrush", "AccentButtonBorderBrush", "AccentButtonBorderBrushPointerOver", "AccentButtonBorderBrushPressed");
+            Set(c.Border, "ControlElevationBorderBrush", "TextControlElevationBorderBrush", "ButtonBorderBrush", "ButtonBorderBrushPointerOver", "ComboBoxBorderBrush", "ComboBoxBorderBrushPointerOver", "TextControlBorderBrush", "TextControlBorderBrushPointerOver", "ToggleButtonBorderBrush");
+            Set(c.Accent, "TextControlBorderBrushFocused");
+            Set(c.Ink, "ButtonForegroundPressed");
+            Set(c.OnAccent, "CalendarViewSelectedForeground", "ToggleButtonForegroundCheckedPointerOver");
+            Current = next;
+            _appliedTheme = next.Id;
         }
-        Refresh("AccentFillColorDefault", "AccentButtonBackground");
-        Refresh("AccentFillColorSecondary", "AccentButtonBackgroundPointerOver", "CheckBoxCheckBackgroundFillCheckedPointerOver");
-        Refresh("AccentFillColorTertiary", "AccentButtonBackgroundPressed", "CheckBoxCheckBackgroundFillCheckedPressed");
-        Refresh("TextOnAccentFillColorPrimary", "AccentButtonForeground", "AccentButtonForegroundPointerOver", "TextOnAccentFillColorPrimaryBrush", "CheckBoxCheckGlyphForeground");
-        Refresh("TextOnAccentFillColorSecondary", "AccentButtonForegroundPressed", "TextOnAccentFillColorSecondaryBrush");
-        Refresh("SystemAccentColorPrimary", "CheckBoxCheckBackgroundFillChecked", "ComboBoxItemPillFillBrush",
-            "TextControlFocusedBorderBrush", "ListViewItemPillFillBrush", "NavigationViewSelectionIndicatorForeground", "ProgressBarForeground", "ProgressRingForegroundThemeBrush");
-        Refresh("SystemAccentColorSecondary", "ComboBoxBorderBrushFocused", "HyperlinkButtonForeground");
-        Refresh("SystemAccentColorTertiary", "HyperlinkButtonForegroundPointerOver", "HyperlinkButtonForegroundPressed");
+
+        settings.FontSize = new double[] { 12, 14, 16, 18 }.Contains(settings.FontSize) ? settings.FontSize : 14;
+        var layoutChanged = _appliedFontSize != settings.FontSize || _appliedDensity != settings.Density;
+        if (_appliedFontSize != settings.FontSize)
+        {
+            resources["BodyFontSize"] = settings.FontSize;
+            resources["ControlContentThemeFontSize"] = settings.FontSize;
+            _appliedFontSize = settings.FontSize;
+        }
+        if (_appliedDensity != settings.Density)
+        {
+            resources["TaskPadding"] = new Thickness(12, settings.Density == "紧凑" ? 9 : 15, 12, settings.Density == "紧凑" ? 9 : 15);
+            _appliedDensity = settings.Density;
+        }
+        if (_appliedMotion != settings.ReduceMotion)
+        {
+            ReduceMotion = settings.ReduceMotion;
+            resources["ThemePopupAnimation"] = ReduceMotion ? System.Windows.Controls.Primitives.PopupAnimation.None : System.Windows.Controls.Primitives.PopupAnimation.Fade;
+            resources["CheckBoxAnimationDuration"] = new Duration(TimeSpan.FromMilliseconds(ReduceMotion ? 0 : 180));
+            _appliedMotion = settings.ReduceMotion;
+            MotionChanged?.Invoke();
+        }
+        if (paletteChanged || layoutChanged) Changed?.Invoke();
     }
 }

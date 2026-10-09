@@ -54,7 +54,7 @@ internal static partial class UiRevisionChecks
                 var paste = menu.Items.OfType<MenuItem>().First(i => i.Command == ApplicationCommands.Paste);
                 ((IInvokeProvider)new MenuItemAutomationPeer(paste).GetPattern(PatternInterface.Invoke)).Invoke(); await Settle();
                 Check(box.Text == "#12ab34" && !HasError(), name + ": native Paste command inserts color");
-                ((ComboBox)window.FindName("ModeSetting")).Focus(); await Settle();
+                ((ComboBox)window.FindName("ThemeSetting")).Focus(); await Settle();
                 Check(await model.Repository!.GetSettingAsync("StatusColor." + name) == "#12AB34", name + ": leaving field persists normalized color");
                 box.Focus(); box.Clear(); Clipboard.SetText("#abcdef"); EnsureForeground();
                 keybd_event(0x11, 0, 0, 0); keybd_event(0x56, 0, 0, 0); keybd_event(0x56, 0, 2, 0); keybd_event(0x11, 0, 2, 0); await Settle();
@@ -62,11 +62,11 @@ internal static partial class UiRevisionChecks
                 box.Clear(); menu = await OpenMenu(box); menu.IsOpen = false; await Settle();
                 Check(box.IsKeyboardFocusWithin && !HasError(), name + ": dismissing menu keeps empty input editable");
                 box.Text = "#12";
-                ((ComboBox)window.FindName("ModeSetting")).Focus(); await Settle();
+                ((ComboBox)window.FindName("ThemeSetting")).Focus(); await Settle();
                 Check(HasError(), name + ": invalid value still reports error on actual leave");
                 box.Text = "#abcdef";
                 await Choose(window, Wpf.Ui.Controls.ContentDialogButton.Close);
-                box.Focus(); ((ComboBox)window.FindName("ModeSetting")).Focus(); await Settle();
+                box.Focus(); ((ComboBox)window.FindName("ThemeSetting")).Focus(); await Settle();
                 Check(await model.Repository.GetSettingAsync("StatusColor." + name) == "#ABCDEF", name + ": corrected value persists");
             }
             await model.OpenBookAsync(book); window.SyncSettings();

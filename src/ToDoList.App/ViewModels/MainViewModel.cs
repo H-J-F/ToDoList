@@ -42,7 +42,10 @@ public sealed class MainViewModel : ObservableObject
     public string DateSubtitle => DateTime.Now.ToString("yyyy 年 M 月 d 日  ·  dddd");
     public bool IsCompletedTab => Filter == TaskFilter.Completed;
     private bool _busy;
-    public bool IsBusy { get => _busy; set => Set(ref _busy, value); }
+    public bool IsBusy { get => _busy; set { Set(ref _busy, value); Raise(nameof(ShowBlockingOverlay)); } }
+    private bool _switchingBook;
+    public bool IsSwitchingBook { get => _switchingBook; set { Set(ref _switchingBook, value); Raise(nameof(ShowBlockingOverlay)); } }
+    public bool ShowBlockingOverlay => IsBusy && !IsSwitchingBook;
     private bool _loading;
     public bool IsLoading { get => _loading; private set => Set(ref _loading, value); }
     private string _message = "把想做的事写下来，让每一天轻一点。";
@@ -64,11 +67,40 @@ public sealed class MainViewModel : ObservableObject
     }
     public async Task OpenBookAsync(BookInfo book)
     {
-        CancelQuery(); CurrentBook = book; Repository = new(book.Path); CurrentProjectId = null; Filter = TaskFilter.Today;
-        Sort = await Repository.GetSettingAsync("CompletedSort") == "Created" ? TaskSort.Created : TaskSort.Completed;
-        ReportOpenColor = await Repository.GetSettingAsync("StatusColor.Open"); ReportVerificationColor = await Repository.GetSettingAsync("StatusColor.Verification"); ReportCompletedColor = await Repository.GetSettingAsync("StatusColor.Completed");
-        Settings.LastBook = book.Name; Library.SaveSettings(Settings);
-        await RefreshProjectsAsync(); await ReloadAsync(true); Raise(nameof(Sort));
+        CancelQuery(); IsLoading = false;
+        var epoch = _epoch; var token = _queryCancellation.Token;
+        var repository = new TaskRepository(book.Path);
+        // Prepare off the current view. A failed or superseded request leaves
+        // the previous book, repository and visible rows intact.
+        var sort = await repository.GetSettingAsync("CompletedSort", token) == "Created" ? TaskSort.Created : TaskSort.Completed;
+        var open = await repository.GetSettingAsync("StatusColor.Open", token);
+        var verification = await repository.GetSettingAsync("StatusColor.Verification", token);
+        var completed = await repository.GetSettingAsync("StatusColor.Completed", token);
+        var projects = await repository.GetProjectsAsync(token);
+        var range = DateRanges.For(TaskFilter.Today, DateTime.Now);
+        var query = new TaskQuery(null, TaskFilter.Today, sort, range.From, range.Until);
+        var page = await repository.QueryAsync(query, token);
+        if (epoch != _epoch) return;
+        var oldLastBook = Settings.LastBook;
+        Settings.LastBook = book.Name;
+        try { Library.SaveSettings(Settings); }
+        catch { Settings.LastBook = oldLastBook; throw; }
+
+        // No awaits during commit: observers never render half of each book.
+        Repository = repository; CurrentProjectId = null; Filter = TaskFilter.Today; Sort = sort; CurrentQuery = query;
+        ReportOpenColor = open; ReportVerificationColor = verification; ReportCompletedColor = completed;
+        Projects.Clear(); DraftProjects.Clear();
+        var all = new ProjectInfo(null, "全部"); Projects.Add(all); DraftProjects.Add(all);
+        foreach (var project in projects) { Projects.Add(project); DraftProjects.Add(project); }
+        DraftProjects.Add(new("__new", "新增模块"));
+        Tasks.Clear(); foreach (var item in page.Items) Tasks.Add(MakeRow(item));
+        HasOlder = page.HasMore; HasNewer = false;
+        var bytes = Tasks.Sum(t => t.EstimatedBytes);
+        while (bytes > 32L * 1024 * 1024 && Tasks.Count > 1)
+        { bytes -= Tasks[0].EstimatedBytes; Tasks.RemoveAt(0); HasOlder = true; }
+        UpdateHeaders(); CurrentBook = book;
+        Raise(nameof(Sort)); Raise(nameof(Filter)); Raise(nameof(FilterTitle)); Raise(nameof(IsCompletedTab));
+        Raise(nameof(IsCalendarFilter)); Raise(nameof(DateSubtitle)); NotifyList(); LatestRequested?.Invoke();
     }
     public async Task SetStatusColorAsync(string key, string value)
     {

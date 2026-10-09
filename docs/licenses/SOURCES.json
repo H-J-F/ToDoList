@@ -88,5 +88,10 @@
     "file": "Microsoft-Extensions-NOTICES.txt",
     "source": "nuget:microsoft.extensions.logging.abstractions/8.0.3/THIRD-PARTY-NOTICES.TXT",
     "sha256": "b60b2912da28eaa6518593c9e2efb5334ee062d3c42e80d8fdfa806b3dc52977"
+  },
+  {
+    "file": "WPF-UI.Tray.txt",
+    "source": "nuget:wpf-ui.tray/4.3.0/LICENSE.md",
+    "sha256": "efb68dbccb1be73cd78729b76f39720132126bacff8194eed934323bab6455b7"
   }
 ]

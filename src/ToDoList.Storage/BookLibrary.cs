@@ -238,6 +238,7 @@ public sealed class BookLibrary
         try
         {
             var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path)) ?? new();
+            ThemeCatalog.Normalize(settings);
             settings.RecentColors = (settings.RecentColors ?? []).Where(c => c != null && System.Text.RegularExpressions.Regex.IsMatch(c, "^#[0-9a-fA-F]{6}$")).Select(c => c.ToUpperInvariant()).Distinct().Take(8).ToList();
             settings.RecentEmoji = (settings.RecentEmoji ?? []).Where(e => !string.IsNullOrWhiteSpace(e) && e.Length <= 64).Distinct().Take(24).ToList();
             return settings;

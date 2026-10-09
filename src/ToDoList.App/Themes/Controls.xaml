@@ -2,11 +2,18 @@
     <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
     <FontFamily x:Key="BodyFontFamily">Microsoft YaHei UI, Segoe UI Emoji</FontFamily>
     <!-- Retain the library templates, focus rings and visual states. -->
+    <!-- WPF adorner selections paint above glyphs; keep the tint translucent. -->
+    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="SelectionBrush" Value="{DynamicResource AccentInkBrush}"/>
+        <Setter Property="SelectionOpacity" Value="0.2"/>
+    </Style>
     <Style TargetType="fluent:Button" BasedOn="{StaticResource DefaultUiButtonStyle}">
         <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
         <Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="14,7"/><Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
     <Style TargetType="fluent:TextBox" BasedOn="{StaticResource {x:Type fluent:TextBox}}">
+        <Setter Property="SelectionBrush" Value="{DynamicResource AccentInkBrush}"/>
+        <Setter Property="SelectionOpacity" Value="0.2"/>
         <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/>
         <Setter Property="MinHeight" Value="40"/><Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
@@ -29,7 +36,60 @@
         <Setter Property="Width" Value="32"/><Setter Property="Height" Value="32"/><Setter Property="MinHeight" Value="32"/><Setter Property="Padding" Value="0"/><Setter Property="Focusable" Value="False"/>
     </Style>
     <Style x:Key="SettingCard" TargetType="fluent:CardControl" BasedOn="{StaticResource {x:Type fluent:CardControl}}"><Setter Property="MinHeight" Value="76"/><Setter Property="Margin" Value="0,0,0,8"/><Setter Property="Focusable" Value="False"/></Style>
-    <Style x:Key="SettingSelector" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}"><Setter Property="Width" Value="164"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/></Style>
+    <Style x:Key="SettingSelectorBase" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}"><Setter Property="Width" Value="164"/><Setter Property="FontSize" Value="{DynamicResource BodyFontSize}"/></Style>
+    <!-- Fixed rows and logical scrolling keep partially visible items from being
+         brought into view on hover. This popup never translates or resizes. -->
+    <Style x:Key="ThemeSelectorItem" TargetType="ComboBoxItem">
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="Row" Background="Transparent" CornerRadius="4" Margin="2,0" Padding="6,0">
+                <Grid>
+                    <ContentPresenter VerticalAlignment="Center"/>
+                    <Border x:Name="SelectedMark" Width="3" Height="18" Margin="-6,0,0,0" HorizontalAlignment="Left" CornerRadius="1.5" Background="{DynamicResource AccentInkBrush}" Visibility="Collapsed"/>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsSelected" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource AccentBrush}"/><Setter TargetName="SelectedMark" Property="Visibility" Value="Visible"/></Trigger>
+                <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource HoverBrush}"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="SettingSelector" TargetType="ComboBox" BasedOn="{StaticResource SettingSelectorBase}">
+        <Setter Property="ItemContainerStyle" Value="{StaticResource ThemeSelectorItem}"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></Setter.Value></Setter>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+            <Grid>
+                <Border x:Name="ContentBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4">
+                    <Grid Margin="8,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="18"/></Grid.ColumnDefinitions>
+                        <ContentPresenter VerticalAlignment="Center" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
+                        <fluent:SymbolIcon x:Name="ThemeChevron" Grid.Column="1" Symbol="ChevronDown16" FontSize="12" Foreground="{TemplateBinding Foreground}"/>
+                    </Grid>
+                </Border>
+                <ToggleButton x:Name="ToggleButton" Style="{StaticResource DefaultComboBoxToggleButtonStyle}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"/>
+                <Popup x:Name="Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=ContentBorder}" VerticalOffset="4" AllowsTransparency="True" Focusable="False" PopupAnimation="{DynamicResource ThemePopupAnimation}">
+                    <Border x:Name="DropDownBorder" Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" Background="{DynamicResource PaperBrush}" BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="0,4">
+                        <ScrollViewer MaxHeight="280" CanContentScroll="True" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False">
+                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                        </ScrollViewer>
+                    </Border>
+                </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ContentBorder" Property="Background" Value="{DynamicResource HoverBrush}"/></Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="ContentBorder" Property="BorderBrush" Value="{DynamicResource AccentInkBrush}"/></Trigger>
+                <Trigger Property="IsDropDownOpen" Value="True">
+                    <Setter TargetName="ThemeChevron" Property="Symbol" Value="ChevronUp16"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource TextFillColorDisabledBrush}"/><Setter TargetName="ContentBorder" Property="Background" Value="{DynamicResource InputBrush}"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="ThemeSelector" TargetType="ComboBox" BasedOn="{StaticResource SettingSelector}"/>
     <Style x:Key="HorizontalSnackbar" TargetType="fluent:Snackbar">
         <Setter Property="Foreground" Value="{DynamicResource SnackBarForeground}"/><Setter Property="ContentForeground" Value="{DynamicResource SnackBarForeground}"/>
         <Setter Property="Background" Value="{DynamicResource SnackBarBackground}"/><Setter Property="BorderBrush" Value="{DynamicResource SnackBarBorderBrush}"/>

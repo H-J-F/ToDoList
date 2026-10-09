@@ -108,6 +108,8 @@ public sealed class AppSettings
     public List<string> RecentColors { get; set; } = [];
     public List<string> RecentEmoji { get; set; } = [];
     public int SettingsVersion { get; set; }
+    public string? ThemeId { get; set; }
+    // Legacy fields are read for migration only; ThemeId controls the appearance.
     public string? AccentPreset { get; set; }
     public string Mode { get; set; } = "浅色";
     public string Palette { get; set; } = "奶油";

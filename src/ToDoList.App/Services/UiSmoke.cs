@@ -100,11 +100,11 @@ internal static partial class UiSmoke
             await Task.Delay(3200);
             await CheckReducedMotionAsync(window, log);
             await CheckSettingsAsync(window, output, log);
-            foreach (var palette in new[] { "浅蓝", "青绿", "橙色", "紫色" })
+            foreach (var palette in ThemeCatalog.All.Where(t => t.IsCandidate).Select(t => t.Id))
             {
-                model.Settings.AccentPreset = palette; ThemeService.Apply(model.Settings); await Settle(); Capture(window, Path.Combine(output, "theme-" + palette + ".png"));
+                model.Settings.ThemeId = palette; ThemeService.Apply(model.Settings); await Settle(); Capture(window, Path.Combine(output, "theme-" + palette + ".png"));
             }
-            model.Settings.Mode = "深色"; model.Settings.AccentPreset = "浅蓝"; ThemeService.Apply(model.Settings); window.SyncSettings(); await Settle(); Capture(window, Path.Combine(output, "03-journal-dark.png"));
+            model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode("深色"); ThemeService.Apply(model.Settings); window.SyncSettings(); await Settle(); Capture(window, Path.Combine(output, "03-journal-dark.png"));
             ((Border)window.FindName("SettingsPanel")).Visibility = Visibility.Visible; await Settle(); Capture(window, Path.Combine(output, "04-settings-dark.png"));
             ((Border)window.FindName("SettingsPanel")).Visibility = Visibility.Collapsed;
             foreach (var size in new double[] { 12, 14, 16, 18 })
@@ -114,7 +114,7 @@ internal static partial class UiSmoke
                 Check(p.Y >= 0 && p.Y + editor.ActualHeight <= window.ActualHeight, $"Input visible at minimum window, font {size}", log);
             }
             Capture(window, Path.Combine(output, "05-minimum-large-font.png"));
-            model.Settings.Mode = "浅色"; model.Settings.FontSize = 14; ThemeService.Apply(model.Settings); window.Width = 1100; window.Height = 760;
+            model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode("浅色"); model.Settings.FontSize = 14; ThemeService.Apply(model.Settings); window.Width = 1100; window.Height = 760;
             var repo2 = model.Repository!;
             var batch = await Task.WhenAll(Enumerable.Range(0, 25).Select(i => repo2.AddTaskAsync(RichContent.FromText($"动画测试 {i} ✅"), null)));
             await model.SelectFilterAsync(TaskFilter.Open); await Settle();
@@ -201,16 +201,19 @@ internal static partial class UiSmoke
         settingsButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Settle();
         var panel = (Border)window.FindName("SettingsPanel");
         Check(panel.IsVisible && panel.RenderTransform is TranslateTransform { X: 0, HasAnimatedProperties: false }, "Reduced-motion settings panel fades without sliding", log);
-        var palette = (ComboBox)window.FindName("PaletteSetting");
+        var palette = (ComboBox)window.FindName("ThemeSetting");
         palette.IsDropDownOpen = true; await Settle();
         var dropdown = (FrameworkElement)palette.Template.FindName("DropDownBorder", palette);
-        Check(palette.IsDropDownOpen && dropdown.RenderTransform is TranslateTransform { Y: 0, HasAnimatedProperties: false }, "Reduced-motion dropdown opens without translation", log);
+        Check(palette.IsDropDownOpen && dropdown.RenderTransform.Value.IsIdentity && !dropdown.RenderTransform.HasAnimatedProperties, "Reduced-motion dropdown opens without translation", log);
         palette.IsDropDownOpen = false; await Settle();
-        var chevron = (FrameworkElement)palette.Template.FindName("ChevronIcon", palette);
-        Check(chevron.RenderTransform is RotateTransform { Angle: 0, HasAnimatedProperties: false }, "Reduced-motion dropdown arrow resets without rotation", log);
+        var chevron = (Wpf.Ui.Controls.SymbolIcon)palette.Template.FindName("ThemeChevron", palette);
+        var popup = (System.Windows.Controls.Primitives.Popup)palette.Template.FindName("Popup", palette);
+        Check(chevron.Symbol == Wpf.Ui.Controls.SymbolRegular.ChevronDown16 && popup.PopupAnimation == System.Windows.Controls.Primitives.PopupAnimation.None,
+            "Reduced-motion theme dropdown resets arrow and disables fade", log);
         motionSetting.SelectedIndex = 0;
         palette.IsDropDownOpen = true; await Settle();
-        Check(dropdown.RenderTransform is TranslateTransform { HasAnimatedProperties: true }, "Re-enabling standard mode restores the library dropdown animation", log);
+        Check(dropdown.RenderTransform.Value.IsIdentity && !dropdown.RenderTransform.HasAnimatedProperties && popup.PopupAnimation == System.Windows.Controls.Primitives.PopupAnimation.Fade,
+            "Standard theme dropdown fades without translation", log);
         palette.IsDropDownOpen = false; motionSetting.SelectedIndex = 1;
         MainWindow.Descendants<Button>(panel).First(b => Equals(b.ToolTip, "关闭设置")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Settle();
         await model.SelectFilterAsync(TaskFilter.Open); await Settle();
@@ -237,8 +240,7 @@ internal static partial class UiSmoke
         var panel = (Border)window.FindName("SettingsPanel");
         var scroll = (ScrollViewer)window.FindName("SettingsScroll");
         var content = (StackPanel)window.FindName("SettingsContent");
-        var palette = (ComboBox)window.FindName("PaletteSetting");
-        var mode = (ComboBox)window.FindName("ModeSetting");
+        var palette = (ComboBox)window.FindName("ThemeSetting");
         var font = (ComboBox)window.FindName("FontSetting");
         var close = (Wpf.Ui.Controls.Button)window.FindName("CloseSettingsButton");
         var add = MainWindow.Descendants<Wpf.Ui.Controls.Button>(window).Single(b => System.Windows.Automation.AutomationProperties.GetAutomationId(b) == "AddTask");
@@ -258,26 +260,20 @@ internal static partial class UiSmoke
         empty.IsDropDownOpen = true; await Settle(); items.Clear(); await Settle();
         Check(!empty.IsEnabled && !empty.IsDropDownOpen, "Clearing an open dropdown closes and disables it", log);
         content.Children.Remove(empty);
-        foreach (var displayMode in new[] { "浅色", "深色" })
+        foreach (var option in ThemeCatalog.All)
         {
-            mode.SelectedItem = displayMode;
-            foreach (var option in ThemeService.Accents)
-            {
-                palette.IsDropDownOpen = true; palette.SelectedValue = option.Name; palette.IsDropDownOpen = false; await Settle();
-                var actual = (SolidColorBrush)add.Background;
-                var expected = (SolidColorBrush)window.FindResource("AccentFillColorDefaultBrush");
-                log.Add($"Accent {displayMode}/{option.Name}: button={actual.Color}, accent={expected.Color}, swatch={option.Color}");
-                Check(model.Settings.AccentPreset == option.Name && Equals(palette.SelectedValue, option.Name) &&
-                    Wpf.Ui.Appearance.ApplicationAccentColorManager.SystemAccent == option.Color && actual.Color == expected.Color,
-                    $"Selecting {displayMode}/{option.Name} updates the actual primary button and preserves selection", log);
-                Check(((SolidColorBrush)window.FindResource("TabViewItemForegroundSelected")).Color ==
-                    (displayMode == "深色" ? Wpf.Ui.Appearance.ApplicationAccentColorManager.SecondaryAccent : option.Color),
-                    $"Selected tab uses {displayMode}/{option.Name} instead of a fixed blue", log);
-                Capture(window, Path.Combine(output, $"settings-{displayMode}-{option.Name}.png"));
-            }
+            palette.IsDropDownOpen = true; palette.SelectedValue = option.Id; palette.IsDropDownOpen = false; await Settle();
+            var actual = (SolidColorBrush)add.Background;
+            var expected = (SolidColorBrush)window.FindResource("AccentFillColorDefaultBrush");
+            Check(model.Settings.ThemeId == option.Id && Equals(palette.SelectedValue, option.Id) && actual.Color == expected.Color,
+                $"Selecting {option.Name} updates the actual primary button and preserves selection", log);
+            Check(((SolidColorBrush)window.FindResource("TabViewItemForegroundSelected")).Color ==
+                ((SolidColorBrush)window.FindResource("AccentInkBrush")).Color,
+                $"Selected tab follows {option.Name}", log);
+            Capture(window, Path.Combine(output, $"settings-{option.Id}.png"));
         }
         model.SaveSettings();
-        Check(model.Library.LoadSettings().AccentPreset == "紫色", "Accent chosen through dropdown persists to settings.json", log);
+        Check(model.Library.LoadSettings().ThemeId == (string?)palette.SelectedValue, "Theme chosen through dropdown persists to settings.json", log);
         foreach (var size in new double[] { 12, 14, 16, 18 })
         {
             window.Width = 800; window.Height = 560; font.SelectedItem = size; scroll.ScrollToTop(); await Settle();
@@ -293,7 +289,7 @@ internal static partial class UiSmoke
         }
         Capture(window, Path.Combine(output, "settings-minimum-bottom.png"));
         scroll.ScrollToTop(); await Settle(); Capture(window, Path.Combine(output, "settings-minimum-top.png"));
-        mode.SelectedItem = "浅色"; palette.SelectedValue = "浅蓝"; font.SelectedItem = 14d;
+        palette.SelectedValue = "classic-light"; font.SelectedItem = 14d;
         window.Width = 1100; window.Height = 760; await Settle();
         Capture(window, Path.Combine(output, "settings-light.png"));
         var about = (Wpf.Ui.Controls.CardAction)window.FindName("AboutCard");

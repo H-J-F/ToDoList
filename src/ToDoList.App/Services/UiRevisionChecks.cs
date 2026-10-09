@@ -24,6 +24,7 @@ internal static partial class UiRevisionChecks
     public static async Task RunAsync(MainWindow window)
     {
         var args = Environment.GetCommandLineArgs();
+        if (args.Contains("--settings-navigation")) { await UiSettingsNavigationChecks.RunAsync(window); return; }
         if (args.Contains("--edit-scroll")) { await RunEditScrollAsync(window); return; }
         if (args.Contains("--color-paste")) { await RunColorPasteAsync(window); return; }
         if (args.Contains("--selection-recycling")) { await RunSelectionRecyclingAsync(window); return; }
@@ -95,9 +96,9 @@ internal static partial class UiRevisionChecks
 
             foreach (var mode in new[] { "浅色", "深色" })
             {
-                model.Settings.Mode = mode; ThemeService.Apply(model.Settings); window.SyncSettings(); await Settle();
+                model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode(mode); ThemeService.Apply(model.Settings); window.SyncSettings(); await Settle();
                 var names = new[] { "Open", "Verification", "Completed" };
-                var colors = new[] { "#00CAE5", "#E6A409", "#07E355" };
+                var colors = new[] { ThemeService.Current.Colors.Open, ThemeService.Current.Colors.Verification, ThemeService.Current.Colors.Completed };
                 for (var i = 0; i < names.Length; i++)
                 {
                     var box = (TextBox)window.FindName(names[i] + "ColorSetting");
@@ -128,7 +129,7 @@ internal static partial class UiRevisionChecks
             Invoke(window, "CloseSettings_Click", window, new RoutedEventArgs()); await Settle();
             var otherBook = await model.Library.CreateAsync("Other", "独立配色");
             await model.OpenBookAsync(otherBook); ThemeService.Apply(model.Settings);
-            Check(((SolidColorBrush)window.FindResource("TaskOpenBrush")).Color == (Color)ColorConverter.ConvertFromString("#00CAE5"), "Switching books does not change task palette");
+            Check(((SolidColorBrush)window.FindResource("TaskOpenBrush")).Color == (Color)ColorConverter.ConvertFromString(ThemeService.Current.Colors.Open), "Switching books does not change task palette");
             await model.OpenBookAsync(book); await model.SelectFilterAsync(TaskFilter.All); Invoke(window, "SyncSelectors", false); await Settle();
             Check(model.ReportOpenColor == "#123456", "Report palette persists in its own book");
 
@@ -178,7 +179,13 @@ internal static partial class UiRevisionChecks
             var draft = (RichEditor)window.FindName("DraftEditor");
             draft.SetContent(RichContent.FromText("退出时取消")); window.Close(); await Settle();
             Check(!window.IsVisible, "Window closes to tray with draft");
-            window.RequestExit(); await Choose(window, ContentDialogButton.Close); await Settle();
+            if (args.Contains("--tray-native"))
+            {
+                await UiTrayInput.OpenAsync(((App)Application.Current).Tray!);
+                await UiSettingsNavigationChecks.Click((System.Windows.Controls.MenuItem)((App)Application.Current).Tray!.Menu.Items[2]);
+            }
+            else window.RequestExit();
+            await Choose(window, ContentDialogButton.Close); await Settle();
             Check(window.IsVisible && !((App)Application.Current).ExitRequested, "Cancelled exit resets exit flag and reveals pending draft");
             window.Close(); await Settle(); Check(!window.IsVisible, "Close after cancelled exit still hides to tray");
             window.RestoreFromTray();
@@ -233,7 +240,12 @@ internal static partial class UiRevisionChecks
                 else failures.Add("Unexpected draft persistence result");
                 Save();
             };
-            window.RequestExit();
+            if (Environment.GetCommandLineArgs().Contains("--tray-native"))
+            {
+                await UiTrayInput.OpenAsync(((App)Application.Current).Tray!);
+                await UiSettingsNavigationChecks.Click((System.Windows.Controls.MenuItem)((App)Application.Current).Tray!.Menu.Items[2]);
+            }
+            else window.RequestExit();
             await Choose(window, saveDraft ? ContentDialogButton.Primary : ContentDialogButton.Secondary);
         }
         catch (Exception ex) { failures.Add(ex.ToString()); Save(); Application.Current.Shutdown(); }

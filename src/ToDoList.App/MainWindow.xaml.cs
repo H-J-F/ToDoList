@@ -54,8 +54,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         var bitmap = new BitmapImage(new Uri("pack://application:,,,/Assets/app-icon.png")); bitmap.Freeze();
         Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/app.ico"));
         WelcomeIcon.Source = AboutIcon.Source = bitmap;
-        ModeSetting.ItemsSource = new[] { "浅色", "深色", "跟随系统" };
-        PaletteSetting.ItemsSource = ThemeService.Accents;
+        ThemeSetting.ItemsSource = ThemeService.Themes;
         FontSetting.ItemsSource = new double[] { 12, 14, 16, 18 };
         DensitySetting.ItemsSource = new[] { "紧凑", "舒适" }; MotionSetting.ItemsSource = new[] { "标准", "减少动态效果" };
         SyncSettings();
@@ -123,6 +122,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             TaskEditor.Measure(new Size(Math.Max(100, TaskList.ActualWidth - 60), double.PositiveInfinity));
         }));
         var args = Environment.GetCommandLineArgs();
+        if (args.Contains("--ui-themes")) { await Services.UiThemePreview.RunAsync(this); return; }
         if (args.Contains("--ui-revision")) { await Services.UiRevisionChecks.RunAsync(this); return; }
         if (args.Contains("--ui-drag-boundaries")) { await Services.UiDragBoundaryChecks.RunAsync(this); return; }
         if (args.Contains("--ui-interaction")) { await Services.UiInteractionChecks.RunAsync(this); return; }
@@ -152,7 +152,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         try { await action(); } catch (OperationCanceledException) { } catch (Exception ex) { ShowError(ex); }
     }
     private void ShowError(Exception ex) { if (!IsVisible) RestoreFromTray(); Model.Message = "未能完成：" + ex.Message; _ = Dialogs.Info(this, "操作未完成", ex.Message); }
-    private async Task NavigateAsync(Func<Task> action, bool bookOperation = false, bool preserveDraft = false)
+    private async Task NavigateAsync(Func<Task> action, bool bookOperation = false, bool preserveDraft = false, bool bookSwitch = false)
     {
         if (_navigating) { SyncSelectors(); return; }
         _navigating = true;
@@ -161,18 +161,48 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             if (!(preserveDraft ? await TryLeaveRowEditAsync() : await TryLeaveEditsAsync())) return;
             if (bookOperation)
             {
+                Model.IsSwitchingBook = bookSwitch;
                 Model.IsBusy = true;
                 while (_pendingMutations > 0) await Task.Delay(20);
             }
-            _sync = true; ClearDeletedSelection(); await action(); Motion.Reveal(TaskContent);
+            _sync = true; ClearDeletedSelection();
+            if (bookSwitch && !ThemeService.ReduceMotion) CaptureBookSnapshot();
+            await action();
+            if (bookSwitch)
+            {
+                await Dispatcher.Yield(DispatcherPriority.Loaded);
+                MainPage.UpdateLayout();
+                if (BookTransitionSnapshot.Visibility == Visibility.Visible) await Motion.CrossFadeAsync(BookTransitionSnapshot);
+            }
+            else Motion.Reveal(TaskContent);
         }
         catch (Exception ex) { ShowError(ex); }
-        finally { _sync = false; _navigating = false; Model.IsBusy = false; SyncSelectors(); }
+        finally
+        {
+            Motion.Finish(BookTransitionSnapshot); BookTransitionSnapshot.Visibility = Visibility.Collapsed; BookTransitionSnapshot.Source = null;
+            _sync = false; _navigating = false; Model.IsBusy = false; Model.IsSwitchingBook = false; SyncSelectors();
+        }
+    }
+    private void CaptureBookSnapshot()
+    {
+        if (!MainPage.IsVisible || MainPage.ActualWidth <= 0 || MainPage.ActualHeight <= 0) return;
+        var dpi = VisualTreeHelper.GetDpi(MainPage);
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(MainPage.ActualWidth * dpi.DpiScaleX),
+            (int)Math.Ceiling(MainPage.ActualHeight * dpi.DpiScaleY), dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+        var drawing = new DrawingVisual();
+        using (var context = drawing.RenderOpen())
+        {
+            var bounds = new Rect(0, 0, MainPage.ActualWidth, MainPage.ActualHeight);
+            context.DrawRectangle((Brush)FindResource("PaperBrush"), null, bounds);
+            context.DrawRectangle(new VisualBrush(MainPage), null, bounds);
+        }
+        bitmap.Render(drawing); bitmap.Freeze();
+        BookTransitionSnapshot.Source = bitmap; BookTransitionSnapshot.Opacity = 1; BookTransitionSnapshot.Visibility = Visibility.Visible;
     }
     private async void Book_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_sync || !_initialized || BookSelector.SelectedItem is not BookInfo book || book.Name == Model.CurrentBook?.Name) return;
-        await NavigateAsync(async () => { await Model.OpenBookAsync(book); SyncSelectors(true); }, true);
+        await NavigateAsync(async () => { await Model.OpenBookAsync(book); SyncSelectors(true); }, true, bookSwitch: true);
     }
     private async void Project_Changed(object sender, SelectionChangedEventArgs e)
     {
@@ -443,20 +473,48 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         // Popup children live in a separate visual root and do not reach this handler.
         bool Within(DependencyObject root)
         {
-            for (var node = e.OriginalSource as DependencyObject; node != null; node = node is Visual ? VisualTreeHelper.GetParent(node) : LogicalTreeHelper.GetParent(node))
+            var pending = new Queue<DependencyObject>(); var visited = new HashSet<DependencyObject>();
+            if (e.OriginalSource is DependencyObject source) pending.Enqueue(source);
+            while (pending.TryDequeue(out var node))
+            {
+                if (!visited.Add(node)) continue;
                 if (ReferenceEquals(node, root)) return true;
+                void Add(DependencyObject? parent) { if (parent != null) pending.Enqueue(parent); }
+                if (node is Visual) Add(VisualTreeHelper.GetParent(node));
+                Add(LogicalTreeHelper.GetParent(node));
+                if (node is FrameworkElement element) Add(element.TemplatedParent);
+                if (node is Popup popup) Add(popup.PlacementTarget);
+                if (node is ContextMenu menu) Add(menu.PlacementTarget);
+            }
             return false;
         }
         if (_datePopup?.IsOpen == true && !Within(CalendarButton)) _datePopup.IsOpen = false;
         if (SettingsPanel.Visibility == Visibility.Visible && !Within(SettingsPanel) && !Within(SettingsButton))
             CloseSettings_Click(sender, e);
     }
-    private async void CloseSettings_Click(object sender, RoutedEventArgs e) { if (_settingsClosing) return; _settingsClosing = true; await Motion.HideAsync(SettingsPanel); _settingsClosing = false; }
+    private async void CloseSettings_Click(object sender, RoutedEventArgs e)
+    {
+        if (_settingsClosing) return;
+        _settingsClosing = true;
+        try { await Motion.HideAsync(SettingsPanel); }
+        finally { _settingsClosing = false; }
+    }
+    private bool _settingsSync, _settingsApplyQueued;
+    private Appearance? _pendingAppearance;
+    private sealed record Appearance(string? Theme, double FontSize, string Density, bool ReduceMotion)
+    {
+        public static Appearance Read(AppSettings s) => new(s.ThemeId, s.FontSize, s.Density, s.ReduceMotion);
+        public void Write(AppSettings s) { s.ThemeId = Theme; s.FontSize = FontSize; s.Density = Density; s.ReduceMotion = ReduceMotion; }
+    }
     internal void SyncSettings()
     {
-        var prior = _sync; _sync = true; var s = Model.Settings;
-        ModeSetting.SelectedItem = s.Mode; PaletteSetting.SelectedValue = s.AccentPreset; FontSetting.SelectedItem = s.FontSize;
-        DensitySetting.SelectedItem = s.Density; MotionSetting.SelectedIndex = s.ReduceMotion ? 1 : 0; _sync = prior;
+        var prior = _settingsSync; _settingsSync = true; var s = Model.Settings;
+        try
+        {
+            ThemeSetting.SelectedValue = s.ThemeId; FontSetting.SelectedItem = s.FontSize;
+            DensitySetting.SelectedItem = s.Density; MotionSetting.SelectedIndex = s.ReduceMotion ? 1 : 0;
+        }
+        finally { _settingsSync = prior; }
         if (OpenColorSetting != null) { OpenColorSetting.Text = Model.ReportOpenColor ?? TaskReport.Color(ReportColor.Open); VerificationColorSetting.Text = Model.ReportVerificationColor ?? TaskReport.Color(ReportColor.Verification); CompletedColorSetting.Text = Model.ReportCompletedColor ?? TaskReport.Color(ReportColor.Completed); }
     }
     private void StatusColor_TextChanged(object sender, TextChangedEventArgs e)
@@ -502,23 +560,47 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     }
     private void Setting_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (_sync || !_initialized || sender is not ComboBox { SelectedItem: not null } selector || e.OriginalSource != sender) return;
-        var s = Model.Settings;
-        if (selector == ModeSetting) s.Mode = (string)selector.SelectedItem;
-        else if (selector == PaletteSetting) s.AccentPreset = ((ThemeService.AccentOption)selector.SelectedItem).Name;
-        else if (selector == FontSetting) s.FontSize = (double)selector.SelectedItem;
-        else if (selector == DensitySetting) s.Density = (string)selector.SelectedItem;
-        else if (selector == MotionSetting) s.ReduceMotion = selector.SelectedIndex == 1;
-        // Theme replacement can raise selection events while templates are rebuilt.
-        _sync = true;
-        try { ThemeService.Apply(s); }
-        finally { _sync = false; }
-        try { Model.SaveSettings(); } catch (Exception ex) { ShowError(ex); }
+        if (_settingsSync || !_initialized || sender is not ComboBox { SelectedItem: not null } selector || e.OriginalSource != sender) return;
+        var next = _pendingAppearance ?? Appearance.Read(Model.Settings);
+        if (selector == ThemeSetting) next = next with { Theme = ((ThemeService.ThemeOption)selector.SelectedItem).Id };
+        else if (selector == FontSetting) next = next with { FontSize = (double)selector.SelectedItem };
+        else if (selector == DensitySetting) next = next with { Density = (string)selector.SelectedItem };
+        else if (selector == MotionSetting) next = next with { ReduceMotion = selector.SelectedIndex == 1 };
+        QueueAppearance(next);
+    }
+    private void QueueAppearance(Appearance next)
+    {
+        _pendingAppearance = next;
+        if (_settingsApplyQueued) return;
+        _settingsApplyQueued = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => { _settingsApplyQueued = false; CommitAppearance(); }));
+    }
+    private bool CommitAppearance()
+    {
+        if (_pendingAppearance is not { } next) return true;
+        _pendingAppearance = null;
+        var previous = Appearance.Read(Model.Settings);
+        var prior = _settingsSync; _settingsSync = true;
+        try
+        {
+            next.Write(Model.Settings);
+            ThemeService.Apply(Model.Settings);
+            Model.SaveSettings();
+            SyncSettings();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            previous.Write(Model.Settings);
+            try { ThemeService.Apply(Model.Settings); SyncSettings(); }
+            catch (Exception restoreError) { ex = new AggregateException(ex, restoreError); }
+            ShowError(ex); return false;
+        }
+        finally { _settingsSync = prior; }
     }
     private void ResetSettings_Click(object sender, RoutedEventArgs e)
     {
-        var s = Model.Settings; s.Mode = "浅色"; s.AccentPreset = "浅蓝"; s.FontSize = 14; s.Density = "舒适"; s.ReduceMotion = !SystemParameters.ClientAreaAnimation;
-        SyncSettings(); ThemeService.Apply(s); try { Model.SaveSettings(); } catch (Exception ex) { ShowError(ex); }
+        QueueAppearance(new(ThemeCatalog.DefaultId, 14, "舒适", !SystemParameters.ClientAreaAnimation));
     }
     private void OpenData_Click(object sender, RoutedEventArgs e) => OpenDirectory(Model.Library.DataDirectory);
     private void OpenBackup_Click(object sender, RoutedEventArgs e) => OpenDirectory(Model.Library.BackupDirectory);
@@ -527,6 +609,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     internal void RestoreFromTray()
     {
         if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(RestoreFromTray); return; }
+        if (_closingApproved || Dispatcher.HasShutdownStarted) return;
         ShowInTaskbar = true; Show();
         WindowState = _stateBeforeTray == WindowState.Maximized ? WindowState.Maximized : WindowState.Normal;
         Activate();
@@ -554,14 +637,14 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     {
         if (_closingApproved) return;
         var app = (App)Application.Current;
-        var automated = Environment.GetCommandLineArgs().Any(a => a is "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features");
+        var automated = Environment.GetCommandLineArgs().Any(a => a is "--ui-themes" or "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features");
         if (!app.ExitRequested && !automated)
         {
             e.Cancel = true;
             try
             {
                 _stateBeforeTray = WindowState == WindowState.Maximized ? WindowState.Maximized : WindowState.Normal;
-                SaveWindowPlacement(); ShowInTaskbar = false; Hide();
+                SaveWindowPlacement(); ClosePopupsForExit(); ShowInTaskbar = false; Hide();
             }
             catch (Exception ex) { ShowInTaskbar = true; Show(); ShowError(ex); }
             return;
@@ -577,11 +660,32 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
             while (_navigating || Model.IsBusy || _pendingMutations > 0) await Task.Delay(20);
             if (!await TryLeaveEditsAsync()) return;
             while (_pendingMutations > 0) await Task.Delay(20);
-            SaveWindowPlacement(); _closingApproved = true;
+            if (!CommitAppearance()) return;
+            SaveWindowPlacement();
+            ClosePopupsForExit();
+            app.PrepareExit();
+            await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+            _closingApproved = true;
             _ = Dispatcher.BeginInvoke(new Action(Close));
         }
         catch (Exception ex) { ShowError(ex); }
         finally { _closePending = false; if (!_closingApproved) app.CancelExit(); }
+    }
+    private void ClosePopupsForExit()
+    {
+        if (_datePopup != null) { _datePopup.PopupAnimation = PopupAnimation.None; _datePopup.IsOpen = false; }
+        foreach (var combo in Descendants<ComboBox>(this)) combo.IsDropDownOpen = false;
+        foreach (var source in PresentationSource.CurrentSources.OfType<HwndSource>().ToArray())
+        {
+            if (source.RootVisual == null) continue;
+            foreach (var menu in Descendants<ContextMenu>(source.RootVisual).ToArray())
+            {
+                if (menu.Parent is Popup popup) popup.PopupAnimation = PopupAnimation.None;
+                Motion.Finish(menu); menu.IsOpen = false;
+            }
+        }
+        Motion.Finish(SettingsPanel);
+        Mouse.Capture(null); Keyboard.ClearFocus();
     }
     [StructLayout(LayoutKind.Sequential)]
     private struct FlashInfo { public uint Size; public IntPtr Hwnd; public uint Flags; public uint Count; public uint Timeout; }

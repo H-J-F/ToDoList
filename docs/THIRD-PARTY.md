@@ -7,6 +7,7 @@
 | PDFsharp-WPF、PDFsharp-MigraDoc-WPF 6.2.4 | [empira/PDFsharp v6.2.4](https://github.com/empira/PDFsharp/tree/v6.2.4)，© 2026 empira | MIT，`licenses/PDFsharp-MigraDoc-MIT.txt`；用于本地 PDF 报告；构建排除 WPFonts／Snippets／Quality 示例程序集 |
 | Microsoft.Extensions.Logging.Abstractions 8.0.3、DependencyInjection.Abstractions 8.0.2 | Microsoft / .NET Foundation and contributors | MIT，`licenses/Microsoft-Extensions-LICENSE.txt`、`Microsoft-Extensions-NOTICES.txt` |
 | WPF-UI、WPF-UI.Abstractions 4.3.0 | [lepoco/wpfui](https://github.com/lepoco/wpfui/tree/4.3.0)，Lepo / Leszek Pomianowski and WPF UI Contributors | MIT，`licenses/WPF-UI.txt` |
+| WPF-UI.Tray 4.3.0 | [lepoco/wpfui](https://github.com/lepoco/wpfui/tree/4.3.0)，Copyright (C) 2021–2026 Leszek Pomianowski and WPF UI Contributors | MIT，`licenses/WPF-UI.Tray.txt`；系统托盘与 WPF 菜单集成 |
 | Fluent System Icons（随 WPF UI 4.3.0 字体资源） | [Microsoft](https://github.com/microsoft/fluentui-system-icons)，Microsoft Corporation；上游包未提供独立图标版本号 | MIT，`licenses/Fluent-System-Icons.txt` |
 | Emoji.Wpf 0.3.4 | [Sam Hocevar](https://github.com/samhocevar/emoji.wpf/tree/488c716cd4255506fe073e3d80ecbbfdfe4c6cf5)，Copyright © 2017–2021 Sam Hocevar | **WTFPL v2**，`licenses/Emoji-Wpf-WTFPL.txt` |
 | Stfu 0.1.1 | [Sam Hocevar](https://github.com/samhocevar/stfu)，Copyright © 2017–2021 Sam Hocevar | WTFPL v2，同上；传递运行时依赖 |

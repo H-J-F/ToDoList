@@ -37,6 +37,15 @@
           "WPF-UI.Abstractions": "4.3.0"
         }
       },
+      "WPF-UI.Tray": {
+        "type": "Direct",
+        "requested": "[4.3.0, )",
+        "resolved": "4.3.0",
+        "contentHash": "xpBXOrH8FuM+9xAbc2Bv7huqZrfq06wKszYHcsDuI/t/1OabtXp7DWCJmHd3tLLuSUcefWfNcPX591csuw4Rng==",
+        "dependencies": {
+          "WPF-UI": "4.3.0"
+        }
+      },
       "JeremyAnsel.HLSL.Targets": {
         "type": "Transitive",
         "resolved": "1.0.13",
@@ -134,7 +143,7 @@
         "dependencies": {
           "Microsoft.Data.Sqlite": "[10.0.10, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )",
-          "ToDoList.Core": "[2.2.0, )"
+          "ToDoList.Core": "[2.3.8, )"
         }
       }
     },

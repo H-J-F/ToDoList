@@ -11,17 +11,28 @@ public partial class App : Application
 {
     private SingleInstanceCoordinator? _instance;
     private TrayService? _tray;
+    private bool _shutdownRequested;
+    internal TrayService? Tray => _tray;
     internal bool ExitRequested { get; private set; }
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("zh-CN");
         FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(XmlLanguage.GetLanguage("zh-CN")));
-        var isolatedCheck = e.Args.Any(a => a is "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-features" or "--ui-typography") && e.Args.Length >= 2 && e.Args[0] == "--data-dir";
-        _instance = new SingleInstanceCoordinator(isolatedCheck ? ".TaskFixes." + Environment.ProcessId : "");
+        if (e.Args.Contains("--ui-themes") && (e.Args.Length < 2 || e.Args[0] != "--data-dir"))
+        { ExitRequested = true; Shutdown(2); return; }
+        var isolatedCheck = e.Args.Any(a => a is "--ui-smoke" or "--ui-themes" or "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-features" or "--ui-typography") && e.Args.Length >= 2 && e.Args[0] == "--data-dir";
+        var lifecycleCheck = e.Args.Contains("--ui-lifecycle") && e.Args.Length >= 2 && e.Args[0] == "--data-dir";
+        // A stable, isolated name lets lifecycle checks verify release on restart
+        // without activating or closing the user's running application.
+        var suffix = lifecycleCheck
+            ? ".Lifecycle." + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(e.Args[1]).ToUpperInvariant())))[..16]
+            : isolatedCheck ? ".TaskFixes." + Environment.ProcessId : "";
+        _instance = new SingleInstanceCoordinator(suffix);
         if (!_instance.TryAcquire())
         {
-            if (!SingleInstanceCoordinator.ActivateExisting()) MessageBox.Show("ToDoList 已在运行，但暂时无法激活窗口。", "ToDoList");
+            if (!SingleInstanceCoordinator.ActivateExisting(suffix)) MessageBox.Show("ToDoList 已在运行，但暂时无法激活窗口。", "ToDoList");
             else
             {
                 // A global singleton can otherwise silently redirect a newly installed
@@ -54,14 +65,26 @@ public partial class App : Application
             var library = new BookLibrary(data); library.EnsureWritable(); var settings = library.LoadSettings();
             if (!File.Exists(Path.Combine(data, "settings.json"))) settings.ReduceMotion = !SystemParameters.ClientAreaAnimation;
             ThemeService.Apply(settings); InteractionMotion.Register();
-            var window = new MainWindow(library, settings); MainWindow = window; window.Show();
+            var window = new MainWindow(library, settings); MainWindow = window;
+            window.Closed += (_, _) =>
+            {
+                // Close has already passed the pending-edit checks. Other hidden
+                // WPF windows must not keep the application alive.
+                if (_shutdownRequested) return;
+                _shutdownRequested = true;
+                Dispatcher.BeginInvoke(new Action(() => Shutdown()));
+            };
+            window.Show();
             _tray = new TrayService(window); _tray.UpdateText(window.Model.BookTitle);
             window.Model.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(window.Model.BookTitle)) _tray?.UpdateText(window.Model.BookTitle); };
-            _instance.Listen(() => Dispatcher.BeginInvoke(window.RestoreFromTray));
+            _instance.Listen(() => Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (!ExitRequested && !_shutdownRequested) window.RestoreFromTray();
+            })));
         }
         catch (Exception ex)
         {
-            if (e.Args.Any(a => a is "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features" or "--ui-lifecycle"))
+            if (e.Args.Any(a => a is "--ui-themes" or "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features" or "--ui-lifecycle"))
             {
                 var report = Path.Combine(data, "..", "startup-error.txt");
                 Directory.CreateDirectory(Path.GetDirectoryName(report)!); File.WriteAllText(report, ex.ToString());
@@ -71,6 +94,7 @@ public partial class App : Application
         }
     }
     internal void BeginExit() => ExitRequested = true;
+    internal void PrepareExit() => _tray?.Dispose();
     internal void CancelExit() => ExitRequested = false;
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e) { ExitRequested = true; base.OnSessionEnding(e); }
     protected override void OnExit(ExitEventArgs e) { ExitRequested = true; _tray?.Dispose(); _instance?.Dispose(); base.OnExit(e); }

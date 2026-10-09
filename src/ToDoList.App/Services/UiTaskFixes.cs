@@ -36,7 +36,7 @@ internal static class UiTaskFixes
             await model.RefreshBooksAsync(); await model.OpenBookAsync(book);
             var a = await model.Repository!.AddProjectAsync("模块 A"); var b = await model.Repository.AddProjectAsync("模块 B");
             await model.RefreshProjectsAsync(); Invoke(window, "SyncSelectors", false);
-            model.Settings.Mode = "深色"; ThemeService.Apply(model.Settings); await Settle();
+            model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode("深色"); ThemeService.Apply(model.Settings); await Settle();
             var editor = (RichEditor)window.FindName("DraftEditor"); var input = (RichTextBox)editor.FindName("Editor");
             input.Focus(); input.Selection.Text = "测试";
             input.SelectAll(); var data = editor.CreateClipboardData(); input.CaretPosition = input.Document.ContentEnd;
@@ -148,7 +148,7 @@ internal static class UiTaskFixes
             deleteDialog = MainWindow.Descendants<Wpf.Ui.Controls.ContentDialog>(window).First(d => d.IsVisible);
             deleteDialog.TemplateButtonCommand.Execute(Wpf.Ui.Controls.ContentDialogButton.Primary); await deleting;
             Check(model.Tasks.Count == 0, "Permanent delete removes selected task");
-            model.Settings.Mode = "浅色"; ThemeService.Apply(model.Settings); editor.SetContent(RichContent.FromText("测试")); input.CaretPosition = input.Document.ContentEnd; editor.PastePlainText("测试\n第二行");
+            model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode("浅色"); ThemeService.Apply(model.Settings); editor.SetContent(RichContent.FromText("测试")); input.CaretPosition = input.Document.ContentEnd; editor.PastePlainText("测试\n第二行");
             Check(editor.GetContent().Paragraphs.SelectMany(p => p.Runs).All(r => r.Color == null), "Light theme paste remains automatic");
             Capture("light-taskfixes");
         }

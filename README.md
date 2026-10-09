@@ -8,14 +8,14 @@
 
 ## 获取与运行
 
-仓库：[H-J-F/ToDoList](https://github.com/H-J-F/ToDoList)。[正式版本下载入口](https://github.com/H-J-F/ToDoList/releases)。**当前源码版本为 2.3.4。**发布包及对应版本说明以 GitHub Release 为准。
+仓库：[H-J-F/ToDoList](https://github.com/H-J-F/ToDoList)。[正式版本下载入口](https://github.com/H-J-F/ToDoList/releases)。**当前源码版本为 2.3.9。**发布包及对应版本说明以 GitHub Release 为准。
 
 本地构建提供两版，均为 Windows x64：
 
 | 包名 | 适用情况 |
 | --- | --- |
-| `Build/ToDoList-2.3.4-win-x64-lite/` | 精简版，需要安装 [.NET 10 Desktop Runtime x64](https://dotnet.microsoft.com/zh-cn/download/dotnet/10.0)，交付文件总量小于 50,000,000 字节 |
-| `Build/ToDoList-2.3.4-win-x64-portable/` | 自带运行时，程序压缩为单个 EXE；无需预装 .NET，首次运行会解压必要原生组件 |
+| `Build/ToDoList-2.3.9-win-x64-lite/` | 精简版，需要安装 [.NET 10 Desktop Runtime x64](https://dotnet.microsoft.com/zh-cn/download/dotnet/10.0)，交付文件总量小于 50,000,000 字节 |
+| `Build/ToDoList-2.3.9-win-x64-portable/` | 自带运行时，程序压缩为单个 EXE；无需预装 .NET，首次运行会解压必要原生组件 |
 
 Lite 只包含一个 `ToDoList.exe`，缺少运行环境时由原生启动入口提示并提供微软下载入口。
 
@@ -81,7 +81,9 @@ MD 为 UTF-8；DOCX 可用 Word 打开；PDF 自动换行分页，使用本机�
 
 WPF UI 的 FluentWindow、TitleBar、CardAction、CalendarDatePicker、按钮、文本框、ContentDialog、Snackbar；ComboBox、CheckBox、菜单、滚动条采用该库为 WPF 原生控件提供的样式。系统托盘使用 Windows 原生 NotifyIcon，菜单继续采用 WPF UI 样式。功能图标使用 SymbolIcon，不使用字符拼凑箭头。
 
-浅色／深色／跟随系统，蓝、青绿、浅橙、紫四种强调色，12／14／16／18 DIP，紧凑／舒适及减少动态效果。正文使用系统 Microsoft YaHei UI，Normal 字重，Display + ClearType；图标使用库字体、Ideal + Grayscale。实际清晰度也受屏幕 DPI、ClearType 校准及系统字体影响，不分发 Windows 字体文件。
+统一“主题”选择：跟随系统、经典浅色、经典深色，以及薄荷奶油、暮色金、午夜摩卡、丁香雾、暖灰鼠尾草、珊瑚蜜桃、晴空蔚蓝、深海夜蓝八套候选。每套候选固定明暗，背景、正文、控件与强调色一起切换，不再单独设置强调色；“跟随系统”在经典浅色与经典深色间切换。支持 12／14／16／18 DIP、紧凑／舒适及减少动态效果。正文使用系统 Microsoft YaHei UI，Normal 字重，Display + ClearType；图标使用库字体、Ideal + Grayscale。实际清晰度也受屏幕 DPI、ClearType 校准及系统字体影响，不分发 Windows 字体文件。
+
+旧外观设置按原显示模式迁移到对应经典主题，字体、间距、最近颜色等偏好保留；旧强调色不再生效。自动文字色随主题更新，显式富文本颜色和报告标记颜色保留。八套新配色尚待截图评审决定保留名单，来源、预览入口与验收说明见 [主题与预览](docs/主题与预览.md)。
 
 SQLite 索引与双向游标分页，每批 200 条，最多 2,000 条／32MiB 内容缓存，Recycling 虚拟化；任务编辑共用一个空闲时预热的 RichTextBox，不为每行创建编辑器。状态持久化与历史写入同事务；每行独立退出动画，容器复用清理动画。数据查询在后台执行，旧请求取消且按查询代号隔离。
 

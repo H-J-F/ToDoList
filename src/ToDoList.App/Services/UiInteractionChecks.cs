@@ -111,7 +111,7 @@ internal static class UiInteractionChecks
             {
                 var editor = (RichEditor)window.FindName("DraftEditor"); var input = (RichTextBox)editor.FindName("Editor");
                 InputMethod.SetIsInputMethodEnabled(input, false);
-                model.Settings.Mode = "深色"; ThemeService.Apply(model.Settings);
+                model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode("深色"); ThemeService.Apply(model.Settings);
                 editor.SetContent(RichContent.FromText("测试\n第二行\n\n表情 👩‍💻")); await Click(input);
                 var seed = editor.GetContent().PlainText;
                 for (int i = 0; i < 60; i++)

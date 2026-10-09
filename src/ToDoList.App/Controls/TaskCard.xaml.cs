@@ -74,7 +74,7 @@ public partial class TaskCard : UserControl
                 // here; editable inlines inherit from their FlowDocument instead.
                 inline.FontSize = (double)FindResource("BodyFontSize");
                 inline.FontFamily = (FontFamily)FindResource("BodyFontFamily");
-                if (r.Color == null && inline is not Hyperlink) inline.SetResourceReference(TextElement.ForegroundProperty, "InkBrush");
+                if (r.Color == null && inline is not Hyperlink) inline.SetResourceReference(TextElement.ForegroundProperty, Row.IsCompleted ? "CompletedInkBrush" : "InkBrush");
                 if (Row.IsCompleted || Row.IsDeleted)
                 {
                     var decorations = new TextDecorationCollection(inline.TextDecorations);
@@ -87,9 +87,13 @@ public partial class TaskCard : UserControl
                 BodyText.Inlines.Add(inline);
             }
         }
-        BodyText.Opacity = Row.IsCompleted ? .52 : 1;
+        BodyText.Opacity = 1;
         AnimateHover(IsMouseOver);
         var stateBrush = (Brush)FindResource(Row.IsVerification ? "TaskVerificationBrush" : Row.IsCompleted ? "TaskCompletedBrush" : "TaskOpenBrush");
+        var stateColor = ((SolidColorBrush)stateBrush).Color;
+        var glyphBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(ThemeCatalog.Legible($"#{stateColor.R:X2}{stateColor.G:X2}{stateColor.B:X2}")));
+        glyphBrush.Freeze();
+        CheckButton.Resources["CheckBoxCheckGlyphForeground"] = glyphBrush;
         CheckButton.BorderBrush = stateBrush;
         CheckButton.Resources["CheckBoxCheckBorderBrush"] = stateBrush;
         if (ThemeService.ReduceMotion)

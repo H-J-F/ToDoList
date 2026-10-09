@@ -52,7 +52,7 @@ internal static partial class UiSmoke
         Check(editor.GetContent().Paragraphs.SelectMany(p => p.Runs).All(r => !r.Bold && !r.Italic && !r.Underline && r.Color == null), "Clear formatting removes text styles including emoji-adjacent content", log);
         foreach (var mode in new[] { "浅色", "深色" })
         {
-            window.Model.Settings.Mode = mode; ThemeService.Apply(window.Model.Settings);
+            window.Model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode(mode); ThemeService.Apply(window.Model.Settings);
             ((Button)editor.FindName("ColorButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); await Settle();
             var tool = editor.ToolContent!;
             Check(MainWindow.Descendants<Button>(tool).Count(b => b.ToolTip is string s && s.StartsWith('#')) >= 24, "Color panel shows 24 presets in " + mode, log);
@@ -65,7 +65,7 @@ internal static partial class UiSmoke
             categories.SelectedIndex = 0; await Settle(); Check(!MainWindow.Descendants<ListBox>(tool).Single().HasItems, "Empty recent emoji category stays usable in " + mode, log);
             editor.CloseTool();
         }
-        window.Model.Settings.Mode = "浅色"; ThemeService.Apply(window.Model.Settings);
+        window.Model.Settings.ThemeId = ToDoList.Core.ThemeCatalog.FromLegacyMode("浅色"); ThemeService.Apply(window.Model.Settings);
         editor.SetContent(RichContent.FromText(""));
     }
     private static void CaptureElement(FrameworkElement element, string path)

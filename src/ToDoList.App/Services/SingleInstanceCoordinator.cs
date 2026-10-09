@@ -34,13 +34,13 @@ internal sealed class SingleInstanceCoordinator : IDisposable
         });
     }
 
-    public static bool ActivateExisting()
+    public static bool ActivateExisting(string suffix = "")
     {
         for (int attempt = 0; attempt < 15; attempt++)
         {
             try
             {
-                using var signal = EventWaitHandle.OpenExisting(EventName);
+                using var signal = EventWaitHandle.OpenExisting(EventName + suffix);
                 AllowSetForegroundWindow(-1);
                 signal.Set();
                 return true;
