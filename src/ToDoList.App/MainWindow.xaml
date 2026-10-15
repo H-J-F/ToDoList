@@ -4,26 +4,38 @@
         <fluent:TitleBar x:Name="AppTitleBar" Background="{DynamicResource CanvasBrush}" Grid.Row="0" Title="{Binding BookTitle, StringFormat=ToDoList · {0}}" Height="32" ><fluent:TitleBar.Icon><fluent:SymbolIcon Symbol="TaskListSquareLtr24" Foreground="{DynamicResource AccentInkBrush}" FontSize="20"/></fluent:TitleBar.Icon></fluent:TitleBar>
         <Grid Grid.Row="1">
             <Grid x:Name="WorkArea">
-                <Grid.Style><Style TargetType="Grid"><Style.Triggers><DataTrigger Binding="{Binding IsBusy}" Value="True"><Setter Property="IsEnabled" Value="False"/></DataTrigger></Style.Triggers></Style></Grid.Style>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="224"/><ColumnDefinition/></Grid.ColumnDefinitions>
                 <Border Background="{DynamicResource SidebarBrush}"><Grid Margin="16,20,16,16">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <StackPanel>
                         <TextBlock Text="工作空间" Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="8,0,0,10"/>
-                        <ComboBox x:Name="BookSelector" ItemsSource="{Binding Books}" DisplayMemberPath="Title" SelectionChanged="Book_Changed" AutomationProperties.AutomationId="BookSelector"/>
+                        <ComboBox x:Name="BookSelector" ItemsSource="{Binding VisibleBooks}" DisplayMemberPath="DisplayTitle" SelectionChanged="Book_Changed" AutomationProperties.AutomationId="BookSelector"/>
                         <Grid Margin="0,8,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="40"/></Grid.ColumnDefinitions>
                             <fluent:Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,7" Margin="0,0,4,0" Style="{StaticResource QuietButton}" Click="NewBook_Click"><StackPanel Orientation="Horizontal"><fluent:SymbolIcon Symbol="Add20" Margin="0,0,8,0"/><TextBlock Text="新建待办笔记"/></StackPanel></fluent:Button>
-                            <fluent:Button Grid.Column="1" HorizontalAlignment="Right" Style="{StaticResource IconButton}" Click="BookMenu_Click" ToolTip="导入与导出"><fluent:SymbolIcon Symbol="MoreHorizontal20"/></fluent:Button>
+                            <fluent:Button Grid.Column="1" HorizontalAlignment="Right" Style="{StaticResource IconButton}" Click="BookMenu_Click" ToolTip="笔记操作"><fluent:SymbolIcon Symbol="MoreHorizontal20"/></fluent:Button>
                         </Grid>
                     </StackPanel>
                     <Grid Grid.Row="1" Margin="8,24,0,8"><TextBlock Text="模块" Foreground="{DynamicResource MutedBrush}" FontSize="12" VerticalAlignment="Center"/><fluent:Button HorizontalAlignment="Right" Style="{StaticResource IconButton}" Click="NewProject_Click" IsEnabled="{Binding HasBook}" ToolTip="新增模块"><fluent:SymbolIcon Symbol="Add20"/></fluent:Button></Grid>
                     <ListBox x:Name="ProjectList" Grid.Row="2" ItemsSource="{Binding Projects}" SelectionChanged="Project_Changed" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False" VirtualizingPanel.IsVirtualizing="False" AutomationProperties.AutomationId="ProjectList">
                         <ListBox.Resources><SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Transparent"/><SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="Transparent"/><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"/></ListBox.Resources>
-                        <ListBox.ContextMenu><ContextMenu><MenuItem Header="新增模块" Click="NewProject_Click"/><MenuItem Header="重命名模块" Click="RenameProject_Click"/><MenuItem Header="上移" Click="MoveProjectUp_Click"/><MenuItem Header="下移" Click="MoveProjectDown_Click"/><Separator/><MenuItem Header="删除模块…" Click="DeleteProject_Click"/></ContextMenu></ListBox.ContextMenu>
+                        <ListBox.ContextMenu><ContextMenu><MenuItem Header="新增模块" Click="NewProject_Click"/><MenuItem Header="重命名模块" Click="RenameProject_Click"/><MenuItem Header="迁移到其他笔记" Click="MigrateProject_Click"/><MenuItem Header="上移" Click="MoveProjectUp_Click"/><MenuItem Header="下移" Click="MoveProjectDown_Click"/><Separator/><MenuItem Header="删除模块…" Click="DeleteProject_Click"/></ContextMenu></ListBox.ContextMenu>
                         <ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal"><fluent:SymbolIcon Symbol="Folder20" Margin="0,0,10,0"/><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
                         <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Padding" Value="12,11"/><Setter Property="Border.CornerRadius" Value="6"/><Setter Property="Margin" Value="0,2"/><Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource AccentBrush}"/><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/><Setter Property="FontWeight" Value="SemiBold"/></Trigger></Style.Triggers></Style></ListBox.ItemContainerStyle>
                     </ListBox>
-                    <fluent:Button x:Name="SettingsButton" Grid.Row="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Style="{StaticResource QuietButton}" Click="Settings_Click" AutomationProperties.AutomationId="Settings"><StackPanel Orientation="Horizontal"><fluent:SymbolIcon Symbol="Settings20" Margin="0,0,10,0"/><TextBlock Text="设置"/></StackPanel></fluent:Button>
+                    <StackPanel Grid.Row="3">
+                        <Grid x:Name="AccountEntry" Margin="0,0,0,10">
+                            <fluent:Button x:Name="AccountButton" Style="{StaticResource QuietButton}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Height="40" Padding="12,0" Click="Account_Click" ToolTip="账号与同步" AutomationProperties.AutomationId="Account" AutomationProperties.Name="账号与同步">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid Width="20" Height="20" VerticalAlignment="Center">
+                                        <fluent:SymbolIcon x:Name="AccountAvatar" Symbol="PersonCircle20" FontSize="20" Foreground="{DynamicResource MutedBrush}"/>
+                                        <Image x:Name="AccountAvatarImage" Width="20" Height="20" Stretch="UniformToFill" Visibility="Collapsed"><Image.Clip><EllipseGeometry Center="10,10" RadiusX="10" RadiusY="10"/></Image.Clip></Image>
+                                    </Grid>
+                                    <TextBlock x:Name="AccountName" Grid.Column="2" Text="未登录" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="AccountName"/>
+                                </Grid>
+                            </fluent:Button>
+                        </Grid>
+                        <fluent:Button x:Name="SettingsButton" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Style="{StaticResource QuietButton}" Height="40" Padding="12,0" Click="Settings_Click" AutomationProperties.AutomationId="Settings"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><fluent:SymbolIcon x:Name="SettingsIcon" Symbol="Settings20" FontSize="20" Width="20" Height="20" VerticalAlignment="Center"/><TextBlock x:Name="SettingsLabel" Grid.Column="2" Text="设置" VerticalAlignment="Center"/></Grid></fluent:Button>
+                    </StackPanel>
                 </Grid>
                 </Border>
                 <Border Grid.Column="1" Background="{DynamicResource PaperBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1,1,0,0" CornerRadius="10,0,0,0">
@@ -74,7 +86,7 @@
                     </Grid>
                 </Border>
                 <Grid Grid.Column="1" x:Name="Onboarding"><Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding HasBook}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Grid.Style>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="380" Margin="30"><Image x:Name="WelcomeIcon" Width="96" Height="96" Margin="0,0,0,24"/><TextBlock Text="开始安排你的每一天" FontSize="26" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock Text="创建一本待办笔记，按模块整理任务。" TextAlignment="Center" Foreground="{DynamicResource MutedBrush}" Margin="0,16,0,24"/><fluent:Button Content="创建待办笔记" Icon="{fluent:SymbolIcon Add20, FontSize=20}" Appearance="Primary" Click="NewBook_Click" Width="200" Height="40" HorizontalAlignment="Center"/><fluent:Button Content="导入已有待办笔记" Style="{StaticResource QuietButton}" Click="Import_Click" Width="200" Height="40" HorizontalAlignment="Center" Margin="0,12,0,0"/></StackPanel>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="380" Margin="30"><Image x:Name="WelcomeIcon" Width="96" Height="96" Margin="0,0,0,24"/><TextBlock Text="{Binding WelcomeTitle}" FontSize="26" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock Text="{Binding WelcomeDescription}" TextAlignment="Center" Foreground="{DynamicResource MutedBrush}" Margin="0,16,0,24"/><fluent:Button x:Name="ShowHiddenWelcome" Content="显示隐藏笔记" Click="ShowHiddenBooks_Click" Visibility="{Binding HasHiddenBooks, Converter={StaticResource BoolVisibility}}" Width="200" Height="40" HorizontalAlignment="Center" Margin="0,0,0,12"/><fluent:Button Content="创建待办笔记" Icon="{fluent:SymbolIcon Add20, FontSize=20}" Appearance="Primary" Click="NewBook_Click" Width="200" Height="40" HorizontalAlignment="Center"/><fluent:Button Content="导入已有待办笔记" Style="{StaticResource QuietButton}" Click="Import_Click" Width="200" Height="40" HorizontalAlignment="Center" Margin="0,12,0,0"/></StackPanel>
                 </Grid>
             </Grid>
             <Border x:Name="SettingsPanel" Width="440" HorizontalAlignment="Right" Background="{DynamicResource CanvasBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1,0,0,0" Visibility="Collapsed">
@@ -152,8 +164,47 @@
                     </fluent:DynamicScrollViewer>
                 </Grid>
             </Border>
-            <Border x:Name="BlockingOverlay" Background="{DynamicResource PaperBrush}" Opacity="0.9" Visibility="{Binding ShowBlockingOverlay, Converter={StaticResource BoolVisibility}}"><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock Text="正在处理待办笔记…"/><ProgressBar IsIndeterminate="True" Height="4" Margin="0,16,0,0"/></StackPanel></Border>
-            <fluent:SnackbarPresenter x:Name="Notifications" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="24,0,24,178"/>
+            <Border x:Name="AccountPanel" Width="440" HorizontalAlignment="Right" Background="{DynamicResource CanvasBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1,0,0,0" Visibility="Collapsed">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="88"/><RowDefinition/></Grid.RowDefinitions>
+                    <Grid Margin="24,16,20,16">
+                        <StackPanel VerticalAlignment="Center"><TextBlock Text="账号与同步" FontSize="24" FontWeight="SemiBold"/><TextBlock x:Name="AccountIdentity" Text="本地空间" Foreground="{DynamicResource MutedBrush}" FontSize="12" Margin="0,4,0,0"/></StackPanel>
+                        <fluent:Button x:Name="CloseAccountButton" Style="{StaticResource IconButton}" HorizontalAlignment="Right" Click="CloseAccount_Click" ToolTip="关闭账号与同步" AutomationProperties.Name="关闭账号与同步"><fluent:SymbolIcon Symbol="Dismiss24" FontSize="24"/></fluent:Button>
+                    </Grid>
+                    <fluent:DynamicScrollViewer x:Name="AccountScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0" Margin="20,0,4,0">
+                        <StackPanel x:Name="AccountContent" Margin="0,0,20,24">
+                            <TextBlock Text="云存档 · 腾讯微云" FontWeight="SemiBold" Margin="4,4,0,12"/>
+                            <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,20">
+                                <StackPanel>
+                                    <TextBlock x:Name="CloudStatus" Text="本地空间 · 登录后支持云同步" TextWrapping="Wrap" Margin="0,0,0,10" AutomationProperties.AutomationId="CloudStatus"/>
+                                    <fluent:Button Content="查看运行日志" Click="OpenRunLog_Click" HorizontalAlignment="Left" Margin="0,0,0,10" AutomationProperties.AutomationId="OpenRunLog"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock x:Name="CloudLastSync" Text="尚未同步" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+                                        <TextBlock x:Name="CloudSyncDuration" Visibility="Collapsed" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+                                    </StackPanel>
+                                    <fluent:Button x:Name="CloudLoginButton" Content="微信登录微云" Click="CloudLogin_Click" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="CloudLogin"/>
+                                    <TextBlock Text="扫码授权即同意使用当前微云空间保存 ToDoList 云存档。" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" Margin="0,8,0,10"/>
+                                    <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <fluent:Button x:Name="CloudSyncButton" Content="立即同步" Click="CloudSync_Click" IsEnabled="False" Margin="0,0,4,0" AutomationProperties.AutomationId="CloudSync"/>
+                                        <fluent:Button x:Name="CloudUploadButton" Grid.Column="1" Content="上传变更" Click="CloudUpload_Click" IsEnabled="False" Margin="2,0"/>
+                                        <fluent:Button x:Name="CloudDownloadButton" Grid.Column="2" Content="下载变更" Click="CloudDownload_Click" IsEnabled="False" Margin="4,0,0,0"/>
+                                    </Grid>
+                                    <CheckBox x:Name="CloudAutoSync" Content="自动同步" IsChecked="True" Checked="CloudAuto_Changed" Unchecked="CloudAuto_Changed" Margin="0,0,0,8"/>
+                                    <TextBlock x:Name="CloudIntervalLabel" Text="同步周期：5 分钟" Margin="0,4,0,4"/>
+                                    <ui:SyncIntervalSlider x:Name="CloudInterval" TickFrequency="1" IsSnapToTickEnabled="True" TickPlacement="BottomRight" Value="0" ValueChanged="CloudInterval_Changed" AutomationProperties.Name="自动同步周期" Margin="0,0,0,2" Style="{StaticResource SquareIntervalSlider}"/>
+                                    <TextBlock Text="分钟" Foreground="{DynamicResource MutedBrush}" FontSize="11" HorizontalAlignment="Right" Margin="0,0,0,12"/>
+                                    <fluent:Button x:Name="CloudConflictsButton" Content="处理同步冲突" Click="CloudConflicts_Click" IsEnabled="False" HorizontalAlignment="Stretch" Margin="0,0,0,8" AutomationProperties.AutomationId="CloudConflicts"/>
+                                    <fluent:Button x:Name="CloudCopyButton" Content="导入本地笔记到当前账号" Click="CloudCopy_Click" IsEnabled="False" HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
+                                    <fluent:Button x:Name="CloudLogoutButton" Content="退出微云，返回本地空间" Click="CloudLogout_Click" IsEnabled="False" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="CloudLogout"/>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="登录后使用当前账号的独立空间。本地笔记可按原标题导入，原本地空间继续保留。" Foreground="{DynamicResource MutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="4,0,4,12"/>
+                        </StackPanel>
+                    </fluent:DynamicScrollViewer>
+                </Grid>
+            </Border>
+            <Border x:Name="BlockingOverlay" Background="{DynamicResource PaperBrush}" Visibility="{Binding ShowBlockingOverlay, Converter={StaticResource BoolVisibility}}"><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="280"><TextBlock Text="{Binding LoadingMessage}"/><ProgressBar IsIndeterminate="{Binding LoadingIndeterminate}" Value="{Binding LoadingProgress}" Maximum="1" Height="4" Margin="0,16,0,0"/><fluent:Button x:Name="CancelInitialCloudLoad" Content="取消加载" Click="CancelInitialCloudLoad_Click" Visibility="{Binding CanCancelInitialLoad, Converter={StaticResource BoolVisibility}}" HorizontalAlignment="Center" Margin="0,16,0,0"/></StackPanel></Border>
+            <ui:OperationToast x:Name="Notifications" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="24,0,24,178"/>
             <fluent:ContentDialogHost x:Name="DialogHost"/>
         </Grid>
     </Grid>

@@ -1,5 +1,57 @@
 [
   {
+    "doc": "docs/云同步.md",
+    "code_paths": [
+      "src/ToDoList.Storage/Cloud/",
+      "src/ToDoList.Storage/BookLibrary.cs",
+      "src/ToDoList.App/MainWindow.Cloud",
+      "src/ToDoList.App/MainWindow.Account",
+      "src/ToDoList.App/MainWindow.Login",
+      "src/ToDoList.App/MainWindow.xaml",
+      "src/ToDoList.App/Services/CloudLoginWindow",
+      "src/ToDoList.App/Services/ActivationProtocol.cs",
+      "src/ToDoList.App/Services/Dialogs.Cloud.cs",
+      "tests/ToDoList.Tests/Cloud",
+      "tools/ToDoList.CloudChecks/",
+      "src/ToDoList.Core/CloudSyncSchedule.cs",
+      "src/ToDoList.Storage/BookOperations.cs",
+      "src/ToDoList.App/ViewModels/MainViewModel.Cloud.cs",
+      "src/ToDoList.App/MainWindow.BookEditing.cs",
+      "src/ToDoList.App/MainWindow.RepairChecks.cs",
+      "src/ToDoList.App/Services/Dialogs.Books.cs",
+      "src/ToDoList.App/MainWindow.Undo",
+      "src/ToDoList.Storage/LocalUndo.cs",
+      "src/ToDoList.Core/UndoWindow.cs",
+      "src/ToDoList.App/Controls/OperationToast.cs",
+      "src/ToDoList.App/Controls/SyncIntervalSlider.cs",
+      "tests/ToDoList.Tests/UndoTests.cs",
+      "src/ToDoList.App/Services/AuthPaths.cs",
+      "src/ToDoList.App/ViewModels/MainViewModel.Books.cs",
+      "src/ToDoList.App/MainWindow.BookVisibilityChecks.cs",
+      "tests/ToDoList.Tests/BookVisibilityTests.cs"
+    ],
+    "entries": [
+      "src/ToDoList.Storage/Cloud/SyncCoordinator.cs",
+      "src/ToDoList.Storage/Cloud/SyncCoordinator.Db.cs",
+      "src/ToDoList.Storage/Cloud/CloudDb.cs",
+      "src/ToDoList.App/MainWindow.Cloud.cs",
+      "src/ToDoList.App/MainWindow.CloudDbChecks.cs",
+      "tests/ToDoList.Tests/CloudSyncTests.cs",
+      "tools/ToDoList.CloudChecks/Program.cs",
+      "src/ToDoList.Storage/BookOperations.cs",
+      "src/ToDoList.Core/CloudSyncSchedule.cs"
+    ]
+  },
+  {
+    "doc": "docs/微云接入验证.md",
+    "code_paths": [
+      "tools/Verify-Weiyun.ps1"
+    ],
+    "entries": [
+      "tools/Verify-Weiyun.ps1"
+    ]
+  },
+  {
     "doc": "docs/项目架构.md",
     "code_paths": [
       "src/",
@@ -9,8 +61,14 @@
       "src/ToDoList.App/App.xaml.cs",
       "src/ToDoList.App/ViewModels/MainViewModel.cs",
       "src/ToDoList.Core/Models.cs",
+      "src/ToDoList.Core/RuntimeLog.cs",
+      "src/ToDoList.Core/ExportNames.cs",
       "src/ToDoList.Storage/Database.cs",
-      "src/ToDoList.Storage/TaskRepository.cs"
+      "src/ToDoList.Storage/TaskRepository.cs",
+      "src/ToDoList.Storage/LocalUndo.cs",
+      "src/ToDoList.App/MainWindow.Undo.cs",
+      "src/ToDoList.App/MainWindow.MemoryChecks.cs",
+      "src/ToDoList.App/Services/UiPerformance.cs"
     ]
   },
   {

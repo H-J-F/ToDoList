@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Markup;
 using ToDoList.App.Services;
 using ToDoList.Storage;
+using ToDoList.Core;
 
 namespace ToDoList.App;
 public partial class App : Application
@@ -12,17 +13,31 @@ public partial class App : Application
     private SingleInstanceCoordinator? _instance;
     private TrayService? _tray;
     private bool _shutdownRequested;
+    private FileRuntimeLog? _runLog;
     internal TrayService? Tray => _tray;
     internal bool ExitRequested { get; private set; }
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        _runLog = new FileRuntimeLog(AppContext.BaseDirectory); RuntimeLog.Writer = _runLog;
+        _runLog.Failed += ex => Dispatcher.BeginInvoke(new Action(() => MessageBox.Show("运行日志无法写入程序目录 Log：\n" + ex.Message, "ToDoList")));
+        RuntimeLog.Write("app.start", new { version = ApplicationLinks.BuildLabel, process = Environment.ProcessId });
+        DispatcherUnhandledException += (_, args) => RuntimeLog.Write("app.dispatcher-unhandled", error: args.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, args) => RuntimeLog.Write("app.unhandled", error: args.ExceptionObject as Exception);
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, args) => RuntimeLog.Write("app.unobserved-task", error: args.Exception);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        if (e.Args.Any(a => a.StartsWith("todolist-desktop:", StringComparison.OrdinalIgnoreCase)) &&
+            (e.Args.Length != 1 || !ActivationProtocol.IsActivation(e.Args[0])))
+        { ExitRequested = true; Shutdown(2); return; }
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("zh-CN");
         FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement), new FrameworkPropertyMetadata(XmlLanguage.GetLanguage("zh-CN")));
         if (e.Args.Contains("--ui-themes") && (e.Args.Length < 2 || e.Args[0] != "--data-dir"))
         { ExitRequested = true; Shutdown(2); return; }
-        var isolatedCheck = e.Args.Any(a => a is "--ui-smoke" or "--ui-themes" or "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-features" or "--ui-typography") && e.Args.Length >= 2 && e.Args[0] == "--data-dir";
+        if (e.Args.Contains("--ui-perf") && (e.Args.Length < 2 || e.Args[0] != "--data-dir" ||
+            !Path.GetFullPath(e.Args[1]).StartsWith(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "artifacts")) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
+        { ExitRequested = true; Shutdown(2); return; }
+        if (e.Args.Any(a => a is "--ui-cloud" or "--ui-account" or "--ui-login-live") && (e.Args.Length < 2 || e.Args[0] != "--data-dir")) { ExitRequested = true; Shutdown(2); return; }
+        var isolatedCheck = e.Args.Any(a => a is "--ui-perf" or "--ui-smoke" or "--ui-themes" or "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-features" or "--ui-typography" or "--ui-cloud" or "--ui-account" or "--ui-login-live") && e.Args.Length >= 2 && e.Args[0] == "--data-dir";
         var lifecycleCheck = e.Args.Contains("--ui-lifecycle") && e.Args.Length >= 2 && e.Args[0] == "--data-dir";
         // A stable, isolated name lets lifecycle checks verify release on restart
         // without activating or closing the user's running application.
@@ -84,7 +99,8 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            if (e.Args.Any(a => a is "--ui-themes" or "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features" or "--ui-lifecycle"))
+            RuntimeLog.Write("app.start.failed", error: ex);
+            if (e.Args.Any(a => a is "--ui-themes" or "--ui-revision" or "--ui-drag-boundaries" or "--ui-interaction" or "--ui-taskfixes" or "--ui-smoke" or "--ui-perf" or "--ui-demo" or "--ui-typography" or "--ui-features" or "--ui-lifecycle" or "--ui-cloud" or "--ui-account" or "--ui-login-live"))
             {
                 var report = Path.Combine(data, "..", "startup-error.txt");
                 Directory.CreateDirectory(Path.GetDirectoryName(report)!); File.WriteAllText(report, ex.ToString());
@@ -97,5 +113,5 @@ public partial class App : Application
     internal void PrepareExit() => _tray?.Dispose();
     internal void CancelExit() => ExitRequested = false;
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e) { ExitRequested = true; base.OnSessionEnding(e); }
-    protected override void OnExit(ExitEventArgs e) { ExitRequested = true; _tray?.Dispose(); _instance?.Dispose(); base.OnExit(e); }
+    protected override void OnExit(ExitEventArgs e) { RuntimeLog.Write("app.exit", new { e.ApplicationExitCode }); ExitRequested = true; _tray?.Dispose(); _instance?.Dispose(); _runLog?.Dispose(); RuntimeLog.Writer = null; base.OnExit(e); }
 }

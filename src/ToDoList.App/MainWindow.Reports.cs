@@ -46,7 +46,7 @@ public partial class MainWindow
             var options = await ReportDialog.ShowAsync(this);
             if (options == null) return;
             var ext = options.Format switch { ReportFormat.Docx => "docx", ReportFormat.Pdf => "pdf", _ => "md" };
-            var dialog = new SaveFileDialog { Title = "导出任务报告", Filter = $"{ext.ToUpperInvariant()} 文件 (*.{ext})|*.{ext}", DefaultExt = "." + ext, AddExtension = true, FileName = $"{Model.CurrentBook.Name}-任务报告-{DateTime.Now:yyyyMMdd-HHmmss}.{ext}" };
+            var dialog = new SaveFileDialog { Title = "导出任务报告", Filter = $"{ext.ToUpperInvariant()} 文件 (*.{ext})|*.{ext}", DefaultExt = "." + ext, AddExtension = true, FileName = $"{ExportNames.FromTitle(Model.CurrentBook.Title)}-任务报告-{DateTime.Now:yyyyMMdd-HHmmss}.{ext}" };
             if (dialog.ShowDialog(this) != true) return;
             // Reports must never overwrite a live book, setting, or backup, even with a custom extension.
             var target = Path.GetFullPath(dialog.FileName);
@@ -57,6 +57,7 @@ public partial class MainWindow
             var snapshot = await Model.Repository.ReadReportAsync(options);
             var report = await Task.Run(() => TaskReport.Create(snapshot, options, DateTimeOffset.Now));
             await ReportWriter.WriteAsync(report, options.Format, target);
+            RuntimeLog.Write("export.report.completed", new { options.Format });
             Model.Message = "报告已导出到 " + target;
             try { ExplorerService.Reveal(target); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)

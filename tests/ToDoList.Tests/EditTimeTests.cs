@@ -82,7 +82,7 @@ public sealed class EditTimeTests : IDisposable
         using var backup = Database.Open(Assert.Single(Directory.GetFiles(Library.BackupDirectory, "*.db")));
         Assert.Equal((long)version, Database.Scalar(backup, "PRAGMA user_version"));
         using var result = Database.Open(book.Path); BookLibrary.Validate(result, book.Path);
-        Assert.Equal(4L, Database.Scalar(result, "PRAGMA user_version"));
+        Assert.Equal((long)Database.Version, Database.Scalar(result, "PRAGMA user_version"));
     }
 
     [Fact]
@@ -97,11 +97,13 @@ public sealed class EditTimeTests : IDisposable
         var completed = await remote.SetStatusAsync(task.Id, TodoStatus.Completed, edited.Revision);
         using (var prepared = await Library.PrepareImportAsync(file)) await Library.ImportAsync(prepared, book, ImportMode.Merge);
         var merged = Assert.Single((await repo.QueryAsync(new(null, TaskFilter.All, TaskSort.Created))).Items);
-        Assert.Equal(edited.EditedAt, merged.EditedAt); Assert.Equal(completed.UpdatedAt, merged.UpdatedAt);
+        Assert.Equal(task.EditedAt, merged.EditedAt); Assert.Equal(task.UpdatedAt, merged.UpdatedAt);
+        var versions = new ToDoList.Storage.Cloud.CloudBookStorage(Library).ImportVersions().Values[ToDoList.Storage.Cloud.CloudSnapshot.Key(book.BookId, "task", task.Id)];
+        Assert.Contains(versions, v => v.Read<TodoItem>().EditedAt == edited.EditedAt && v.Read<TodoItem>().UpdatedAt == completed.UpdatedAt);
         var options = new ReportOptions(null, TaskFilter.All, DateSelection.Any, ReportFormat.Markdown);
         var report = TaskReport.Create(await repo.ReadReportAsync(options), options, DateTimeOffset.Now);
         Assert.Contains("上次修改时间：", report.ToMarkdown());
-        Assert.Contains(report.Lines, line => line.Kind == ReportLineKind.Metadata && line.Text.Contains(DateTimeOffset.FromUnixTimeMilliseconds(edited.EditedAt!.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")));
+        Assert.Contains(report.Lines, line => line.Kind == ReportLineKind.Metadata && line.Text.Contains(DateTimeOffset.FromUnixTimeMilliseconds(task.EditedAt!.Value).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")));
         var fresh = await repo.AddTaskAsync(RichContent.FromText("新任务"), null);
         var plainReport = TaskReport.Create(new("新书", [], [fresh]), options, DateTimeOffset.Now);
         Assert.DoesNotContain("上次修改时间", plainReport.ToMarkdown());

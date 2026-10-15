@@ -17,15 +17,48 @@ public sealed class TaskRepository(string path) : ITaskRepository
                 var item = Get(c, id);
                 if (item.Status != TodoStatus.Deleted || item.Revision != revision)
                     throw new InvalidOperationException("所选任务已变更，请刷新后重新选择；未删除任何任务。");
+                Database.Exec(c, "INSERT OR IGNORE INTO SyncTombstones SELECT 'event',Id FROM TaskStateEvents WHERE TaskId=$id", ("$id", id));
+                Database.Exec(c, "INSERT OR IGNORE INTO SyncTombstones VALUES('task',$id)", ("$id", id));
                 Database.Exec(c, "DELETE FROM TaskStateEvents WHERE TaskId=$id", ("$id", id));
                 Database.Exec(c, "DELETE FROM Tasks WHERE Id=$id", ("$id", id));
             }
             tx.Commit(); return true;
         }, ct);
     }
+    private int _writes;
+    public bool IsWriting => Volatile.Read(ref _writes) > 0;
+    public bool EnableUndo { get; init; }
+    public event Action<LocalUndo>? UndoCommitted;
+    private async Task<T> RunUndoable<T>(Func<SqliteConnection, T> action, CancellationToken ct, string message)
+    {
+        Interlocked.Increment(ref _writes);
+        try
+        {
+            return await Database.RunAsync(Path, () =>
+            {
+                using var c = Database.Open(Path);
+                if (EnableUndo) LocalUndo.Begin(c);
+                using var tx = c.BeginTransaction();
+                var before = Convert.ToInt64(Database.Scalar(c, "SELECT total_changes()"));
+                var result = action(c);
+                var undo = EnableUndo ? LocalUndo.Capture(c, Path, message) : null;
+                tx.Commit();
+                if (EnableUndo ? undo != null : Convert.ToInt64(Database.Scalar(c, "SELECT total_changes()")) != before) Database.NotifyChanged(Path);
+                if (undo != null) UndoCommitted?.Invoke(undo);
+                return result;
+            }, ct).ConfigureAwait(false);
+        }
+        finally { Interlocked.Decrement(ref _writes); }
+    }
     public string Path { get; } = System.IO.Path.GetFullPath(path);
     private Task<T> Run<T>(Func<SqliteConnection, T> action, CancellationToken ct) => Database.RunAsync(Path, () =>
-    { using var c = Database.Open(Path); return action(c); }, ct);
+    {
+        using var c = Database.Open(Path);
+        var before = Convert.ToInt64(Database.Scalar(c, "SELECT total_changes()"));
+        var result = action(c);
+        if (Convert.ToInt64(Database.Scalar(c, "SELECT total_changes()")) != before) Database.NotifyChanged(Path);
+        return result;
+    }, ct);
 
     public Task<IReadOnlyList<ProjectInfo>> GetProjectsAsync(CancellationToken ct = default) => Run<IReadOnlyList<ProjectInfo>>(c =>
     {
@@ -35,8 +68,8 @@ public sealed class TaskRepository(string path) : ITaskRepository
         return items;
     }, ct);
 
-    public Task<ProjectInfo> AddProjectAsync(string name, CancellationToken ct = default) => Run(c => InsertProject(c, name), ct);
-    public Task<ProjectInfo> RenameProjectAsync(string id, string name, CancellationToken ct = default) => Run(c =>
+    public Task<ProjectInfo> AddProjectAsync(string name, CancellationToken ct = default) => RunUndoable(c => InsertProject(c, name), ct, "模块已添加。");
+    public Task<ProjectInfo> RenameProjectAsync(string id, string name, CancellationToken ct = default) => RunUndoable(c =>
     {
         name = BookRules.ValidateTitle(name);
         if (name is "全部" or "新增") throw new ArgumentException("请使用其他模块名称。");
@@ -45,28 +78,27 @@ public sealed class TaskRepository(string path) : ITaskRepository
         try { Database.Exec(c, "UPDATE Projects SET Name=$name WHERE Id=$id", ("$name", name), ("$id", id)); }
         catch (SqliteException ex) when (ex.SqliteErrorCode == 19) { throw new InvalidOperationException("已有相同名称的模块。", ex); }
         return ReadProject(c, id);
-    }, ct);
-    public Task DeleteProjectAsync(string id, CancellationToken ct = default) => Run(c =>
+    }, ct, "模块已重命名。");
+    public Task DeleteProjectAsync(string id, CancellationToken ct = default) => RunUndoable(c =>
     {
-        using var tx = c.BeginTransaction();
         if (Convert.ToInt64(Database.Scalar(c, "SELECT COUNT(*) FROM Projects WHERE Id=$id", ("$id", id))) == 0)
             throw new ArgumentException("所选模块已不存在。");
         Database.Exec(c, "UPDATE Tasks SET ProjectId=NULL,EditedAt=MAX($now,UpdatedAt+1),UpdatedAt=MAX($now,UpdatedAt+1),Revision=Revision+1 WHERE ProjectId=$id",
             ("$now", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), ("$id", id));
         Database.Exec(c, "DELETE FROM Projects WHERE Id=$id", ("$id", id));
-        NormalizeProjectOrder(c); tx.Commit();
+        Database.Exec(c, "INSERT OR IGNORE INTO SyncTombstones VALUES('project',$id)", ("$id", id));
+        NormalizeProjectOrder(c);
         return true;
-    }, ct);
-    public Task ReorderProjectsAsync(IReadOnlyList<string> orderedIds, CancellationToken ct = default) => Run(c =>
+    }, ct, "模块已删除，原任务已移到未分配模块。");
+    public Task ReorderProjectsAsync(IReadOnlyList<string> orderedIds, CancellationToken ct = default) => RunUndoable(c =>
     {
-        using var tx = c.BeginTransaction();
         var existing = Convert.ToInt32(Database.Scalar(c, "SELECT COUNT(*) FROM Projects"));
         var distinct = orderedIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).ToArray();
         if (distinct.Length != existing || distinct.Any(id => Convert.ToInt64(Database.Scalar(c, "SELECT COUNT(*) FROM Projects WHERE Id=$id", ("$id", id))) == 0))
             throw new ArgumentException("模块顺序包含无效模块。");
         for (var i = 0; i < distinct.Length; i++) Database.Exec(c, "UPDATE Projects SET SortOrder=$order WHERE Id=$id", ("$order", i), ("$id", distinct[i]));
-        tx.Commit(); return true;
-    }, ct);
+        return true;
+    }, ct, "模块顺序已保存。");
     public Task<ReportSnapshot> ReadReportAsync(ReportOptions options, CancellationToken ct = default) => Run(c =>
     {
         var query = options.Query();
@@ -155,48 +187,47 @@ public sealed class TaskRepository(string path) : ITaskRepository
         RichContent.Parse(content.ToJson());
         if (string.IsNullOrWhiteSpace(content.PlainText)) throw new ArgumentException("请先写下要做的事情。");
     }
-    public Task<TodoItem> AddTaskAsync(RichContent content, string? projectId, string? newProject = null, CancellationToken ct = default) => Run(c =>
+    public Task<TodoItem> AddTaskAsync(RichContent content, string? projectId, string? newProject = null, CancellationToken ct = default) => RunUndoable(c =>
     {
         ValidateContent(content);
-        using var tx = c.BeginTransaction();
         if (newProject != null) projectId = InsertProject(c, newProject).Id;
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var item = new TodoItem(Guid.NewGuid().ToString("N"), projectId, content.ToJson(), content.PlainText, TodoStatus.Open, now, now, null, 1);
-        Insert(c, item); tx.Commit(); return item;
-    }, ct);
+        Insert(c, item); return item;
+    }, ct, "任务已添加。");
     public static void Insert(SqliteConnection c, TodoItem item) => Database.Exec(c,
         "INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt,EditedAt) VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision,$deleted,$previous,$previousCompleted,$edited)", Args(item));
     public static (string, object?)[] Args(TodoItem t) => [("$id", t.Id), ("$project", t.ProjectId), ("$json", t.ContentJson),
         ("$text", t.PlainText), ("$status", (int)t.Status), ("$created", t.CreatedAt), ("$updated", t.UpdatedAt),
         ("$completed", t.CompletedAt), ("$revision", t.Revision), ("$deleted", t.DeletedAt), ("$previous", t.PreviousStatus.HasValue ? (int)t.PreviousStatus.Value : null), ("$previousCompleted", t.PreviousCompletedAt), ("$edited", t.EditedAt)];
-    public Task<TodoItem> UpdateContentAsync(string id, RichContent content, long revision, CancellationToken ct = default) => Run(c =>
+    public Task<TodoItem> UpdateContentAsync(string id, RichContent content, long revision, CancellationToken ct = default) => RunUndoable(c =>
     {
-        ValidateContent(content); using var tx = c.BeginTransaction(); var old = Get(c, id);
+        ValidateContent(content); var old = Get(c, id);
         if (old.Status == TodoStatus.Deleted) throw new InvalidOperationException("请先恢复任务再编辑。");
         if (old.Revision != revision) throw new InvalidOperationException("任务已更新，请取消编辑后重新打开。");
-        if (RichContent.Parse(old.ContentJson).ToJson() == content.ToJson()) { tx.Commit(); return old; }
+        if (RichContent.Parse(old.ContentJson).ToJson() == content.ToJson()) return old;
         var now = Math.Max(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), old.UpdatedAt + 1);
         Database.Exec(c, "UPDATE Tasks SET ContentJson=$json,PlainText=$text,EditedAt=$now,UpdatedAt=$now,Revision=Revision+1 WHERE Id=$id",
             ("$json", content.ToJson()), ("$text", content.PlainText), ("$now", now), ("$id", id));
-        var item = Get(c, id); tx.Commit(); return item;
-    }, ct);
-    public Task<TodoItem> UpdateTaskAsync(string id, RichContent content, string? projectId, long revision, CancellationToken ct = default) => Run(c =>
+        var item = Get(c, id); return item;
+    }, ct, "修改已保存。");
+    public Task<TodoItem> UpdateTaskAsync(string id, RichContent content, string? projectId, long revision, CancellationToken ct = default) => RunUndoable(c =>
     {
-        ValidateContent(content); using var tx = c.BeginTransaction(); var old = Get(c, id);
+        ValidateContent(content); var old = Get(c, id);
         if (old.Status == TodoStatus.Deleted) throw new InvalidOperationException("请先恢复任务再编辑。");
         if (old.Revision != revision) throw new InvalidOperationException("任务已更新，请取消编辑后重新打开。");
         if (projectId != null && Convert.ToInt64(Database.Scalar(c, "SELECT COUNT(*) FROM Projects WHERE Id=$id", ("$id", projectId))) == 0)
             throw new ArgumentException("所选模块已不存在。");
-        if (old.ProjectId == projectId && RichContent.Parse(old.ContentJson).ToJson() == content.ToJson()) { tx.Commit(); return old; }
+        if (old.ProjectId == projectId && RichContent.Parse(old.ContentJson).ToJson() == content.ToJson()) return old;
         var now = Math.Max(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), old.UpdatedAt + 1);
         Database.Exec(c, "UPDATE Tasks SET ProjectId=$project,ContentJson=$json,PlainText=$text,EditedAt=$now,UpdatedAt=$now,Revision=Revision+1 WHERE Id=$id",
             ("$project", projectId), ("$json", content.ToJson()), ("$text", content.PlainText), ("$now", now), ("$id", id));
-        var item = Get(c, id); tx.Commit(); return item;
-    }, ct);
-    public Task<TodoItem> SetStatusAsync(string id, TodoStatus status, long revision, CancellationToken ct = default) => Run(c =>
+        var item = Get(c, id); return item;
+    }, ct, "修改已保存。");
+    public Task<TodoItem> SetStatusAsync(string id, TodoStatus status, long revision, CancellationToken ct = default) => RunUndoable(c =>
     {
         if (!Enum.IsDefined(status) || status == TodoStatus.Deleted) throw new ArgumentException("未知任务状态。");
-        using var tx = c.BeginTransaction(); var old = Get(c, id);
+        var old = Get(c, id);
         if (old.Revision != revision) throw new InvalidOperationException("任务状态已更新，请重试。");
         if (old.Status == TodoStatus.Deleted) throw new InvalidOperationException("请使用恢复操作。");
         if (old.Status == status) return old;
@@ -205,13 +236,13 @@ public sealed class TaskRepository(string path) : ITaskRepository
             ("$status", (int)status), ("$completed", status == TodoStatus.Completed ? now : null), ("$now", now), ("$id", id));
         Database.Exec(c, "INSERT INTO TaskStateEvents VALUES($event,$task,$from,$to,$now)",
             ("$event", Guid.NewGuid().ToString("N")), ("$task", id), ("$from", (int)old.Status), ("$to", (int)status), ("$now", now));
-        var item = Get(c, id); tx.Commit(); return item;
-    }, ct);
+        var item = Get(c, id); return item;
+    }, ct, status switch { TodoStatus.Completed => "已完成。", TodoStatus.Verification => "已标记待验证。", _ => "已恢复为未完成。" });
     public Task<TodoItem> DeleteTaskAsync(string id, long revision, CancellationToken ct = default) => DeleteOrRestoreAsync(id, revision, false, ct);
     public Task<TodoItem> RestoreTaskAsync(string id, long revision, CancellationToken ct = default) => DeleteOrRestoreAsync(id, revision, true, ct);
-    private Task<TodoItem> DeleteOrRestoreAsync(string id, long revision, bool restore, CancellationToken ct) => Run(c =>
+    private Task<TodoItem> DeleteOrRestoreAsync(string id, long revision, bool restore, CancellationToken ct) => RunUndoable(c =>
     {
-        using var tx = c.BeginTransaction(); var old = Get(c, id);
+        var old = Get(c, id);
         if (old.Revision != revision) throw new InvalidOperationException("任务状态已更新，请重试。");
         if (restore != (old.Status == TodoStatus.Deleted)) throw new InvalidOperationException("任务状态不支持此操作。");
         var now = Math.Max(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), old.UpdatedAt + 1);
@@ -222,8 +253,8 @@ public sealed class TaskRepository(string path) : ITaskRepository
             ("$previousCompleted", restore ? null : old.CompletedAt), ("$now", now), ("$id", id));
         Database.Exec(c, "INSERT INTO TaskStateEvents VALUES($event,$task,$from,$to,$now)",
             ("$event", Guid.NewGuid().ToString("N")), ("$task", id), ("$from", (int)old.Status), ("$to", (int)status), ("$now", now));
-        var item = Get(c, id); tx.Commit(); return item;
-    }, ct);
+        return Get(c, id);
+    }, ct, restore ? "已恢复至删除前的状态。" : "任务已删除。");
     public Task<string?> GetSettingAsync(string key, CancellationToken ct = default) => Run(c => Database.Scalar(c,
         "SELECT Value FROM BookSettings WHERE Key=$key", ("$key", key)) as string, ct);
     public Task SetSettingAsync(string key, string value, CancellationToken ct = default) => Run(c => Database.Exec(c,

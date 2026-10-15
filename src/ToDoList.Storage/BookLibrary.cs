@@ -23,14 +23,14 @@ public sealed class BookLibrary
         var probe = System.IO.Path.Combine(DataDirectory, ".write-" + Guid.NewGuid().ToString("N"));
         using (new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose)) { }
     }
-    public Task<IReadOnlyList<BookInfo>> ListAsync() => Task.Run<IReadOnlyList<BookInfo>>(() =>
+    public Task<IReadOnlyList<BookInfo>> ListAsync() => Database.RunDirectoryAsync<IReadOnlyList<BookInfo>>(DataDirectory, () =>
     {
-        EnsureWritable(); var books = new List<BookInfo>(); var errors = new List<string>();
+        EnsureWritable(); Cloud.CloudBookStorage.Recover(DataDirectory); var books = new List<BookInfo>(); var errors = new List<string>();
         foreach (var path in Directory.EnumerateFiles(DataDirectory, "*.db", SearchOption.TopDirectoryOnly))
         {
             try
             {
-                Database.RunAsync(path, () => { Database.Upgrade(path, BackupDirectory); return true; }).GetAwaiter().GetResult();
+                Database.Upgrade(path, BackupDirectory);
                 using var c = Database.Open(path, true); var info = ReadInfo(c, path);
                 if (!System.IO.Path.GetFileNameWithoutExtension(path).Equals(info.Name, StringComparison.OrdinalIgnoreCase))
                     throw new InvalidDataException("文件名与书内标识不一致，请通过导入添加。");
@@ -53,7 +53,9 @@ public sealed class BookLibrary
             var temp = path + "." + Guid.NewGuid().ToString("N") + ".new";
             try { Database.Create(temp, name, title); File.Move(temp, path); }
             finally { Database.CleanupStaging(temp); }
-            return new BookInfo(name, title, path);
+            Database.NotifyChanged(path);
+            using var created = Database.Open(path, true);
+            return ReadInfo(created, path);
         });
     }
     public static BookInfo ReadInfo(SqliteConnection c, string path)
@@ -67,7 +69,10 @@ public sealed class BookLibrary
         if (!r.Read()) throw new InvalidDataException("待办笔记缺少名称。");
         var name = r.GetString(0); var title = r.GetString(1);
         BookRules.ValidateName(name); BookRules.ValidateTitle(title);
-        return new(name, title, path);
+        var id = (string?)Database.Scalar(c, "SELECT BookId FROM SyncIdentity WHERE Id=1");
+        if (!Guid.TryParseExact(id, "N", out _)) throw new InvalidDataException("笔记身份无效。");
+        var hidden = string.Equals(Database.Scalar(c, "SELECT Value FROM BookSettings WHERE Key=$key", ("$key", BookInfo.HiddenSetting)) as string, "true", StringComparison.OrdinalIgnoreCase);
+        return new(name, title, path, id!, hidden);
     }
     public Task ExportAsync(BookInfo book, string destination) => Database.RunAsync(book.Path, () =>
     {
@@ -151,85 +156,66 @@ public sealed class BookLibrary
         }
         return info;
     }
+    // Identity-preserving import; the source database is never changed.
+    public async Task<BookInfo> CopyBookAsync(BookLibrary source, BookInfo book, CancellationToken ct = default)
+    {
+        var temporary = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ToDoList-cloud-copy-" + Guid.NewGuid().ToString("N") + ".db");
+        try
+        {
+            await source.ExportAsync(book, temporary);
+            using var prepared = await PrepareImportAsync(temporary, ct);
+            return await BookOperations.ImportAsync(this, prepared, ct);
+        }
+        finally { Database.CleanupStaging(temporary); }
+    }
     public Task<BookInfo> ImportAsync(PreparedImport prepared, BookInfo? existing, ImportMode mode, CancellationToken ct = default)
     {
-        var path = existing?.Path ?? System.IO.Path.Combine(DataDirectory, prepared.Info.Name + ".db");
-        return Database.RunAsync(path, () =>
+        if (mode == ImportMode.Merge || existing == null) return BookOperations.ImportAsync(this, prepared, ct);
+        return Database.RunAsync(existing.Path, () =>
         {
+            var path = existing.Path;
             var temp = path + "." + Guid.NewGuid().ToString("N") + ".staging";
             try
             {
-                if (existing == null)
+                Directory.CreateDirectory(BackupDirectory);
+                var backup = System.IO.Path.Combine(BackupDirectory, $"{existing.Name}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db");
+                Database.Snapshot(path, backup); Database.Snapshot(prepared.TemporaryPath, temp);
+                using (var original = Database.Open(path, true))
+                using (var staged = Database.Open(temp))
                 {
-                    if (File.Exists(path)) throw new IOException("同名待办笔记已存在，请重新导入。");
-                    Database.Snapshot(prepared.TemporaryPath, temp); File.Move(temp, path);
+                    if (ReadInfo(original, path).BookId != existing.BookId) throw new Cloud.CloudLocalChangedException();
+                    Database.Exec(staged, "UPDATE BookMetadata SET Name=$name WHERE Id=1", ("$name", existing.Name));
+                    Database.Exec(staged, "UPDATE SyncIdentity SET BookId=$id,LogicalName=$name WHERE Id=1",
+                        ("$id", existing.BookId), ("$name", (string)Database.Scalar(original, "SELECT LogicalName FROM SyncIdentity WHERE Id=1")!));
+                    foreach (var (kind, table) in new[] { ("task", "Tasks"), ("project", "Projects"), ("event", "TaskStateEvents") })
+                    {
+                        using var cmd = Database.Command(original, "SELECT Id FROM " + table); using var r = cmd.ExecuteReader();
+                        while (r.Read()) Database.Exec(staged, "INSERT OR IGNORE INTO SyncTombstones SELECT $kind,$id WHERE NOT EXISTS(SELECT 1 FROM " + table + " WHERE Id=$id)", ("$kind", kind), ("$id", r.GetString(0)));
+                    }
+                    using (var cmd = Database.Command(original, "SELECT Kind,EntityId FROM SyncTombstones"))
+                    using (var r = cmd.ExecuteReader()) while (r.Read()) Database.Exec(staged, "INSERT OR IGNORE INTO SyncTombstones VALUES($kind,$id)", ("$kind", r.GetString(0)), ("$id", r.GetString(1)));
+                    Validate(staged, temp, ct);
                 }
-                else
-                {
-                    Directory.CreateDirectory(BackupDirectory);
-                    var backup = System.IO.Path.Combine(BackupDirectory, $"{existing.Name}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db");
-                    Database.Snapshot(path, backup);
-                    Database.Snapshot(mode == ImportMode.Merge ? path : prepared.TemporaryPath, temp);
-                    if (mode == ImportMode.Merge) Merge(temp, prepared.TemporaryPath, ct);
-                    using (var c = Database.Open(temp, true)) Validate(c, temp, ct);
-                    ct.ThrowIfCancellationRequested();
-                    using (var c = Database.Open(path)) Database.Exec(c, "PRAGMA wal_checkpoint(TRUNCATE);");
-                    File.Replace(temp, path, null);
-                }
+                ct.ThrowIfCancellationRequested();
+                // Produce a standalone file before replacement so committed staging WAL cannot be lost.
+                var standalone = temp + ".snapshot"; Database.Snapshot(temp, standalone); Database.CleanupStaging(temp); File.Move(standalone, temp);
+                using (var c = Database.Open(path)) Database.Exec(c, "PRAGMA wal_checkpoint(TRUNCATE);");
+                File.Replace(temp, path, null);
                 using var result = Database.Open(path); Database.Exec(result, "PRAGMA journal_mode=WAL;");
-                return ReadInfo(result, path);
+                Database.NotifyChanged(path); return ReadInfo(result, path);
             }
             finally { Database.CleanupStaging(temp); }
         }, ct);
-    }
-    private static void Merge(string destination, string source, CancellationToken ct)
-    {
-        using var to = Database.Open(destination); using var from = Database.Open(source, true); using var tx = to.BeginTransaction();
-        var map = new Dictionary<string, string>();
-        using (var cmd = Database.Command(from, "SELECT Id,Name,SortOrder FROM Projects ORDER BY SortOrder,Name,Id"))
-        using (var r = cmd.ExecuteReader()) while (r.Read())
-        {
-            ct.ThrowIfCancellationRequested(); var id = r.GetString(0); var name = r.GetString(1);
-            var local = Database.Scalar(to, "SELECT Id FROM Projects WHERE Id=$id OR Name=$name COLLATE NOCASE ORDER BY CASE WHEN Id=$id THEN 0 ELSE 1 END LIMIT 1", ("$id", id), ("$name", name)) as string;
-            var order = Convert.ToInt32(Database.Scalar(to, "SELECT COALESCE(MAX(SortOrder),-1)+1 FROM Projects"));
-            if (local == null) { Database.Exec(to, "INSERT INTO Projects(Id,Name,SortOrder) VALUES($id,$name,$order)", ("$id", id), ("$name", name), ("$order", order)); local = id; }
-            map[id] = local;
-        }
-        using (var cmd = Database.Command(from, "SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt,EditedAt FROM Tasks"))
-        using (var r = cmd.ExecuteReader()) while (r.Read())
-        {
-            ct.ThrowIfCancellationRequested(); var item = TaskRepository.Read(r);
-            if (item.ProjectId != null) item = item with { ProjectId = map[item.ProjectId] };
-            Database.Exec(to, """
-                INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision,DeletedAt,PreviousStatus,PreviousCompletedAt,EditedAt)
-                VALUES($id,$project,$json,$text,$status,$created,$updated,$completed,$revision,$deleted,$previous,$previousCompleted,$edited)
-                ON CONFLICT(Id) DO UPDATE SET ProjectId=excluded.ProjectId, ContentJson=excluded.ContentJson,
-                PlainText=excluded.PlainText, Status=excluded.Status, CreatedAt=excluded.CreatedAt,
-                UpdatedAt=excluded.UpdatedAt, EditedAt=excluded.EditedAt, CompletedAt=excluded.CompletedAt, DeletedAt=excluded.DeletedAt, PreviousStatus=excluded.PreviousStatus, PreviousCompletedAt=excluded.PreviousCompletedAt, Revision=MAX(Tasks.Revision,excluded.Revision)+1
-                WHERE excluded.UpdatedAt>Tasks.UpdatedAt
-                """, TaskRepository.Args(item));
-        }
-        using (var cmd = Database.Command(from, "SELECT Id,TaskId,FromStatus,ToStatus,OccurredAt FROM TaskStateEvents"))
-        using (var r = cmd.ExecuteReader()) while (r.Read())
-        {
-            ct.ThrowIfCancellationRequested(); Database.Exec(to, "INSERT OR IGNORE INTO TaskStateEvents VALUES($id,$task,$from,$to,$at)",
-                ("$id", r.GetString(0)), ("$task", r.GetString(1)), ("$from", r.GetInt32(2)), ("$to", r.GetInt32(3)), ("$at", r.GetInt64(4)));
-        }
-        foreach (var key in new[] { "StatusColor.Open", "StatusColor.Verification", "StatusColor.Completed", "CompletedSort" })
-        {
-            var value = Database.Scalar(from, "SELECT Value FROM BookSettings WHERE Key=$key", ("$key", key)) as string;
-            if (value != null) Database.Exec(to, "INSERT INTO BookSettings(Key,Value) VALUES($key,$value) ON CONFLICT(Key) DO UPDATE SET Value=excluded.Value", ("$key", key), ("$value", value));
-        }
-        tx.Commit(); Database.Exec(to, "PRAGMA optimize;");
     }
     public Task<string> DeleteAsync(BookInfo book, CancellationToken ct = default) => Database.RunAsync(book.Path, () =>
     {
         EnsureWritable(); Directory.CreateDirectory(BackupDirectory);
         var backup = System.IO.Path.Combine(BackupDirectory, $"{book.Name}-deleted-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db");
         Database.Snapshot(book.Path, backup); ct.ThrowIfCancellationRequested();
+        Cloud.CloudBookStorage.RecordBookDeletion(DataDirectory, book.Path);
         using (var c = Database.Open(book.Path)) Database.Exec(c, "PRAGMA wal_checkpoint(TRUNCATE);");
         foreach (var path in new[] { book.Path, book.Path + "-wal", book.Path + "-shm" }) if (File.Exists(path)) File.Delete(path);
-        return backup;
+        Database.NotifyChanged(book.Path); return backup;
     }, ct);
     public AppSettings LoadSettings()
     {
@@ -239,6 +225,8 @@ public sealed class BookLibrary
         {
             var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path)) ?? new();
             ThemeCatalog.Normalize(settings);
+            settings.LastBooksByWorkspace ??= [];
+            settings.CloudSyncIntervalMinutes = CloudSyncSchedule.Normalize(settings.CloudSyncIntervalMinutes);
             settings.RecentColors = (settings.RecentColors ?? []).Where(c => c != null && System.Text.RegularExpressions.Regex.IsMatch(c, "^#[0-9a-fA-F]{6}$")).Select(c => c.ToUpperInvariant()).Distinct().Take(8).ToList();
             settings.RecentEmoji = (settings.RecentEmoji ?? []).Where(e => !string.IsNullOrWhiteSpace(e) && e.Length <= 64).Distinct().Take(24).ToList();
             return settings;

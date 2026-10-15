@@ -5,7 +5,24 @@ namespace ToDoList.App.ViewModels;
 public sealed class TaskViewModel(TodoItem item) : ObservableObject
 {
     private TodoItem _item = item;
-    public TodoItem Item { get => _item; set { _item = value; Raise(); Raise(nameof(IsCompleted)); Raise(nameof(IsVerification)); Raise(nameof(IsDeleted)); Raise(nameof(CheckState)); Raise(nameof(StateHint)); Raise(nameof(CompletionLabel)); Raise(nameof(CreationLabel)); Raise(nameof(TimeDetails)); Raise(nameof(EditLabel)); Raise(nameof(HasEditTime)); } }
+    public TodoItem Item
+    {
+        get => _item;
+        set
+        {
+            if (_item == value) return;
+            var old = _item; _item = value; Raise();
+            if (old.ContentJson != value.ContentJson) Raise(nameof(ContentJson));
+            if (old.Status != value.Status)
+            { Raise(nameof(Status)); Raise(nameof(IsCompleted)); Raise(nameof(IsVerification)); Raise(nameof(IsDeleted)); Raise(nameof(CheckState)); Raise(nameof(StateHint)); }
+            if (old.Status != value.Status || old.CompletedAt != value.CompletedAt || old.DeletedAt != value.DeletedAt) Raise(nameof(CompletionLabel));
+            if (old.CreatedAt != value.CreatedAt) Raise(nameof(CreationLabel));
+            if (old.EditedAt != value.EditedAt) { Raise(nameof(EditLabel)); Raise(nameof(HasEditTime)); }
+            if (old.CreatedAt != value.CreatedAt || old.EditedAt != value.EditedAt || old.CompletedAt != value.CompletedAt || old.DeletedAt != value.DeletedAt) Raise(nameof(TimeDetails));
+        }
+    }
+    public string ContentJson => Item.ContentJson;
+    public TodoStatus Status => Item.Status;
     public string Id => Item.Id;
     private bool _selectionMode, _selectedForDeletion;
     public bool SelectionMode { get => _selectionMode; set => Set(ref _selectionMode, value); }

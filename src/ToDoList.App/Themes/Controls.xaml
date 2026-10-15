@@ -1,5 +1,28 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:fluent="http://schemas.lepo.co/wpfui/2022/xaml">
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:fluent="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:ui="clr-namespace:ToDoList.App.Controls">
+    <Style x:Key="IntervalTrackButton" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RepeatButton"><Grid Background="Transparent"><Border Height="4" VerticalAlignment="Center" Background="{TemplateBinding Background}"/></Grid></ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="SquareIntervalSlider" TargetType="ui:SyncIntervalSlider">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ui:SyncIntervalSlider">
+            <Grid Margin="0,2,0,0">
+                <Grid.RowDefinitions><RowDefinition Height="24"/><RowDefinition Height="6"/><RowDefinition Height="18"/></Grid.RowDefinitions>
+                <Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}" Orientation="Horizontal" IsDirectionReversed="False">
+                    <Track.DecreaseRepeatButton><RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource IntervalTrackButton}" Background="{DynamicResource AccentInkBrush}"/></Track.DecreaseRepeatButton>
+                    <Track.Thumb><Thumb Width="14" Height="14"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border x:Name="Handle" Background="{DynamicResource AccentInkBrush}" BorderBrush="{DynamicResource InkBrush}" BorderThickness="1"/><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Handle" Property="Opacity" Value="0.8"/></Trigger><Trigger Property="IsDragging" Value="True"><Setter TargetName="Handle" Property="BorderThickness" Value="2"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
+                    <Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Style="{StaticResource IntervalTrackButton}" Background="{DynamicResource LineBrush}"/></Track.IncreaseRepeatButton>
+                </Track>
+                <TickBar Grid.Row="1" Fill="{DynamicResource MutedBrush}" Placement="Bottom" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" TickFrequency="1" ReservedSpace="14"/>
+                <Canvas Grid.Row="2" x:Name="PART_Labels" IsHitTestVisible="False"/>
+            </Grid>
+            <ControlTemplate.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger></ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
+    <Style x:Key="ToastCountdown" TargetType="ProgressBar">
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ProgressBar"><Grid ClipToBounds="True"><Border x:Name="PART_Track" Height="3" Background="{DynamicResource LineBrush}"/><Border x:Name="PART_Indicator" Height="3" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left"/></Grid></ControlTemplate></Setter.Value></Setter>
+    </Style>
     <FontFamily x:Key="BodyFontFamily">Microsoft YaHei UI, Segoe UI Emoji</FontFamily>
     <!-- Retain the library templates, focus rings and visual states. -->
     <!-- WPF adorner selections paint above glyphs; keep the tint translucent. -->
@@ -90,21 +113,4 @@
         </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style x:Key="ThemeSelector" TargetType="ComboBox" BasedOn="{StaticResource SettingSelector}"/>
-    <Style x:Key="HorizontalSnackbar" TargetType="fluent:Snackbar">
-        <Setter Property="Foreground" Value="{DynamicResource SnackBarForeground}"/><Setter Property="ContentForeground" Value="{DynamicResource SnackBarForeground}"/>
-        <Setter Property="Background" Value="{DynamicResource SnackBarBackground}"/><Setter Property="BorderBrush" Value="{DynamicResource SnackBarBorderBrush}"/>
-        <Setter Property="MinHeight" Value="68"/><Setter Property="OverridesDefaultStyle" Value="True"/>
-        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="fluent:Snackbar">
-            <Border x:Name="Card" Padding="12" MinHeight="{TemplateBinding MinHeight}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4">
-                <Border.Effect><DropShadowEffect BlurRadius="30" Direction="0" Opacity="0.4" ShadowDepth="0" Color="#202020"/></Border.Effect>
-                <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <ContentPresenter VerticalAlignment="Center" Content="{TemplateBinding Content}" TextElement.FontSize="14" TextElement.Foreground="{TemplateBinding ContentForeground}"/>
-                    <fluent:Button x:Name="CloseButton" Grid.Column="1" Margin="12,0,0,0" Padding="6" Appearance="{TemplateBinding Appearance}" Command="{Binding TemplateButtonCommand, RelativeSource={RelativeSource TemplatedParent}}" Foreground="{TemplateBinding Foreground}">
-                        <fluent:Button.Icon><fluent:SymbolIcon Symbol="Dismiss20"/></fluent:Button.Icon>
-                    </fluent:Button>
-                </Grid>
-            </Border>
-            <ControlTemplate.Triggers><Trigger Property="IsCloseButtonEnabled" Value="False"><Setter TargetName="CloseButton" Property="Visibility" Value="Collapsed"/></Trigger></ControlTemplate.Triggers>
-        </ControlTemplate></Setter.Value></Setter>
-    </Style>
 </ResourceDictionary>

@@ -40,7 +40,7 @@ foreach ($kind in $variants) {
     [ordered]@{ Version=$version; Variant=$kind; Commit=$sourceCommit; WorkingTreeDirty=$dirty; Signed=$false; Runtime='10.0.10' } |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'BUILD.json') -Encoding utf8
     $files = Get-ChildItem -LiteralPath $destination -Recurse -File
-    if ($files | Where-Object { $_.Extension -in '.db', '.pdb' -or $_.FullName -match '[\\/]Data[\\/]' }) { throw '构建中含有非交付文件。' }
+    if ($files | Where-Object { $_.Extension -in '.db', '.pdb', '.dpapi' -or $_.FullName -match '[\\/](Data|Auth)[\\/]' }) { throw '构建中含有非交付文件。' }
     $bytes = ($files | Measure-Object Length -Sum).Sum
     if (!$portable -and $bytes -ge 50000000) { throw "精简版超出 50,000,000 字节：$bytes" }
     $sizes += [ordered]@{Variant=$kind; FileBytes=$bytes; Path=$destination}

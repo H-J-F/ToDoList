@@ -12,6 +12,7 @@ internal static class UiPerformance
 {
     public static async Task RunAsync(MainWindow window)
     {
+        if (Environment.GetCommandLineArgs().Contains("--memory-checks")) { await window.RunMemoryChecksAsync(); return; }
         var output = Path.Combine(window.Model.Library.DataDirectory, "..", "ui-results.json");
         try
         {

@@ -6,6 +6,8 @@ artifacts/
 Build/
 **/Data/
 **/Backup/
+**/Log/
+**/Auth/
 TestResults/
 *.user
 **/__pycache__/

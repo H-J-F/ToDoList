@@ -43,7 +43,7 @@ public sealed class DeletionTests : IDisposable
         Assert.Equal(status == TodoStatus.Open ? 2L : 3L, Database.Scalar(c, "SELECT COUNT(*) FROM TaskStateEvents"));
     }
 
-    [Fact] public async Task MergeDoesNotResurrectDeletedTasksAndRestorationCanWin()
+    [Fact] public async Task IdentityMergePreservesDeletionAndConflictingRestoration()
     {
         var book = await Library.CreateAsync("Book1", "本地"); var repo = new TaskRepository(book.Path);
         var task = await repo.AddTaskAsync(RichContent.FromText("任务"), null);
@@ -54,8 +54,10 @@ public sealed class DeletionTests : IDisposable
         var newFile = Path.Combine(root, "new.db"); await Library.ExportAsync(book, newFile);
         var restored = await new TaskRepository(newFile).RestoreTaskAsync(deleted.Id, deleted.Revision);
         using (var p = await Library.PrepareImportAsync(newFile)) await Library.ImportAsync(p, book, ImportMode.Merge);
-        Assert.Empty((await repo.QueryAsync(new(null, TaskFilter.Deleted, TaskSort.Deleted))).Items);
-        Assert.Equal(restored.Status, Assert.Single((await repo.QueryAsync(new(null, TaskFilter.Open, TaskSort.Created))).Items).Status);
+        Assert.Single((await repo.QueryAsync(new(null, TaskFilter.Deleted, TaskSort.Deleted))).Items);
+        var versions = new ToDoList.Storage.Cloud.CloudBookStorage(Library).ImportVersions().Values[ToDoList.Storage.Cloud.CloudSnapshot.Key(book.BookId, "task", task.Id)];
+        Assert.Contains(versions, v => v.Read<TodoItem>().Status == restored.Status);
+        Assert.Contains(versions, v => v.Read<TodoItem>().Status == TodoStatus.Deleted);
     }
 
     [Fact] public async Task FailedHistoryWriteRollsBackDeletion()

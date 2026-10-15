@@ -96,13 +96,9 @@ internal static class UiTaskFixes
             var card = window.FindCard(model.Tasks.Single())!;
             Invoke(window, "Task_EditRequested", card, EventArgs.Empty); await Settle();
             card.ActiveEditor!.PastePlainText("修改");
-            var navigation = Call("NavigateAsync", (Func<Task>)(() => model.SelectFilterAsync(TaskFilter.Open)), false, true);
-            await Settle();
-            var editDialog = MainWindow.Descendants<Wpf.Ui.Controls.ContentDialog>(window).FirstOrDefault(d => d.IsVisible);
-            Check(editDialog != null && !navigation.IsCompleted, "Existing-task edits still require save confirmation");
-            editDialog!.TemplateButtonCommand.Execute(Wpf.Ui.Controls.ContentDialogButton.Close); await navigation;
-            Check(model.Filter == TaskFilter.All && card.ActiveEditor != null, "Cancel navigation retains existing edit");
-            Invoke(window, "EndRowEdit");
+            await Call("NavigateAsync", (Func<Task>)(() => model.SelectFilterAsync(TaskFilter.Open)), false, true);
+            Check(model.Filter == TaskFilter.Open && card.ActiveEditor == null, "Navigation saves existing-task edits and exits editing");
+            Check(model.Tasks.Any(t => t.Item.PlainText.Contains("修改")), "Automatic save preserves edited content");
             await Settle(); Capture("dark-taskfixes");
             foreach (var scope in new[] { DateScope.Day, DateScope.Range })
             {

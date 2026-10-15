@@ -27,7 +27,16 @@ public partial class RichEditor : UserControl
         // A zero-padding TextBlock shares the text metrics; anchor it to the actual insertion line.
         Canvas.SetLeft(Placeholder, point.X); Canvas.SetTop(Placeholder, point.Y);
     }
-    public void FocusEditor() { Editor.Focus(); Editor.CaretPosition = Editor.Document.ContentEnd; }
+    internal bool IsComposing => _composing;
+    private bool _dialogInteraction;
+    internal bool HasToolInteraction => _dialogInteraction || _popup?.IsOpen == true;
+    public void FocusEditor()
+    {
+        if (!Editor.IsEnabled || !Editor.IsVisible) return;
+        FocusManager.SetFocusedElement(FocusManager.GetFocusScope(Editor), Editor);
+        Keyboard.Focus(Editor);
+        Editor.CaretPosition = Editor.Document.ContentEnd.GetInsertionPosition(LogicalDirection.Backward) ?? Editor.Document.ContentStart;
+    }
     public RichContent GetContent()
     {
         var paragraphs = new List<RichParagraph>();
@@ -135,18 +144,23 @@ public partial class RichEditor : UserControl
     private void ClearFormat_Click(object sender, RoutedEventArgs e) { Editor.Focus(); Editor.Selection.ClearAllProperties(); ApplyColor(null); }
     private async void Link_Click(object sender, RoutedEventArgs e)
     {
-        var value = await Dialogs.Input(Window.GetWindow(this), "添加一个链接", "链接地址（https://…）", "https://");
-        if (value == null) return;
-        if (!RichContent.IsSafeLink(value)) { await Dialogs.Info(Window.GetWindow(this), "链接格式不正确", "请输入 http 或 https 链接。"); return; }
-        if (Editor.Selection.Start.Paragraph != Editor.Selection.End.Paragraph)
-        { await Dialogs.Info(Window.GetWindow(this), "请选择一段文字", "链接文字需要位于同一段落中。"); return; }
+        _dialogInteraction = true;
         try
         {
-            if (Editor.Selection.IsEmpty) Editor.Selection.Text = value;
-            var link = new Hyperlink(Editor.Selection.Start, Editor.Selection.End) { NavigateUri = new Uri(value) };
-            link.SetResourceReference(TextElement.ForegroundProperty, "AccentInkBrush"); Editor.Focus();
+            var value = await Dialogs.Input(Window.GetWindow(this), "添加一个链接", "链接地址（https://…）", "https://");
+            if (value == null) return;
+            if (!RichContent.IsSafeLink(value)) { await Dialogs.Info(Window.GetWindow(this), "链接格式不正确", "请输入 http 或 https 链接。"); return; }
+            if (Editor.Selection.Start.Paragraph != Editor.Selection.End.Paragraph)
+            { await Dialogs.Info(Window.GetWindow(this), "请选择一段文字", "链接文字需要位于同一段落中。"); return; }
+            try
+            {
+                if (Editor.Selection.IsEmpty) Editor.Selection.Text = value;
+                var link = new Hyperlink(Editor.Selection.Start, Editor.Selection.End) { NavigateUri = new Uri(value) };
+                link.SetResourceReference(TextElement.ForegroundProperty, "AccentInkBrush"); Editor.Focus();
+            }
+            catch (ArgumentException) { await Dialogs.Info(Window.GetWindow(this), "暂时无法添加链接", "请选择同一段落内、不包含已有链接的文字。"); }
         }
-        catch (ArgumentException) { await Dialogs.Info(Window.GetWindow(this), "暂时无法添加链接", "请选择同一段落内、不包含已有链接的文字。"); }
+        finally { _dialogInteraction = false; if (IsLoaded) Editor.Focus(); }
     }
     private void Editor_KeyDown(object sender, KeyEventArgs e)
     {

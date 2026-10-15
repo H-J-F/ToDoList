@@ -5,7 +5,7 @@ using TextBlock = System.Windows.Controls.TextBlock;
 using TextBox = Wpf.Ui.Controls.TextBox;
 
 namespace ToDoList.App.Services;
-public static class Dialogs
+public static partial class Dialogs
 {
     private static string _bookName = "", _bookTitle = "";
     public static void ClearBookDraft() { _bookName = _bookTitle = ""; }

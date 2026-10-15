@@ -58,15 +58,21 @@ public partial class TaskCard : UserControl
         if (_subscribed != null) _subscribed.PropertyChanged += OnRowChanged;
         RenderText();
     }
-    private void OnRowChanged(object? sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(TaskViewModel.Item)) RenderText(); }
+    private readonly List<(Inline Inline, RichRun Run, TextDecorationCollection Decorations)> _displayRuns = [];
+    private void OnRowChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TaskViewModel.ContentJson)) RenderText();
+        else if (e.PropertyName == nameof(TaskViewModel.Status)) ApplyAppearance();
+    }
     private void RenderText()
     {
-        BodyText.Inlines.Clear(); if (Row == null) return;
+        if (Row == null) { BodyText.Inlines.Clear(); _displayRuns.Clear(); return; }
         var content = RichContent.Parse(Row.Item.ContentJson);
+        var inlines = new List<Inline>(); var runs = new List<(Inline, RichRun, TextDecorationCollection)>();
         bool first = true;
         foreach (var paragraph in content.Paragraphs)
         {
-            if (!first) BodyText.Inlines.Add(new LineBreak()); first = false;
+            if (!first) inlines.Add(new LineBreak()); first = false;
             foreach (var r in paragraph.Runs)
             {
                 var inline = RichEditor.CreateInline(r);
@@ -74,18 +80,29 @@ public partial class TaskCard : UserControl
                 // here; editable inlines inherit from their FlowDocument instead.
                 inline.FontSize = (double)FindResource("BodyFontSize");
                 inline.FontFamily = (FontFamily)FindResource("BodyFontFamily");
-                if (r.Color == null && inline is not Hyperlink) inline.SetResourceReference(TextElement.ForegroundProperty, Row.IsCompleted ? "CompletedInkBrush" : "InkBrush");
-                if (Row.IsCompleted || Row.IsDeleted)
-                {
-                    var decorations = new TextDecorationCollection(inline.TextDecorations);
-                    var strike = TextDecorations.Strikethrough[0].Clone();
-                    if (Row.IsDeleted) strike.Pen = new Pen((Brush)FindResource("RedBrush"), 1.2);
-                    decorations.Add(strike); inline.TextDecorations = decorations;
-                }
-                if (Row.IsDeleted) inline.SetResourceReference(TextElement.ForegroundProperty, "RedBrush");
                 if (inline is Hyperlink h) h.RequestNavigate += (_, e) => { if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); e.Handled = true; };
-                BodyText.Inlines.Add(inline);
+                inlines.Add(inline); runs.Add((inline, r, new TextDecorationCollection(inline.TextDecorations)));
             }
+        }
+        BodyText.Inlines.Clear(); BodyText.Inlines.AddRange(inlines); _displayRuns.Clear(); _displayRuns.AddRange(runs);
+        ApplyAppearance();
+    }
+    private void ApplyAppearance()
+    {
+        if (Row == null) return;
+        foreach (var (inline, run, original) in _displayRuns)
+        {
+            if (run.Color != null) inline.Foreground = (Brush)new BrushConverter().ConvertFromString(run.Color)!;
+            else inline.SetResourceReference(TextElement.ForegroundProperty, inline is Hyperlink ? "AccentInkBrush" : Row.IsCompleted ? "CompletedInkBrush" : "InkBrush");
+            var decorations = new TextDecorationCollection(original);
+            if (Row.IsCompleted || Row.IsDeleted)
+            {
+                var strike = TextDecorations.Strikethrough[0].Clone();
+                if (Row.IsDeleted) strike.Pen = new Pen((Brush)FindResource("RedBrush"), 1.2);
+                decorations.Add(strike);
+            }
+            inline.TextDecorations = decorations;
+            if (Row.IsDeleted) inline.SetResourceReference(TextElement.ForegroundProperty, "RedBrush");
         }
         BodyText.Opacity = 1;
         AnimateHover(IsMouseOver);

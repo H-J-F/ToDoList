@@ -232,7 +232,7 @@ internal static class UiSettingsNavigationChecks
         var invalid = new BookInfo("Invalid", "损坏笔记", Path.Combine(model.Library.DataDirectory, "invalid.db"));
         File.WriteAllText(invalid.Path, "not a database");
         try { await model.OpenBookAsync(invalid); check(false, "Broken database must fail"); }
-        catch (Microsoft.Data.Sqlite.SqliteException) { check(model.CurrentBook == b && model.Tasks.Count == 8 && model.Library.LoadSettings().LastBook == b.Name, "Load failure preserves the previous book, rows and LastBook"); }
+        catch (Microsoft.Data.Sqlite.SqliteException) { check(model.CurrentBook == b && model.Tasks.Count == 8 && model.Library.LoadSettings().LastBook == b.BookId, "Load failure preserves the previous book, rows and LastBook"); }
         typeof(MainWindow).GetMethod("SyncSelectors", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, [true]);
         var draft = (ToDoList.App.Controls.RichEditor)window.FindName("DraftEditor");
         draft.SetContent(RichContent.FromText("取消切换时保留草稿"));

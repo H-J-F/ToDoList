@@ -8,6 +8,7 @@
 | Microsoft.Extensions.Logging.Abstractions 8.0.3、DependencyInjection.Abstractions 8.0.2 | Microsoft / .NET Foundation and contributors | MIT，`licenses/Microsoft-Extensions-LICENSE.txt`、`Microsoft-Extensions-NOTICES.txt` |
 | WPF-UI、WPF-UI.Abstractions 4.3.0 | [lepoco/wpfui](https://github.com/lepoco/wpfui/tree/4.3.0)，Lepo / Leszek Pomianowski and WPF UI Contributors | MIT，`licenses/WPF-UI.txt` |
 | WPF-UI.Tray 4.3.0 | [lepoco/wpfui](https://github.com/lepoco/wpfui/tree/4.3.0)，Copyright (C) 2021–2026 Leszek Pomianowski and WPF UI Contributors | MIT，`licenses/WPF-UI.Tray.txt`；系统托盘与 WPF 菜单集成 |
+| Microsoft.Web.WebView2 1.0.4258.31 | [Microsoft WebView2](https://learn.microsoft.com/microsoft-edge/webview2/)，Microsoft Corporation | SDK 包原文 `licenses/Microsoft-WebView2.txt`；用于 WPF UI 登录窗口的网页区域，系统共享 WebView2 Runtime 独立安装，不随应用分发 |
 | Fluent System Icons（随 WPF UI 4.3.0 字体资源） | [Microsoft](https://github.com/microsoft/fluentui-system-icons)，Microsoft Corporation；上游包未提供独立图标版本号 | MIT，`licenses/Fluent-System-Icons.txt` |
 | Emoji.Wpf 0.3.4 | [Sam Hocevar](https://github.com/samhocevar/emoji.wpf/tree/488c716cd4255506fe073e3d80ecbbfdfe4c6cf5)，Copyright © 2017–2021 Sam Hocevar | **WTFPL v2**，`licenses/Emoji-Wpf-WTFPL.txt` |
 | Stfu 0.1.1 | [Sam Hocevar](https://github.com/samhocevar/stfu)，Copyright © 2017–2021 Sam Hocevar | WTFPL v2，同上；传递运行时依赖 |

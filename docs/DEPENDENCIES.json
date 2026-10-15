@@ -40,6 +40,26 @@
     "packageSha512": "TPCs0ldm7AWqcKmp6f/Xr+14sat7hx4rHfRlS4RgCURBH2thEWbAKEyX7cCWr63zVJVOJIJZTg2cBiUXa8ys6g=="
   },
   {
+    "package": "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.2",
+    "scope": "application",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://dot.net/",
+    "packageSha512": "3iE7UF7MQkCv1cxzCahz+Y/guQbTqieyxyaWKhrRO91itI9cOKO76OHeQDahqG4MmW5umr3CcCvGmK92lWNlbg=="
+  },
+  {
+    "package": "Microsoft.Extensions.Logging.Abstractions/8.0.3",
+    "scope": "application",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://dot.net/",
+    "packageSha512": "dL0QGToTxggRLMYY4ZYX5AMwBb+byQBd/5dMiZE07Nv73o6I5Are3C7eQTh7K2+A4ct0PVISSr7TZANbiNb2yQ=="
+  },
+  {
     "package": "Microsoft.NET.ILLink.Tasks/10.0.10",
     "scope": "build-time",
     "authors": "Microsoft",
@@ -48,6 +68,36 @@
     "licenseUrl": "https://licenses.nuget.org/MIT",
     "source": "https://dot.net/",
     "packageSha512": "f5VCIE7AJpd5YvzNTeMGVzQIgyE9tX+AreTYwQF+REbu+DZo/2Ae+jNSwhPEYrVz6RRkd7y8ubXjk6Nn6Ka+Cg=="
+  },
+  {
+    "package": "Microsoft.Web.WebView2/1.0.4258.31",
+    "scope": "application",
+    "authors": "Microsoft",
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "license": "LICENSE.txt",
+    "licenseUrl": "https://aka.ms/deprecateLicenseUrl",
+    "source": "https://aka.ms/webview",
+    "packageSha512": "sHVZ2MQrHT1J3q5/6csn0fIP27rzpTO/RRC+wPQDrZheB7T4t2n+vVbY6SdCKr4WRV9s/gmBM3PPMWWJtoDzMg=="
+  },
+  {
+    "package": "PDFsharp-MigraDoc-WPF/6.2.4",
+    "scope": "application",
+    "authors": "PDFsharp Team",
+    "copyright": "© 2026 empira",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://docs.pdfsharp.net/",
+    "packageSha512": "0r3+I3H4BIv2Mt5+3ajQnilY5kqs6fByoVdNly1A2jGOJwjW5qaWE+ohgi9hbMY3hK/JwcxvuChhHz4fi5DO3Q=="
+  },
+  {
+    "package": "PDFsharp-WPF/6.2.4",
+    "scope": "application",
+    "authors": "PDFsharp Team",
+    "copyright": "© 2026 empira",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://docs.pdfsharp.net/",
+    "packageSha512": "wD2byoUNGc/IDmSSSPLGGCNMXf4TybnjKlcYa40nuWIYLVA4DSvnCvWr7HbsBEwFvAYRP6DceQ4MN35COD/pdw=="
   },
   {
     "package": "SQLite/3.53.4",
@@ -128,6 +178,16 @@
     "licenseUrl": "https://licenses.nuget.org/MIT",
     "source": "https://github.com/lepoco/wpfui",
     "packageSha512": "7Kj9DmCCo4SOCd1jAiw4+EcMFP2nR8rLLvitAYzVtzbWToTsodkbie24+8x9C4LDLxkopWEUGX62szqqNy7oeg=="
+  },
+  {
+    "package": "WPF-UI.Tray/4.3.0",
+    "scope": "application",
+    "authors": "lepo.co",
+    "copyright": "Copyright (C) 2021-2026 Leszek Pomianowski and WPF UI Contributors",
+    "license": "MIT",
+    "licenseUrl": "https://licenses.nuget.org/MIT",
+    "source": "https://github.com/lepoco/wpfui",
+    "packageSha512": "xpBXOrH8FuM+9xAbc2Bv7huqZrfq06wKszYHcsDuI/t/1OabtXp7DWCJmHd3tLLuSUcefWfNcPX591csuw4Rng=="
   },
   {
     "package": "coverlet.collector/6.0.4",
@@ -338,55 +398,5 @@
     "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
     "source": null,
     "packageSha512": "5mj99LvCqrq3CNi06xYdyIAXOEh+5b33F2nErCzI5zWiDdLHXiPXEWFSUAF8zlIv0ZWqjZNCwHTQeAPYbF3pCg=="
-  },
-  {
-    "package": "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.2",
-    "scope": "application",
-    "authors": "Microsoft",
-    "copyright": "© Microsoft Corporation. All rights reserved.",
-    "license": "MIT",
-    "licenseUrl": "https://licenses.nuget.org/MIT",
-    "source": "https://dot.net/",
-    "packageSha512": "3iE7UF7MQkCv1cxzCahz+Y/guQbTqieyxyaWKhrRO91itI9cOKO76OHeQDahqG4MmW5umr3CcCvGmK92lWNlbg=="
-  },
-  {
-    "package": "Microsoft.Extensions.Logging.Abstractions/8.0.3",
-    "scope": "application",
-    "authors": "Microsoft",
-    "copyright": "© Microsoft Corporation. All rights reserved.",
-    "license": "MIT",
-    "licenseUrl": "https://licenses.nuget.org/MIT",
-    "source": "https://dot.net/",
-    "packageSha512": "dL0QGToTxggRLMYY4ZYX5AMwBb+byQBd/5dMiZE07Nv73o6I5Are3C7eQTh7K2+A4ct0PVISSr7TZANbiNb2yQ=="
-  },
-  {
-    "package": "PDFsharp-MigraDoc-WPF/6.2.4",
-    "scope": "application",
-    "authors": "PDFsharp Team",
-    "copyright": "© 2026 empira",
-    "license": "MIT",
-    "licenseUrl": "https://licenses.nuget.org/MIT",
-    "source": "https://docs.pdfsharp.net/",
-    "packageSha512": "0r3+I3H4BIv2Mt5+3ajQnilY5kqs6fByoVdNly1A2jGOJwjW5qaWE+ohgi9hbMY3hK/JwcxvuChhHz4fi5DO3Q=="
-  },
-  {
-    "package": "PDFsharp-WPF/6.2.4",
-    "scope": "application",
-    "authors": "PDFsharp Team",
-    "copyright": "© 2026 empira",
-    "license": "MIT",
-    "licenseUrl": "https://licenses.nuget.org/MIT",
-    "source": "https://docs.pdfsharp.net/",
-    "packageSha512": "wD2byoUNGc/IDmSSSPLGGCNMXf4TybnjKlcYa40nuWIYLVA4DSvnCvWr7HbsBEwFvAYRP6DceQ4MN35COD/pdw=="
-  },
-  {
-    "package": "WPF-UI.Tray/4.3.0",
-    "scope": "application",
-    "authors": "lepo.co",
-    "copyright": "Copyright (C) 2021-2026 Leszek Pomianowski and WPF UI Contributors",
-    "license": "MIT",
-    "licenseUrl": "https://licenses.nuget.org/MIT",
-    "source": "https://github.com/lepoco/wpfui",
-    "packageSha512": "xpBXOrH8FuM+9xAbc2Bv7huqZrfq06wKszYHcsDuI/t/1OabtXp7DWCJmHd3tLLuSUcefWfNcPX591csuw4Rng=="
   }
 ]

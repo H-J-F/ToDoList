@@ -5,15 +5,30 @@ namespace ToDoList.Storage;
 
 public static class Database
 {
-    public const int Version = 4;
+    public const int Version = 5;
     public const int ApplicationId = 0x544F444F;
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> Gates = new(StringComparer.OrdinalIgnoreCase);
+    public static event Action<string>? Changed;
+    public static void NotifyChanged(string path) => Changed?.Invoke(System.IO.Path.GetFullPath(path));
+    public static async Task<T> RunDirectoryAsync<T>(string directory, Func<T> action, CancellationToken ct = default)
+    {
+        var gate = Gates.GetOrAdd("directory:" + System.IO.Path.GetFullPath(directory), _ => new(1, 1));
+        await gate.WaitAsync(ct).ConfigureAwait(false);
+        try { return await Task.Run(() => { ct.ThrowIfCancellationRequested(); return action(); }, ct).ConfigureAwait(false); }
+        finally { gate.Release(); }
+    }
     public static async Task<T> RunAsync<T>(string path, Func<T> action, CancellationToken ct = default)
     {
+        var directoryGate = Gates.GetOrAdd("directory:" + System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path))!, _ => new(1, 1));
+        await directoryGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
         var gate = Gates.GetOrAdd(System.IO.Path.GetFullPath(path), _ => new(1, 1));
         await gate.WaitAsync(ct).ConfigureAwait(false);
         try { return await Task.Run(() => { ct.ThrowIfCancellationRequested(); return action(); }, ct).ConfigureAwait(false); }
         finally { gate.Release(); }
+        }
+        finally { directoryGate.Release(); }
     }
     public static SqliteConnection Open(string path, bool readOnly = false)
     {
@@ -48,6 +63,7 @@ public static class Database
         using var tx = c.BeginTransaction();
         Exec(c, Schema);
         Exec(c, "INSERT INTO BookMetadata VALUES(1,$name,$title);", ("$name", name), ("$title", title));
+        EnsureSyncSchema(c);
         Exec(c, $"PRAGMA user_version={Version}; PRAGMA application_id={ApplicationId};");
         tx.Commit();
     }
@@ -70,7 +86,7 @@ public static class Database
             throw new InvalidDataException("这不是 ToDoList 待办笔记。");
         var version = Convert.ToInt32(Scalar(c, "PRAGMA user_version"));
         if (version == Version) return;
-        if (version is not (1 or 2 or 3)) throw new InvalidDataException($"不支持待办笔记格式版本 {version}。");
+        if (version is not (1 or 2 or 3 or 4)) throw new InvalidDataException($"不支持待办笔记格式版本 {version}。");
         if (!Equals(Scalar(c, "PRAGMA quick_check"), "ok")) throw new InvalidDataException("数据库完整性检查失败。");
         if (Convert.ToInt64(Scalar(c, "SELECT COUNT(*) FROM sqlite_schema WHERE type IN ('view','trigger')")) != 0)
             throw new InvalidDataException("待办笔记包含不支持的数据库对象。");
@@ -79,7 +95,7 @@ public static class Database
             Directory.CreateDirectory(backupDirectory);
             Snapshot(path, System.IO.Path.Combine(backupDirectory, $"{System.IO.Path.GetFileNameWithoutExtension(path)}-v{version}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.db"));
         }
-        if (version is 2 or 3)
+        if (version is 2 or 3 or 4)
         {
             using var tx = c.BeginTransaction();
             if (version == 2)
@@ -87,7 +103,8 @@ public static class Database
                 Exec(c, "ALTER TABLE Projects ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0;");
                 Exec(c, "UPDATE Projects SET SortOrder=(SELECT COUNT(*) FROM Projects later WHERE later.rowid < Projects.rowid);");
             }
-            Exec(c, "ALTER TABLE Tasks ADD COLUMN EditedAt INTEGER;");
+            if (version < 4) Exec(c, "ALTER TABLE Tasks ADD COLUMN EditedAt INTEGER;");
+            EnsureSyncSchema(c);
             Exec(c, $"PRAGMA user_version={Version};");
             tx.Commit();
             return;
@@ -107,6 +124,7 @@ public static class Database
             Exec(c, tables);
             Exec(c, "INSERT INTO Tasks(Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision) SELECT Id,ProjectId,ContentJson,PlainText,Status,CreatedAt,UpdatedAt,CompletedAt,Revision FROM Tasks_v1; INSERT INTO TaskStateEvents SELECT * FROM Events_v1; DROP TABLE Events_v1; DROP TABLE Tasks_v1;");
             Exec(c, "ALTER TABLE Projects ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0; UPDATE Projects SET SortOrder=(SELECT COUNT(*) FROM Projects later WHERE later.rowid < Projects.rowid);");
+            EnsureSyncSchema(c);
             using (var cmd = Command(c, "PRAGMA foreign_key_check"))
             using (var r = cmd.ExecuteReader()) if (r.Read()) throw new InvalidDataException("升级失败：任务关联不完整。");
             Exec(c, $"PRAGMA user_version={Version};");
@@ -114,7 +132,12 @@ public static class Database
         }
         finally { Exec(c, "PRAGMA foreign_keys=ON;"); }
     }
-    // Migration 1. Future migrations must run transactionally after checking application_id/user_version.
+    private static void EnsureSyncSchema(SqliteConnection c)
+    {
+        Exec(c, "CREATE TABLE IF NOT EXISTS SyncIdentity(Id INTEGER PRIMARY KEY CHECK(Id=1),BookId TEXT NOT NULL,LogicalName TEXT NOT NULL); CREATE TABLE IF NOT EXISTS SyncTombstones(Kind TEXT NOT NULL,EntityId TEXT NOT NULL,PRIMARY KEY(Kind,EntityId));");
+        Exec(c, "INSERT OR IGNORE INTO SyncIdentity SELECT 1,$id,Name FROM BookMetadata WHERE Id=1", ("$id", Guid.NewGuid().ToString("N")));
+    }
+    // Future migrations run transactionally after checking application_id/user_version.
     public const string Schema = """
         CREATE TABLE BookMetadata(Id INTEGER PRIMARY KEY CHECK(Id=1), Name TEXT NOT NULL, Title TEXT NOT NULL);
         CREATE TABLE Projects(Id TEXT PRIMARY KEY, Name TEXT NOT NULL COLLATE NOCASE UNIQUE, SortOrder INTEGER NOT NULL DEFAULT 0);

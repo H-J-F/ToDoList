@@ -1,14 +1,22 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using ToDoList.Core;
 using ToDoList.Storage;
 
 namespace ToDoList.App.ViewModels;
 
-public sealed class MainViewModel : ObservableObject
+public sealed partial class MainViewModel : ObservableObject
 {
-    public BookLibrary Library { get; }
+    public BookLibrary Library { get; private set; }
+    private readonly BookLibrary _preferencesLibrary;
     public AppSettings Settings { get; }
     public ObservableCollection<BookInfo> Books { get; } = [];
+    public ObservableCollection<BookInfo> VisibleBooks { get; } = [];
+    private bool _showHiddenBooks;
+    public bool ShowHiddenBooks => _showHiddenBooks;
+    public bool HasHiddenBooks => Books.Any(b => b.IsHidden);
+    public string WelcomeTitle => HasHiddenBooks ? "全部笔记已隐藏" : "开始安排你的每一天";
+    public string WelcomeDescription => HasHiddenBooks ? "显示隐藏笔记，即可查看内容或取消隐藏。" : "创建一本待办笔记，按模块整理任务。";
     public ObservableCollection<ProjectInfo> Projects { get; } = [];
     public ObservableCollection<ProjectInfo> DraftProjects { get; } = [];
     public ObservableCollection<TaskViewModel> Tasks { get; } = [];
@@ -24,6 +32,7 @@ public sealed class MainViewModel : ObservableObject
     public event Action? LayoutChanging;
     public event Action? LayoutChanged;
     public event Action? LatestRequested;
+    public event Action<LocalUndo>? OperationCommitted;
     public Func<TaskViewModel, Task>? AnimateRemoval { get; set; }
     public Func<bool>? IsEditing { get; set; }
     private BookInfo? _book;
@@ -45,7 +54,17 @@ public sealed class MainViewModel : ObservableObject
     public bool IsBusy { get => _busy; set { Set(ref _busy, value); Raise(nameof(ShowBlockingOverlay)); } }
     private bool _switchingBook;
     public bool IsSwitchingBook { get => _switchingBook; set { Set(ref _switchingBook, value); Raise(nameof(ShowBlockingOverlay)); } }
-    public bool ShowBlockingOverlay => IsBusy && !IsSwitchingBook;
+    private bool _initialLoading = true;
+    public bool IsInitialLoading { get => _initialLoading; set { Set(ref _initialLoading, value); Raise(nameof(ShowBlockingOverlay)); } }
+    public bool ShowBlockingOverlay => IsInitialLoading;
+    private string _loadingMessage = "正在加载待办笔记…";
+    public string LoadingMessage { get => _loadingMessage; set => Set(ref _loadingMessage, value); }
+    private double _loadingProgress;
+    public double LoadingProgress { get => _loadingProgress; set => Set(ref _loadingProgress, value); }
+    private bool _loadingIndeterminate = true;
+    public bool LoadingIndeterminate { get => _loadingIndeterminate; set => Set(ref _loadingIndeterminate, value); }
+    private bool _canCancelInitialLoad;
+    public bool CanCancelInitialLoad { get => _canCancelInitialLoad; set => Set(ref _canCancelInitialLoad, value); }
     private bool _loading;
     public bool IsLoading { get => _loading; private set => Set(ref _loading, value); }
     private string _message = "把想做的事写下来，让每一天轻一点。";
@@ -53,23 +72,53 @@ public sealed class MainViewModel : ObservableObject
     public bool IsEmpty => HasBook && Tasks.Count == 0 && !IsLoading;
     public string LoadedLabel => HasBook ? $"已载入 {Tasks.Count} 条" + (HasOlder || HasNewer ? " · 滚动翻阅" : "") : "一本笔记，装下你的小目标";
 
-    public MainViewModel(BookLibrary library, AppSettings settings) { Library = library; Settings = settings; }
+    public MainViewModel(BookLibrary library, AppSettings settings)
+    {
+        Library = _preferencesLibrary = library; Settings = settings;
+        Books.CollectionChanged += (_, _) => RefreshVisibleBooks();
+    }
+    internal void SetInitialLibrary(BookLibrary library)
+    {
+        if (CurrentBook != null || Books.Count != 0) throw new InvalidOperationException("工作区已初始化。");
+        Library = library;
+    }
+    internal async Task SwitchLibraryAsync(BookLibrary library)
+    {
+        var rows = await library.ListAsync();
+        if (library.ScanWarning != null) throw new IOException(library.ScanWarning);
+        var previous = Library; var previousBooks = Books.ToArray(); var previousShowHidden = _showHiddenBooks;
+        Library = library;
+        try
+        {
+            SetShowHiddenBooks(false);
+            Books.Clear(); foreach (var book in rows) Books.Add(book);
+            var selected = RememberedBook();
+            if (selected != null) await OpenBookAsync(selected);
+            else
+            {
+                CancelQuery(); IsLoading = false; Repository = null; CurrentBook = null; CurrentProjectId = null;
+                Tasks.Clear(); Projects.Clear(); DraftProjects.Clear(); HasOlder = HasNewer = false; CurrentQuery = null; NotifyList();
+            }
+        }
+        catch { Library = previous; SetShowHiddenBooks(previousShowHidden); Books.Clear(); foreach (var book in previousBooks) Books.Add(book); throw; }
+    }
     public async Task InitializeAsync()
     {
         await RefreshBooksAsync();
-        var book = Books.FirstOrDefault(b => b.Name.Equals(Settings.LastBook, StringComparison.OrdinalIgnoreCase)) ?? Books.FirstOrDefault();
+        var book = RememberedBook();
         if (book != null) await OpenBookAsync(book);
         if (Library.ScanWarning != null) Message = "部分待办笔记未能打开：" + Library.ScanWarning;
     }
     public async Task RefreshBooksAsync()
     {
-        var rows = await Library.ListAsync(); Books.Clear(); foreach (var b in rows) Books.Add(b);
+        var rows = await Library.ListAsync(); Reconcile(Books, rows, b => b.BookId);
     }
     public async Task OpenBookAsync(BookInfo book)
     {
         CancelQuery(); IsLoading = false;
         var epoch = _epoch; var token = _queryCancellation.Token;
-        var repository = new TaskRepository(book.Path);
+        var repository = new TaskRepository(book.Path) { EnableUndo = true };
+        repository.UndoCommitted += undo => OperationCommitted?.Invoke(undo);
         // Prepare off the current view. A failed or superseded request leaves
         // the previous book, repository and visible rows intact.
         var sort = await repository.GetSettingAsync("CompletedSort", token) == "Created" ? TaskSort.Created : TaskSort.Completed;
@@ -82,11 +131,15 @@ public sealed class MainViewModel : ObservableObject
         var page = await repository.QueryAsync(query, token);
         if (epoch != _epoch) return;
         var oldLastBook = Settings.LastBook;
-        Settings.LastBook = book.Name;
-        try { Library.SaveSettings(Settings); }
-        catch { Settings.LastBook = oldLastBook; throw; }
+        Settings.LastBook = book.BookId;
+        var workspace = Library.DataDirectory.Equals(_preferencesLibrary.DataDirectory, StringComparison.OrdinalIgnoreCase) ? "guest" : Path.GetFileName(Library.DataDirectory);
+        var hadWorkspace = Settings.LastBooksByWorkspace.TryGetValue(workspace, out var oldWorkspaceBook);
+        Settings.LastBooksByWorkspace[workspace] = book.BookId;
+        try { _preferencesLibrary.SaveSettings(Settings); }
+        catch { Settings.LastBook = oldLastBook; if (hadWorkspace) Settings.LastBooksByWorkspace[workspace] = oldWorkspaceBook; else Settings.LastBooksByWorkspace.Remove(workspace); throw; }
 
         // No awaits during commit: observers never render half of each book.
+        if (book.IsHidden && !_showHiddenBooks) SetShowHiddenBooks(true);
         Repository = repository; CurrentProjectId = null; Filter = TaskFilter.Today; Sort = sort; CurrentQuery = query;
         ReportOpenColor = open; ReportVerificationColor = verification; ReportCompletedColor = completed;
         Projects.Clear(); DraftProjects.Clear();
@@ -113,10 +166,9 @@ public sealed class MainViewModel : ObservableObject
     {
         if (Repository == null) return;
         var projects = await Repository.GetProjectsAsync();
-        Projects.Clear(); DraftProjects.Clear();
-        var all = new ProjectInfo(null, "全部"); Projects.Add(all); DraftProjects.Add(all);
-        foreach (var p in projects) { Projects.Add(p); DraftProjects.Add(p); }
-        DraftProjects.Add(new("__new", "新增模块"));
+        var all = new ProjectInfo(null, "全部");
+        Reconcile(Projects, new[] { all }.Concat(projects).ToArray(), p => p.Id);
+        Reconcile(DraftProjects, new[] { all }.Concat(projects).Append(new("__new", "新增模块")).ToArray(), p => p.Id);
     }
     public async Task RenameProjectAsync(ProjectInfo project, string name)
     {
@@ -177,8 +229,8 @@ public sealed class MainViewModel : ObservableObject
     {
         if (CurrentBook == null) return null;
         var deleting = CurrentBook; CancelQuery(); Repository = null; CurrentBook = null; CurrentProjectId = null; Tasks.Clear(); Projects.Clear(); DraftProjects.Clear();
-        var backup = await Library.DeleteAsync(deleting); await RefreshBooksAsync(); var next = Books.FirstOrDefault();
-        if (next != null) await OpenBookAsync(next); else { Settings.LastBook = null; Library.SaveSettings(Settings); NotifyList(); }
+        var backup = await Library.DeleteAsync(deleting); await RefreshBooksAsync(); var next = VisibleBooks.FirstOrDefault();
+        if (next != null) await OpenBookAsync(next); else { Settings.LastBook = null; _preferencesLibrary.SaveSettings(Settings); NotifyList(); }
         Message = "待办笔记已删除，备份保存在 Data/Backup。"; return backup;
     }
     public async Task SelectProjectAsync(string? id) { CurrentProjectId = id; await ReloadAsync(true); }
@@ -211,21 +263,38 @@ public sealed class MainViewModel : ObservableObject
     {
         if (!showLatest && Tasks.Count > 0 && Repository != null && CurrentQuery != null)
         { await RefreshWindowAsync(); return; }
-        CancelQuery(); Tasks.Clear(); HasOlder = HasNewer = false;
+        CancelQuery();
         var epoch = _epoch;
         Raise(nameof(Filter)); Raise(nameof(FilterTitle)); Raise(nameof(IsCompletedTab)); Raise(nameof(IsCalendarFilter)); Raise(nameof(DateSubtitle));
         var range = QueryRange();
         CurrentQuery = new(CurrentProjectId, Filter, Sort, range.From, range.Until);
-        await LoadPageAsync(PageDirection.Older); NotifyList();
+        await LoadLatestWindowAsync(epoch); NotifyList();
         if (showLatest && epoch == _epoch) LatestRequested?.Invoke();
     }
-    private async Task RefreshWindowAsync()
+    private async Task LoadLatestWindowAsync(int epoch)
     {
-        var cursor = CurrentQuery!.CursorFor(Tasks[0].Item); var count = Tasks.Count;
+        if (Repository == null || CurrentQuery == null) return;
+        var token = _queryCancellation.Token; var repository = Repository; var query = CurrentQuery;
+        _paging = true; IsLoading = true; var completion = _pageCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            var page = await repository.QueryAsync(query, token);
+            if (epoch != _epoch) return;
+            var rows = page.Items.ToList(); var bytes = rows.Sum(item => 256L + (item.ContentJson.Length + item.PlainText.Length) * 2L); var trimmed = false;
+            while (bytes > 32L * 1024 * 1024 && rows.Count > 1) { bytes -= 256L + (rows[0].ContentJson.Length + rows[0].PlainText.Length) * 2L; rows.RemoveAt(0); trimmed = true; }
+            LayoutChanging?.Invoke(); ReconcileTasks(rows); HasOlder = page.HasMore || trimmed; HasNewer = false; UpdateHeaders(); LayoutChanged?.Invoke();
+        }
+        catch (OperationCanceledException) { }
+        finally { if (epoch == _epoch) { _paging = false; IsLoading = false; } completion.TrySetResult(); }
+    }
+    private async Task RefreshWindowAsync(int additions = 0)
+    {
+        var range = QueryRange();
+        var refreshedQuery = new TaskQuery(CurrentProjectId, Filter, Sort, range.From, range.Until);
+        var cursor = refreshedQuery.CursorFor(Tasks[0].Item); var count = Math.Min(2000, Tasks.Count + additions);
         CancelQuery(); var epoch = _epoch; var token = _queryCancellation.Token; var repository = Repository!;
         _paging = true; var completion = _pageCompletion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        var range = QueryRange();
-        CurrentQuery = new(CurrentProjectId, Filter, Sort, range.From, range.Until);
+        CurrentQuery = refreshedQuery;
         var query = CurrentQuery with { Direction = PageDirection.Newer, Cursor = cursor, IncludeCursor = true };
         var rows = new List<TodoItem>(); bool more = false, budgetReached = false; long bytes = 0;
         IsLoading = true;
@@ -245,11 +314,17 @@ public sealed class MainViewModel : ObservableObject
                 query = query with { Cursor = query.CursorFor(rows[^1]), IncludeCursor = false };
             } while (more && rows.Count < 2000);
             if (epoch != _epoch) return;
-            if (rows.Count == 0) { await ReloadAsync(true); return; }
-            var older = await repository.QueryAsync(CurrentQuery with { Cursor = CurrentQuery.CursorFor(rows[0]), PageSize = 1 }, token);
+            if (rows.Count == 0)
+            {
+                var page = await repository.QueryAsync(CurrentQuery with { PageSize = 200 }, token);
+                rows.AddRange(page.Items); more = false;
+            }
+            var older = rows.Count == 0 ? new TaskPage([], false) : await repository.QueryAsync(CurrentQuery with { Cursor = CurrentQuery.CursorFor(rows[0]), PageSize = 1 }, token);
             if (epoch != _epoch) return;
-            LayoutChanging?.Invoke(); Tasks.Clear(); foreach (var item in rows) Tasks.Add(MakeRow(item));
-            HasOlder = older.Items.Count > 0; HasNewer = more; UpdateHeaders(); LayoutChanged?.Invoke();
+            var changed = Tasks.Count != rows.Count || Tasks.Where((t, i) => i < rows.Count && t.Item != rows[i]).Any();
+            if (changed) { LayoutChanging?.Invoke(); ReconcileTasks(rows); }
+            HasOlder = older.Items.Count > 0; HasNewer = more;
+            if (changed) { UpdateHeaders(); LayoutChanged?.Invoke(); }
         }
         catch (OperationCanceledException) { }
         finally { if (epoch == _epoch) { _paging = false; IsLoading = false; NotifyList(); Raise(nameof(DateSubtitle)); } completion.TrySetResult(); }
@@ -389,5 +464,5 @@ public sealed class MainViewModel : ObservableObject
         }
         Message = "修改已保存。";
     }
-    public void SaveSettings() => Library.SaveSettings(Settings);
+    public void SaveSettings() => _preferencesLibrary.SaveSettings(Settings);
 }

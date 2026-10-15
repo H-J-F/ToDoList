@@ -136,21 +136,22 @@ public sealed class StorageTests : IDisposable
         Assert.Equal("Work.db", Path.GetFileName(imported.Path));
         Assert.Single((await new TaskRepository(imported.Path).QueryAsync(new(null, TaskFilter.Open, TaskSort.Created))).Items);
     }
-    [Fact] public async Task MergeUsesLatestWholeVersionAndIsIdempotent()
+    [Fact] public async Task IdentityMergeRetainsConflictingVersionsAndIsIdempotent()
     {
         var (book, repo) = await Create(); var original = await repo.AddTaskAsync(RichContent.FromText("原始内容"), null, "共同项目");
         var external = Path.Combine(_root, "external.db"); await Library.ExportAsync(book, external);
         var importedRepo = new TaskRepository(external);
         var changed = await importedRepo.UpdateContentAsync(original.Id, RichContent.FromText("导入端的更新"), original.Revision);
         await importedRepo.SetStatusAsync(changed.Id, TodoStatus.Completed, changed.Revision);
-        var localOnly = await repo.AddTaskAsync(RichContent.FromText("本地独有"), null, "同名新项目");
-        await importedRepo.AddTaskAsync(RichContent.FromText("导入独有"), null, "同名新项目");
+        await repo.AddTaskAsync(RichContent.FromText("本地独有"), null);
+        await importedRepo.AddTaskAsync(RichContent.FromText("导入独有"), null);
         for (int i = 0; i < 2; i++) { using var prepared = await Library.PrepareImportAsync(external); await Library.ImportAsync(prepared, book, ImportMode.Merge); }
-        var done = Assert.Single((await repo.QueryAsync(new(null, TaskFilter.Completed, TaskSort.Completed))).Items);
-        Assert.Equal("导入端的更新", done.PlainText); Assert.Equal(2, (await repo.GetProjectsAsync()).Count);
-        var open = await repo.QueryAsync(new(null, TaskFilter.Open, TaskSort.Created)); Assert.Equal(2, open.Items.Count);
-        Assert.All(open.Items, t => Assert.Equal(localOnly.ProjectId, t.ProjectId));
-        Assert.Equal(2, Directory.GetFiles(Library.BackupDirectory, "*.db").Length);
+        var rows = (await repo.QueryAsync(new(null, TaskFilter.All, TaskSort.Created))).Items;
+        Assert.Equal(3, rows.Count); Assert.Equal("原始内容", rows.Single(t => t.Id == original.Id).PlainText);
+        var versions = new ToDoList.Storage.Cloud.CloudBookStorage(Library).ImportVersions().Values;
+        Assert.Equal(2, versions[ToDoList.Storage.Cloud.CloudSnapshot.Key(book.BookId, "task", original.Id)].Count);
+        Assert.Single(await Library.ListAsync());
+        Assert.Single(Directory.GetFiles(Library.BackupDirectory, "*.db"));
         using var c = Database.Open(book.Path); Assert.Equal(1L, Database.Scalar(c, "SELECT COUNT(*) FROM TaskStateEvents"));
     }
     [Fact] public async Task MergeTieKeepsLocalAndDifferentIdsWithSameTextArePreserved()

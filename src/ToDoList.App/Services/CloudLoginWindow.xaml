@@ -1,0 +1,31 @@
+<fluent:FluentWindow x:Class="ToDoList.App.Services.CloudLoginWindow"
+    x:ClassModifier="internal"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fluent="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+    Title="微信登录微云 · ToDoList" Width="760" Height="640" MinWidth="600" MinHeight="480"
+    WindowStartupLocation="CenterOwner" ExtendsContentIntoTitleBar="True" WindowBackdropType="None"
+    Background="{DynamicResource CanvasBrush}" Foreground="{DynamicResource InkBrush}"
+    FontFamily="Microsoft YaHei UI" UseLayoutRounding="True">
+    <Grid><Grid.RowDefinitions><RowDefinition Height="32"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <fluent:TitleBar Title="微信登录微云" ShowMinimize="False"/>
+        <StackPanel Grid.Row="1" Margin="16,12,16,10">
+            <TextBlock Text="请在微云官方页面用微信扫码并确认授权" TextWrapping="Wrap"/>
+            <TextBlock Text="扫码授权即同意使用当前微云空间保存 ToDoList 云存档。" FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+            <fluent:InfoBar x:Name="Notice" IsOpen="False" IsClosable="False" Severity="Warning" Margin="0,10,0,0"/>
+        </StackPanel>
+        <Grid Grid.Row="2" Margin="16,0">
+            <wv:WebView2 x:Name="Browser" Visibility="Collapsed"/>
+            <StackPanel x:Name="Loading" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <fluent:ProgressRing x:Name="Spinner" Width="28" Height="28" IsIndeterminate="True"/>
+                <TextBlock x:Name="LoadingText" Text="正在打开官方登录页面…" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="440" Margin="0,14,0,0"/>
+            </StackPanel>
+        </Grid>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16,12">
+            <fluent:Button x:Name="RetryButton" Content="重试" Click="Retry_Click" Margin="0,0,8,0"/>
+            <fluent:Button x:Name="ExternalButton" Content="使用系统浏览器" Click="External_Click" Margin="0,0,8,0"/>
+            <fluent:Button Content="取消登录" Click="Cancel_Click"/>
+        </StackPanel>
+    </Grid>
+</fluent:FluentWindow>

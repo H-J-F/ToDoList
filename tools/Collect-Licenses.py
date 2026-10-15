@@ -34,6 +34,7 @@ for name, url in sources.items():
     records.append({"file": name, "source": url, "sha256": hashlib.sha256(data).hexdigest()})
 
 local = {
+    "Microsoft-WebView2.txt": "microsoft.web.webview2/1.0.4258.31/LICENSE.txt",
     "WPF-UI.Tray.txt": "wpf-ui.tray/4.3.0/LICENSE.md",
     "Microsoft-Extensions-LICENSE.txt": "microsoft.extensions.logging.abstractions/8.0.3/LICENSE.TXT",
     "Microsoft-Extensions-NOTICES.txt": "microsoft.extensions.logging.abstractions/8.0.3/THIRD-PARTY-NOTICES.TXT",

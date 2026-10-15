@@ -15,7 +15,7 @@ for folder in sorted(root.glob("ToDoList-*-win-x64-*")):
     if version is not None and manifest["Version"] != version:
         continue
     files = [p for p in folder.rglob("*") if p.is_file()
-             and not any(part.lower() in ("data", "backup") for part in p.relative_to(folder).parts)]
+             and not any(part.lower() in ("data", "backup", "log", "auth") for part in p.relative_to(folder).parts)]
     names = {p.relative_to(folder).as_posix() for p in files}
     assert {"LICENSE", "THIRD-PARTY.md", "DEPENDENCIES.json", "ToDoList.exe", "BUILD.json"} <= names
     if manifest["Variant"] == "lite":

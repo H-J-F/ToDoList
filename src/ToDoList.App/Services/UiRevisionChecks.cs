@@ -194,18 +194,19 @@ internal static partial class UiRevisionChecks
             window.Close(); window.RequestExit(); await Choose(window, ContentDialogButton.Primary); await Choose(window, ContentDialogButton.Close); await Settle();
             Check(!((App)Application.Current).ExitRequested && draft.GetContent().PlainText == "退出时保存失败", "Save failure cancels exit and preserves draft");
             using (var c = Database.Open(book.Path)) Database.Exec(c, "DROP TRIGGER fail_add;");
-            // Save one pending row then cancel the draft prompt, proving both exit paths are reachable.
+            // Existing rows now auto-save on true focus loss; only the draft has an exit prompt.
             var restored = await repo.RestoreTaskAsync(model.Tasks[0].Id, model.Tasks[0].Item.Revision);
             await model.SelectFilterAsync(TaskFilter.All); Invoke(window, "SyncSelectors", false); await Settle();
             var pendingCard = Card(window, restored.Id); Invoke(window, "Task_EditRequested", pendingCard, EventArgs.Empty); await Settle();
             SetDirtyContent(pendingCard.ActiveEditor!, "退出时保存编辑");
             Check(pendingCard.HasPendingChanges, "Row exit scenario has a real unsaved edit");
-            window.Close(); window.RequestExit(); await Choose(window, ContentDialogButton.Primary); await Choose(window, ContentDialogButton.Close); await Settle();
-            Check(!((App)Application.Current).ExitRequested && model.Tasks.Single(r => r.Id == restored.Id).Item.PlainText == "退出时保存编辑", "Exit saves row edit before draft cancellation");
+            window.Close(); await Settle(); window.RequestExit(); await Choose(window, ContentDialogButton.Close); await Settle();
+            Check(!((App)Application.Current).ExitRequested && model.Tasks.Single(r => r.Id == restored.Id).Item.PlainText == "退出时保存编辑", "Focus loss saves row edit before draft cancellation");
             Invoke(window, "Task_EditRequested", Card(window, restored.Id), EventArgs.Empty); await Settle();
             SetDirtyContent(Card(window, restored.Id).ActiveEditor!, "放弃这个修改");
-            window.Close(); window.RequestExit(); await Choose(window, ContentDialogButton.Secondary); await Choose(window, ContentDialogButton.Close); await Settle();
-            Check(model.Tasks.Single(r => r.Id == restored.Id).Item.PlainText == "退出时保存编辑" && !((App)Application.Current).ExitRequested, "Exit can discard row edit without changing data");
+            Invoke(window, "Task_CancelRequested", Card(window, restored.Id), EventArgs.Empty);
+            window.Close(); window.RequestExit(); await Choose(window, ContentDialogButton.Close); await Settle();
+            Check(model.Tasks.Single(r => r.Id == restored.Id).Item.PlainText == "退出时保存编辑" && !((App)Application.Current).ExitRequested, "Explicit cancel discards row edit without changing data");
             draft.SetContent(RichContent.FromText(""));
             window.Close(); await Settle();
             var flashes = 0;

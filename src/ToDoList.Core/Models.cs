@@ -9,7 +9,11 @@ public enum TaskSort { Created, Completed, Deleted }
 public enum PageDirection { Older, Newer }
 public enum ImportMode { Merge, Replace }
 
-public sealed record BookInfo(string Name, string Title, string Path);
+public sealed record BookInfo(string Name, string Title, string Path, string BookId = "", bool IsHidden = false)
+{
+    public const string HiddenSetting = "IsHidden";
+    public string DisplayTitle => IsHidden ? Title + "（已隐藏）" : Title;
+}
 public sealed record ProjectInfo(string? Id, string Name, int SortOrder = 0);
 public sealed record TodoItem(string Id, string? ProjectId, string ContentJson, string PlainText,
     TodoStatus Status, long CreatedAt, long UpdatedAt, long? CompletedAt, long Revision, long? DeletedAt = null, TodoStatus? PreviousStatus = null, long? PreviousCompletedAt = null, long? EditedAt = null);
@@ -105,6 +109,9 @@ public static class DateRanges
 
 public sealed class AppSettings
 {
+    public bool CloudAutomaticSync { get; set; } = true;
+    public int CloudSyncIntervalMinutes { get; set; } = 5;
+    public Dictionary<string, string?> LastBooksByWorkspace { get; set; } = [];
     public List<string> RecentColors { get; set; } = [];
     public List<string> RecentEmoji { get; set; } = [];
     public int SettingsVersion { get; set; }
